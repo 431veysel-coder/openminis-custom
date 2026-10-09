@@ -1,0 +1,418 @@
+# ==============================================================================
+# GitHub Actions: Android Build & Release Pipeline (+ Keystore Generation)
+# Builds OpenMinis APKs | Generates Release Keystore on-demand
+# ==============================================================================
+
+name: Android Build & Release
+
+on:
+  push:
+    branches: [main, develop, 'release/*']
+    tags: ['v*']
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build variant'
+        type: choice
+        required: true
+        default: 'debug'
+        options: [debug, perf, release, keystore-only]
+      upload_release:
+        description: 'Create GitHub Release (tags only)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+  attestations: write
+
+env:
+  GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.parallel=true -Dorg.gradle.caching=true"
+  ANDROID_SDK_ROOT: "/opt/android-sdk"
+  ANDROID_NDK_VERSION: "r28c"
+  CMAKE_VERSION: "3.22.1"
+  JAVA_VERSION: "17"
+  GO_VERSION: "1.25"
+  KEYSTORE_ALIAS: "openminis"
+  KEYSTORE_VALIDITY: "10000"
+  KEYSTORE_DN: "CN=OpenMinis, OU=AI Agent, O=OpenMinis, L=Istanbul, ST=TR, C=TR"
+
+jobs:
+  # ---------------------------------------------------------------
+  # 0. KEYSTORE GENERATION (on-demand, manual trigger)
+  # ---------------------------------------------------------------
+  generate-keystore:
+    name: Generate Release Keystore
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_type == 'keystore-only'
+    outputs:
+      keystore_base64: ${{ steps.gen.outputs.keystore_base64 }}
+      keystore_password: ${{ steps.gen.outputs.keystore_password }}
+      key_alias_password: ${{ steps.gen.outputs.key_alias_password }}
+      key_alias: ${{ steps.gen.outputs.key_alias }}
+    steps:
+      - name: Generate Keystore
+        id: gen
+        run: |
+          ALIAS="${{ env.KEYSTORE_ALIAS }}"
+          STOREPASS=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-32)
+          KEYPASS=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-32)
+          
+          echo "Generating keystore with alias: $ALIAS"
+          keytool -genkeypair -v \
+            -keystore openminis-release.keystore \
+            -alias "$ALIAS" \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity ${{ env.KEYSTORE_VALIDITY }} \
+            -storepass "$STOREPASS" \
+            -keypass "$KEYPASS" \
+            -dname "${{ env.KEYSTORE_DN }}"
+          
+          BASE64=$(base64 -w0 openminis-release.keystore)
+          echo "keystore_base64=$BASE64" >> $GITHUB_OUTPUT
+          echo "keystore_password=$STOREPASS" >> $GITHUB_OUTPUT
+          echo "key_alias_password=$KEYPASS" >> $GITHUB_OUTPUT
+          echo "key_alias=$ALIAS" >> $GITHUB_OUTPUT
+          
+          echo ""
+          echo "=== COPY THESE TO GITHUB SECRETS ==="
+          echo "ANDROID_KEYSTORE_BASE64=$BASE64"
+          echo "KEYSTORE_PASSWORD=$STOREPASS"
+          echo "KEY_ALIAS_PASSWORD=$KEYPASS"
+          echo "KEY_ALIAS=$ALIAS"
+          echo "================================"
+
+      - name: Upload keystore as artifact (optional backup)
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-keystore
+          path: openminis-release.keystore
+          retention-days: 1
+
+  # ---------------------------------------------------------------
+  # 1. SETUP & VALIDATION
+  # ---------------------------------------------------------------
+  setup:
+    name: Setup & Validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      is_tag: ${{ startsWith(github.ref, 'refs/tags/') }}
+      is_release: ${{ github.event_name == 'release' || startsWith(github.ref, 'refs/tags/') }}
+      build_type: ${{ github.event.inputs.build_type || (startsWith(github.ref, 'refs/tags/') && 'release' || 'debug') }}
+    steps:
+      - name: Checkout repository (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v3
+
+      - name: Set output variables
+        id: set_output
+        run: |
+          BUILD_TYPE="${{ github.event.inputs.build_type }}"
+          if [ -z "$BUILD_TYPE" ]; then
+            if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+              BUILD_TYPE="release"
+            else
+              BUILD_TYPE="debug"
+            fi
+          fi
+          echo "build_type=$BUILD_TYPE" >> $GITHUB_OUTPUT
+          echo "is_tag=${{ startsWith(github.ref, 'refs/tags/') }}" >> $GITHUB_OUTPUT
+          echo "is_release=${{ github.event_name == 'release' || startsWith(github.ref, 'refs/tags/') }}" >> $GITHUB_OUTPUT
+
+  # ---------------------------------------------------------------
+  # 2. BUILD NATIVE DEPENDENCIES
+  # ---------------------------------------------------------------
+  native-deps:
+    name: Build Native Dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: setup
+    if: needs.setup.outputs.build_type != 'keystore-only'
+    steps:
+      - name: Checkout repository (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'gradle'
+
+      - name: Setup Android SDK & NDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 36
+          ndk-version: ${{ env.ANDROID_NDK_VERSION }}
+          cmake-version: ${{ env.CMAKE_VERSION }}
+
+      - name: Cache native build artifacts
+        uses: actions/cache@v4
+        id: native-cache
+        with:
+          path: |
+            deps/proot-build
+            deps/build/rclone
+            src/android/app/src/main/assets
+          key: native-deps-${{ runner.os }}-${{ hashFiles('deps/build_proot.sh', 'scripts/prepare_android_sandbox.sh', 'deps/build_rclone_android.sh') }}
+
+      - name: Install Go + gomobile
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+        env:
+          GOPROXY: https://proxy.golang.org,direct
+      - run: |
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          gomobile init
+
+      - name: Build PRoot
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        run: ./deps/build_proot.sh
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/${{ env.ANDROID_NDK_VERSION }}
+
+      - name: Prepare Android Sandbox
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        run: ./scripts/prepare_android_sandbox.sh
+
+      - name: Build rclone
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        run: |
+          ./deps/build_rclone_android.sh
+          mkdir -p src/android/app/libs
+          cp deps/build/rclone/rclone.aar src/android/app/libs/
+
+      - name: Verify PRoot Loaders (CRITICAL)
+        run: |
+          for f in libproot-loader.so libproot-loader32.so; do
+            [ -f "src/android/app/src/main/jniLibs/arm64-v8a/$f" ] && echo "✅ $f" || (echo "❌ $f MISSING" && exit 1)
+          done
+
+      - name: Upload native artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-deps
+          path: |
+            src/android/app/src/main/assets/
+            src/android/app/src/main/jniLibs/
+            src/android/app/libs/
+          retention-days: 7
+
+  # ---------------------------------------------------------------
+  # 3. BUILD ANDROID APK
+  # ---------------------------------------------------------------
+  build-apk:
+    name: Build APK (${{ matrix.build_type }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    needs: [setup, native-deps]
+    if: needs.setup.outputs.build_type != 'keystore-only'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - build_type: debug
+            gradle_task: assembleDebug
+            artifact_name: openminis-debug-apk
+          - build_type: perf
+            gradle_task: assemblePerf
+            artifact_name: openminis-perf-apk
+          - build_type: release
+            gradle_task: assembleRelease
+            artifact_name: openminis-release-apk
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Download native artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: native-deps
+          path: .
+          merge-multiple: true
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'gradle'
+
+      - name: Setup Android SDK & NDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 36
+          ndk-version: ${{ env.ANDROID_NDK_VERSION }}
+          cmake-version: ${{ env.CMAKE_VERSION }}
+
+      - name: Configure release signing
+        if: matrix.build_type == 'release'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS_PASSWORD: ${{ secrets.KEY_ALIAS_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "UNSIGNED_RELEASE=true" >> $GITHUB_ENV
+            echo "⚠️ Release keystore not in secrets - building unsigned"
+          else
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > openminis-release.keystore
+            cat >> local.properties << PROPS
+keystoreFile=openminis-release.keystore
+keystorePassword=$KEYSTORE_PASSWORD
+keyAlias=$KEY_ALIAS
+keyPassword=$KEY_ALIAS_PASSWORD
+PROPS
+            echo "SIGNED_RELEASE=true" >> $GITHUB_ENV
+          fi
+
+      - name: Build APK
+        run: cd src/android && ./gradlew :app:${{ matrix.gradle_task }} --no-daemon
+
+      - name: Verify APK
+        run: |
+          APK_PATH="src/android/app/build/outputs/apk/${{ matrix.build_type }}/"
+          ls -lh "$APK_PATH"/*.apk || exit 1
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: src/android/app/build/outputs/apk/${{ matrix.build_type }}/*.apk
+          retention-days: 30
+
+  # ---------------------------------------------------------------
+  # 4. SIGN RELEASE APK
+  # ---------------------------------------------------------------
+  sign-release:
+    name: Sign Release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [setup, build-apk]
+    if: needs.setup.outputs.is_release == 'true' && needs.build-apk.outputs.SIGNED_RELEASE == 'true'
+    steps:
+      - name: Download release APK
+        uses: actions/download-artifact@v4
+        with:
+          name: openminis-release-apk
+          path: .
+
+      - name: Restore keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS_PASSWORD: ${{ secrets.KEY_ALIAS_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > openminis-release.keystore
+
+      - name: Install apksigner
+        run: sudo apt-get update && sudo apt-get install -y android-sdk-build-tools
+
+      - name: Sign APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS_PASSWORD: ${{ secrets.KEY_ALIAS_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          UNSIGNED=$(find . -name "*release*.apk" | grep -v signed | head -1)
+          SIGNED="${UNSIGNED%.apk}-signed.apk"
+          apksigner sign \
+            --ks openminis-release.keystore \
+            --ks-pass "pass:$KEYSTORE_PASSWORD" \
+            --ks-key-alias "$KEY_ALIAS" \
+            --key-pass "pass:$KEY_ALIAS_PASSWORD" \
+            --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true \
+            --out "$SIGNED" "$UNSIGNED"
+          echo "signed_apk=$SIGNED" >> $GITHUB_OUTPUT
+
+      - name: Verify signature
+        run: apksigner verify -v "${{ steps.sign.outputs.signed_apk }}"
+
+      - name: Upload signed APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: openminis-release-signed-apk
+          path: "*-signed.apk"
+          retention-days: 90
+
+  # ---------------------------------------------------------------
+  # 5. CREATE GITHUB RELEASE
+  # ---------------------------------------------------------------
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [setup, build-apk, sign-release]
+    if: needs.setup.outputs.is_tag == 'true'
+    permissions:
+      contents: write
+    steps:
+      - name: Download all APK artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+          pattern: openminis-*-apk*
+
+      - name: Prepare release assets
+        run: |
+          cd release-assets
+          for f in *.apk; do
+            if [[ "$f" == *debug* ]]; then mv "$f" "openminis-debug-${{ github.sha::7 }}.apk"
+            elif [[ "$f" == *perf* ]]; then mv "$f" "openminis-perf-${{ github.sha::7 }}.apk"
+            elif [[ "$f" == *signed* ]]; then mv "$f" "openminis-release-${{ github.ref_name }}.apk"
+            elif [[ "$f" == *release* ]]; then mv "$f" "openminis-release-unsigned-${{ github.ref_name }}.apk"
+            fi
+          done
+
+      - name: Generate release notes
+        run: |
+          cat > release_notes.md << 'RELEASE'
+          ## OpenMinis ${{ github.ref_name }}
+
+          **Build:** `${{ github.sha::7 }}`
+          **Date:** $(date -u +"%Y-%m-%d %H:%M UTC")
+
+          ### Assets
+          | File | Type | Description |
+          |------|------|-------------|
+          | openminis-release-${{ github.ref_name }}.apk | Release | Signed, Play Store ready |
+          | openminis-perf-${{ github.sha::7 }}.apk | Perf | Profileable, AOT-compilable |
+          | openminis-debug-${{ github.sha::7 }}.apk | Debug | Debug server, DEV_TOOLS |
+
+          ### Verification
+          - Release: Signed v1/v2/v3, zipaligned
+          - Perf: Profileable, DEV_TOOLS enabled
+          - Debug: Debuggable, DEV_TOOLS enabled
+          RELEASE
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: OpenMinis ${{ github.ref_name }}
+          body_path: release_notes.md
+          files: release-assets/*.apk
+          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+
