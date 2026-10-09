@@ -1,0 +1,220 @@
+# ==============================================================================
+# GitHub Actions: MWS_OS_Workstation Integration
+# Downloads APK artifacts from OpenMinis builds, runs tests via termux_bridge
+# ==============================================================================
+
+name: MWS-OS Workstation Integration
+
+on:
+  workflow_dispatch:
+    inputs:
+      openminis_repo:
+        description: 'OpenMinis repo to fetch artifacts from'
+        type: choice
+        required: true
+        default: '431veysel-coder/openminis-custom'
+        options:
+          - '431veysel-coder/openminis-custom'
+          - '431veysel-coder/neo-desktop-mobile'
+          - 'OpenMinis/OpenMinis'
+      workflow_run_id:
+        description: 'Specific workflow run ID (optional, latest if empty)'
+        required: false
+      test_type:
+        description: 'Test to run'
+        type: choice
+        required: true
+        default: 'all'
+        options: [all, install, launch, apktool, gradle, smoke]
+
+  workflow_run:
+    workflows: ["Android Build & Release"]
+    types:
+      - completed
+
+jobs:
+  # ---------------------------------------------------------------
+  # 1. FETCH ARTIFACTS FROM OPENMINIS BUILD
+  # ---------------------------------------------------------------
+  fetch-artifacts:
+    name: Fetch OpenMinis Artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      debug_apk: ${{ steps.set_outputs.outputs.debug_apk }}
+      perf_apk: ${{ steps.set_outputs.outputs.perf_apk }}
+      release_apk: ${{ steps.set_outputs.outputs.release_apk }}
+    steps:
+      - name: Determine source workflow run
+        id: source_run
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ -n "${{ github.event.inputs.workflow_run_id }}" ]; then
+              RUN_ID="${{ github.event.inputs.workflow_run_id }}"
+            else
+              # Get latest successful run from openminis-custom
+              RUN_ID=$(gh api repos/${{ github.event.inputs.openminis_repo }}/actions/runs \
+                --jq '.workflow_runs[] | select(.conclusion=="success" and .name=="Android Build & Release") | .id' | head -1)
+            fi
+          else
+            RUN_ID="${{ github.event.workflow_run.id }}"
+          fi
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+
+      - name: Download APK artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ steps.source_run.outputs.run_id }}
+          REPO: ${{ github.event.inputs.openminis_repo || github.repository }}
+        run: |
+          gh api repos/$REPO/actions/runs/$RUN_ID/artifacts \
+            --jq '.artifacts[] | select(.name | test("openminis-(debug|perf|release)-apk")) | .id' | \
+          while read artifact_id; do
+            echo "Downloading artifact $artifact_id..."
+            gh api repos/$REPO/actions/artifacts/$artifact_id/zip -o artifact.zip
+            unzip -o artifact.zip -d artifacts/
+            rm artifact.zip
+          done
+
+      - name: List downloaded APKs
+        run: |
+          find artifacts -name "*.apk" -type f | while read f; do
+            echo "Found: $f ($(du -h "$f" | cut -f1))"
+          done
+
+      - name: Upload combined artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: openminis-apks
+          path: artifacts/
+          retention-days: 7
+
+      - name: Set output paths
+        id: set_outputs
+        run: |
+          DEBUG_APK=$(find artifacts -name "*debug*.apk" | head -1)
+          PERF_APK=$(find artifacts -name "*perf*.apk" | head -1)
+          RELEASE_APK=$(find artifacts -name "*release*signed*.apk" -o -name "*release*.apk" | grep -v unsigned | head -1)
+          echo "debug_apk=$DEBUG_APK" >> $GITHUB_OUTPUT
+          echo "perf_apk=$PERF_APK" >> $GITHUB_OUTPUT
+          echo "release_apk=$RELEASE_APK" >> $GITHUB_OUTPUT
+
+  # ---------------------------------------------------------------
+  # 2. RUN INTEGRATION TESTS VIA MWS TERMUX BRIDGE
+  # ---------------------------------------------------------------
+  integration-test:
+    name: Integration Test (${{ github.event.inputs.test_type || 'all' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: fetch-artifacts
+    steps:
+      - name: Download APKs
+        uses: actions/download-artifact@v4
+        with:
+          name: openminis-apks
+          path: apks/
+
+      - name: Setup test environment
+        run: |
+          # This would run on a device with MWS_OS_Workstation installed
+          # For GitHub Actions, we document the test procedure
+          echo "=== MWS Integration Test Procedure ==="
+          echo "APKs available:"
+          ls -lh apks/
+          echo ""
+          echo "To run on device with MWS_OS_Workstation:"
+          echo "1. adb push apks/*.apk /sdcard/AndroidCompiler/apk_tools/incoming/"
+          echo "2. sh scripts/omnitool_master.sh"
+          echo "3. sh scripts/stage_pipeline.sh run_stage_pipeline run"
+          echo "4. sh scripts/termux_bridge.sh apktool d incoming/*.apk"
+          echo "5. sh scripts/termux_bridge.sh gradle assembleDebug"
+
+      - name: Simulate MWS test commands (documentation)
+        run: |
+          cat > mws_test_commands.sh << 'TESTCMDS'
+#!/bin/sh
+# MWS_OS_Workstation Integration Test Commands
+# Run these on device with Shizuku + Termux + MWS_OS_Workstation
+
+APK_DIR="/sdcard/AndroidCompiler/apk_tools/incoming"
+WORKSTATION_ROOT="/var/minis/mounts/örnekklasör/MWS_OS_Workstation"
+
+# 1. Health check
+sh $WORKSTATION_ROOT/scripts/health_check.sh
+
+# 2. Initialize workspace
+sh $WORKSTATION_ROOT/scripts/omnitool_master.sh
+
+# 3. Test APK decompile (apktool via Termux bridge)
+for apk in $APK_DIR/*.apk; do
+    echo "Testing decompile: $apk"
+    sh $WORKSTATION_ROOT/scripts/termux_bridge.sh apktool d -f -o $APK_DIR/decoded/$(basename $apk .apk) $apk
+done
+
+# 4. Test Gradle build (via Termux bridge)
+sh $WORKSTATION_ROOT/scripts/termux_bridge.sh gradle assembleDebug
+
+# 5. Test full pipeline
+sh $WORKSTATION_ROOT/scripts/stage_pipeline.sh run_stage_pipeline run
+
+# 6. Test watchdog resume
+sh $WORKSTATION_ROOT/scripts/watchdog_guard.sh cmd_check_and_resume
+
+# 7. Test search
+python3 $WORKSTATION_ROOT/scripts/nexus_search.py "apktool"
+
+# 8. Test MCP tools (via Minis AI)
+# omnitool_telemetry
+# omnitool_search
+# omnitool_termux_bridge
+
+echo "All MWS integration tests documented"
+TESTCMDS
+          chmod +x mws_test_commands.sh
+          echo "Test commands saved to mws_test_commands.sh"
+
+      - name: Upload test commands
+        uses: actions/upload-artifact@v4
+        with:
+          name: mws-test-commands
+          path: mws_test_commands.sh
+          retention-days: 30
+
+  # ---------------------------------------------------------------
+  # 3. NOTIFY ON COMPLETION
+  # ---------------------------------------------------------------
+  notify:
+    name: Notify Completion
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [fetch-artifacts, integration-test]
+    if: always()
+    steps:
+      - name: Send Telegram notification (if configured)
+        if: env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          STATUS="${{ needs.fetch-artifacts.result }} / ${{ needs.integration-test.result }}"
+          REPO="${{ github.event.inputs.openminis_repo || github.repository }}"
+          curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+            -d chat_id="$TELEGRAM_CHAT_ID" \
+            -d text="🤖 MWS Integration: $STATUS
+          Repo: $REPO
+          Run: ${{ github.run_id }}"
+          -d parse_mode="Markdown"
+
+      - name: Summary
+        run: |
+          echo "=== MWS Integration Summary ==="
+          echo "Source repo: ${{ github.event.inputs.openminis_repo || github.repository }}"
+          echo "Debug APK: ${{ needs.fetch-artifacts.outputs.debug_apk }}"
+          echo "Perf APK: ${{ needs.fetch-artifacts.outputs.perf_apk }}"
+          echo "Release APK: ${{ needs.fetch-artifacts.outputs.release_apk }}"
+          echo "Test commands: artifacts/mws-test-commands.sh"
+          echo ""
+          echo "Next steps on device:"
+          echo "1. adb push apks/*.apk /sdcard/AndroidCompiler/apk_tools/incoming/"
+          echo "2. Run mws_test_commands.sh on device"
+
