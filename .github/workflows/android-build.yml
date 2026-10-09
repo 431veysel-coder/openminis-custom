@@ -88,7 +88,7 @@ jobs:
           echo "KEY_ALIAS=$ALIAS"
           echo "================================"
 
-      - name: Upload keystore as artifact (optional backup)
+      - name: Upload keystore as artifact
         uses: actions/upload-artifact@v4
         with:
           name: generated-keystore
@@ -277,12 +277,12 @@ jobs:
             echo "⚠️ Release keystore not in secrets - building unsigned"
           else
             echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > openminis-release.keystore
-            cat >> local.properties << PROPS
-keystoreFile=openminis-release.keystore
-keystorePassword=$KEYSTORE_PASSWORD
-keyAlias=$KEY_ALIAS
-keyPassword=$KEY_ALIAS_PASSWORD
-PROPS
+            {
+              echo "keystoreFile=openminis-release.keystore"
+              echo "keystorePassword=$KEYSTORE_PASSWORD"
+              echo "keyAlias=$KEY_ALIAS"
+              echo "keyPassword=$KEY_ALIAS_PASSWORD"
+            } > local.properties
             echo "SIGNED_RELEASE=true" >> $GITHUB_ENV
           fi
 
@@ -415,4 +415,3 @@ PROPS
           body_path: release_notes.md
           files: release-assets/*.apk
           prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
-
