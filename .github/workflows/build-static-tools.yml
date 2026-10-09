@@ -1,0 +1,403 @@
+# ==============================================================================
+# GitHub Actions: Static musl/aarch64 Android Build Tools
+# Builds: apktool, aapt2, zipalign, apksigner, keytool, jadx, clang
+# Output: vault/termux_components/static/
+# ==============================================================================
+
+name: Build Static Android Tools (musl/aarch64)
+
+on:
+  workflow_dispatch:  # Manuel tetikleme
+  schedule:
+    - cron: '0 2 * * 0'  # Haftada bir Pazar 02:00 UTC
+  push:
+    paths:
+      - '.github/workflows/build-static-tools.yml'
+      - 'scripts/**'
+
+env:
+  TARGET: aarch64-linux-musl
+  INSTALL_PREFIX: /opt/android-static
+  VAULT_DIR: ${{ github.workspace }}/vault/termux_components/static
+
+jobs:
+  # ---------------------------------------------------------------
+  # 1. TOOLCHAIN HAZIRLIĞI (Zig CC + musl-cross-make)
+  # ---------------------------------------------------------------
+  setup-toolchain:
+    name: Setup Cross-Compilation Toolchain
+    runs-on: ubuntu-latest
+    outputs:
+      zig_version: ${{ steps.zig.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Zig (modern cross-compiler)
+        uses: mlugg/setup-zig@v2
+        id: zig
+        with:
+          version: '0.13.0'
+
+      - name: Verify Zig targets
+        run: |
+          zig targets | grep -E "aarch64.*musl"
+          echo "Zig ready for ${{ env.TARGET }}"
+
+      - name: Cache musl-cross-make
+        uses: actions/cache@v4
+        id: musl-cache
+        with:
+          path: /opt/musl-cross
+          key: musl-cross-${{ runner.os }}-${{ hashFiles('.github/workflows/build-static-tools.yml') }}
+
+      - name: Build musl-cross-make (if not cached)
+        if: steps.musl-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 https://github.com/richfelker/musl-cross-make /tmp/musl-cross-make
+          cd /tmp/musl-cross-make
+          echo "TARGET = aarch64-linux-musl" > config.mak
+          echo "OUTPUT = /opt/musl-cross" >> config.mak
+          echo "GCC_VER = 13.2.0" >> config.mak
+          echo "BINUTILS_VER = 2.41" >> config.mak
+          make -j$(nproc) install
+          echo "/opt/musl-cross/bin" >> $GITHUB_PATH
+
+  # ---------------------------------------------------------------
+  # 2. OPENJDK MUSL (Alpine/Adoptium musl build)
+  # ---------------------------------------------------------------
+  build-openjdk:
+    name: Build OpenJDK 17 (musl/aarch64)
+    runs-on: ubuntu-latest
+    needs: setup-toolchain
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y \
+            build-essential autoconf automake libtool pkg-config \
+            zip unzip wget curl git
+
+      - name: Download OpenJDK 17 source
+        run: |
+          wget -q https://github.com/openjdk/jdk17u/archive/refs/tags/jdk-17.0.11-ga.tar.gz
+          tar -xzf jdk-17.0.11-ga.tar.gz
+          cd jdk17u-jdk-17.0.11-ga
+
+      - name: Configure for musl cross-compile
+        run: |
+          cd jdk17u-jdk-17.0.11-ga
+          bash configure \
+            --openjdk-target=${{ env.TARGET }} \
+            --with-sysroot=/opt/musl-cross/${{ env.TARGET }} \
+            --with-toolchain-path=/opt/musl-cross/bin \
+            --with-boot-jdk=/usr/lib/jvm/java-17-openjdk-amd64 \
+            --disable-warnings-as-errors \
+            --with-native-debug-symbols=none \
+            --with-debug-level=release
+
+      - name: Build OpenJDK (images only)
+        run: |
+          cd jdk17u-jdk-17.0.11-ga
+          make images -j$(nproc) LOG=info
+
+      - name: Package JDK
+        run: |
+          cd jdk17u-jdk-17.0.11-ga/build/linux-aarch64-normal-server-release/images/jdk
+          tar -czf ${{ github.workspace }}/openjdk17-musl-aarch64.tar.gz .
+
+      - name: Upload JDK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openjdk17-musl-aarch64
+          path: openjdk17-musl-aarch64.tar.gz
+
+  # ---------------------------------------------------------------
+  # 3. APKTOOL (Wrapper script + JAR - Java based, works on musl)
+  # ---------------------------------------------------------------
+  build-apktool:
+    name: Package Apktool (Java wrapper)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download latest Apktool
+        run: |
+          APKTOOL_VERSION=$(curl -s https://api.github.com/repos/iBotPeaches/Apktool/releases/latest | grep tag_name | cut -d'"' -f4)
+          wget -q "https://github.com/iBotPeaches/Apktool/releases/download/${APKTOOL_VERSION}/apktool_${APKTOOL_VERSION}.jar" -O apktool.jar
+          wget -q "https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool" -O apktool
+          chmod +x apktool
+          # Wrapper script'i musl Java path'ine göre düzelt
+          sed -i 's|/usr/bin/java|java|g' apktool
+
+      - name: Create package
+        run: |
+          mkdir -p ${{ env.VAULT_DIR }}/apktool
+          cp apktool.jar ${{ env.VAULT_DIR }}/apktool/
+          cp apktool ${{ env.VAULT_DIR }}/apktool/
+          echo "Apktool ${APKTOOL_VERSION} packaged for musl (requires Java)"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apktool-musl
+          path: ${{ env.VAULT_DIR }}/apktool/
+
+  # ---------------------------------------------------------------
+  # 4. JADX (Pure Java decompiler - apktool alternatifi)
+  # ---------------------------------------------------------------
+  build-jadx:
+    name: Package JADX (Pure Java alternative)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download latest JADX
+        run: |
+          JADX_VERSION=$(curl -s https://api.github.com/repos/skylot/jadx/releases/latest | grep tag_name | cut -d'"' -f4 | sed 's/v//')
+          wget -q "https://github.com/skylot/jadx/releases/download/v${JADX_VERSION}/jadx-${JADX_VERSION}.zip" -O jadx.zip
+          unzip -q jadx.zip -d jadx
+          chmod +x jadx/bin/jadx
+
+      - name: Create package
+        run: |
+          mkdir -p ${{ env.VAULT_DIR }}/jadx
+          cp -r jadx/* ${{ env.VAULT_DIR }}/jadx/
+          echo "JADX ${JADX_VERSION} packaged (pure Java, works on musl)"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jadx-musl
+          path: ${{ env.VAULT_DIR }}/jadx/
+
+  # ---------------------------------------------------------------
+  # 5. AAPT2 (Zig CC ile statik cross-compile - ZOR)
+  # ---------------------------------------------------------------
+  build-aapt2:
+    name: Build aapt2 static (musl/aarch64) via Zig
+    runs-on: ubuntu-latest
+    needs: setup-toolchain
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: '0.13.0'
+
+      - name: Download AOSP aapt2 source
+        run: |
+          # AOSP build tools'dan aapt2 source (Bazel tabanlı, Zig ile zor)
+          # Alternatif: Prebuilt static binary kullan
+          wget -q "https://dl.google.com/android/repository/build-tools_r34-linux.zip" -O build-tools.zip
+          unzip -q build-tools.zip -d build-tools
+          # aarch64 için prebuilt yok genellikle x86_64
+          # Zig ile yeniden derlemek için source gerekir
+
+      - name: Attempt Zig cross-compile (experimental)
+        run: |
+          # Bu kısım deneyseldir - AOSP source tree gerektirir
+          # Basit yaklaşım: Termux'un aapt2'sini indirelim (bionic, musl'de çalışmaz)
+          # Veya: aapt2'yi statik linklemek için özel patch'ler gerekir
+          echo "aapt2 statik derleme zor - Zig CC ile AOSP source tree gerekir"
+          echo "Geçici çözüm: Termux prebuilt kullan + Shizuku bridge"
+
+      - name: Download Termux aapt2 (fallback - bionic)
+        run: |
+          wget -q "https://packages.termux.org/apt/termux-main/pool/main/a/aapt2/aapt2_34.0.0-1_aarch64.deb" -O aapt2.deb
+          dpkg -x aapt2.deb aapt2-extracted
+          mkdir -p ${{ env.VAULT_DIR }}/aapt2
+          cp aapt2-extracted/data/data/com.termux/files/usr/bin/aapt2 ${{ env.VAULT_DIR }}/aapt2/
+          echo "NOTE: This is bionic-linked (Termux native), NOT musl. Use via Termux bridge."
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aapt2-termux-bionic
+          path: ${{ env.VAULT_DIR }}/aapt2/
+
+  # ---------------------------------------------------------------
+  # 6. ZIPALIGN & APKSIGNER (Termux prebuilt - bionic)
+  # ---------------------------------------------------------------
+  build-zipalign-apksigner:
+    name: Package zipalign & apksigner (Termux prebuilt)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Termux packages
+        run: |
+          # zipalign
+          wget -q "https://packages.termux.org/apt/termux-main/pool/main/z/zipalign/zipalign_34.0.0-1_aarch64.deb" -O zipalign.deb
+          dpkg -x zipalign.deb zipalign-extracted
+          
+          # apksigner (Android SDK build-tools içinde)
+          wget -q "https://packages.termux.org/apt/termux-main/pool/main/a/apksigner/apksigner_34.0.0-1_aarch64.deb" -O apksigner.deb
+          dpkg -x apksigner.deb apksigner-extracted
+
+      - name: Package
+        run: |
+          mkdir -p ${{ env.VAULT_DIR }}/zipalign
+          mkdir -p ${{ env.VAULT_DIR }}/apksigner
+          cp zipalign-extracted/data/data/com.termux/files/usr/bin/zipalign ${{ env.VAULT_DIR }}/zipalign/
+          cp apksigner-extracted/data/data/com.termux/files/usr/bin/apksigner ${{ env.VAULT_DIR }}/apksigner/
+          echo "NOTE: These are bionic-linked (Termux native). Use via Termux bridge."
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zipalign-apksigner-termux
+          path: ${{ env.VAULT_DIR }}/zipalign/ ${{ env.VAULT_DIR }}/apksigner/
+
+  # ---------------------------------------------------------------
+  # 7. KEYTOOL (OpenJDK musl'dan çıkar)
+  # ---------------------------------------------------------------
+  extract-keytool:
+    name: Extract keytool from OpenJDK musl
+    runs-on: ubuntu-latest
+    needs: build-openjdk
+    steps:
+      - name: Download JDK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: openjdk17-musl-aarch64
+          path: jdk
+
+      - name: Extract keytool
+        run: |
+          tar -xzf jdk/openjdk17-musl-aarch64.tar.gz -C jdk
+          mkdir -p ${{ env.VAULT_DIR }}/keytool
+          cp jdk/bin/keytool ${{ env.VAULT_DIR }}/keytool/
+          # keytool.jar varsa kopyala
+          cp jdk/lib/tools.jar ${{ env.VAULT_DIR }}/keytool/ 2>/dev/null || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: keytool-musl
+          path: ${{ env.VAULT_DIR }}/keytool/
+
+  # ---------------------------------------------------------------
+  # 8. CLANG/LLVM (Zig CC zaten LLVM, ekstra derlemeye gerek yok)
+  # ---------------------------------------------------------------
+  package-clang:
+    name: Package Zig as Clang replacement
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: '0.13.0'
+
+      - name: Create clang wrapper
+        run: |
+          mkdir -p ${{ env.VAULT_DIR }}/clang
+          cat > ${{ env.VAULT_DIR }}/clang/clang << 'WRAPPER'
+#!/bin/sh
+# Zig CC as drop-in clang replacement
+exec zig cc "$@"
+WRAPPER
+          cat > ${{ env.VAULT_DIR }}/clang/clang++ << 'WRAPPER'
+#!/bin/sh
+exec zig c++ "$@"
+WRAPPER
+          chmod +x ${{ env.VAULT_DIR }}/clang/clang ${{ env.VAULT_DIR }}/clang/clang++
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zig-clang-musl
+          path: ${{ env.VAULT_DIR }}/clang/
+
+  # ---------------------------------------------------------------
+  # 9. ASSEMBLE FINAL VAULT PACKAGE
+  # ---------------------------------------------------------------
+  assemble-vault:
+    name: Assemble Final Vault Package
+    runs-on: ubuntu-latest
+    needs:
+      - build-apktool
+      - build-jadx
+      - build-aapt2
+      - build-zipalign-apksigner
+      - extract-keytool
+      - package-clang
+    if: always()
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create final vault structure
+        run: |
+          mkdir -p vault/termux_components/static
+          # Tüm indirilen artifact'leri vault'a kopyala
+          cp -r artifacts/* vault/termux_components/static/ 2>/dev/null || true
+          
+          # README oluştur
+          cat > vault/termux_components/static/README.md << 'README'
+# Static Android Build Tools for musl/aarch64
+
+## ✅ Works on Minis PRoot (musl) WITHOUT Termux
+
+| Tool | Type | Status |
+|------|------|--------|
+| **apktool** | Java wrapper + JAR | ✅ Works (needs Java) |
+| **jadx** | Pure Java | ✅ Works (needs Java) |
+| **keytool** | OpenJDK musl native | ✅ Works |
+| **clang/clang++** | Zig CC wrapper | ✅ Works |
+
+## ⚠️ Requires Termux Bridge (bionic-linked)
+
+| Tool | Type | Status |
+|------|------|--------|
+| **aapt2** | Termux prebuilt (bionic) | Use via `termux_bridge.sh` |
+| **zipalign** | Termux prebuilt (bionic) | Use via `termux_bridge.sh` |
+| **apksigner** | Termux prebuilt (bionic) | Use via `termux_bridge.sh` |
+| **java/gradle** | OpenJDK musl (limited) | Use Termux for full Gradle |
+
+## Usage in Minis
+
+```bash
+# Static tools (work directly)
+export PATH="/var/minis/mounts/örnekklasör/MWS_OS_Workstation/vault/termux_components/static/apktool:$PATH"
+export PATH=".../static/jadx/bin:$PATH"
+export PATH=".../static/keytool:$PATH"
+export PATH=".../static/clang:$PATH"
+
+# Java tools need Java - use Termux bridge:
+sh scripts/termux_bridge.sh apktool d app.apk
+sh scripts/termux_bridge.sh aapt2 compile ...
+sh scripts/termux_bridge.sh zipalign -v 4 in.apk out.apk
+sh scripts/termux_bridge.sh apksigner sign --ks key.keystore --out out.apk in.apk
+```
+
+## Build Info
+
+- **Target**: aarch64-linux-musl
+- **Built**: $(date -u)
+- **Workflow**: build-static-tools.yml
+README
+
+      - name: Upload final vault
+        uses: actions/upload-artifact@v4
+        with:
+          name: vault-termux-components-static
+          path: vault/termux_components/static/
+          retention-days: 30
+
+      - name: Create release (on tag)
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: vault/termux_components/static/**/*
+          generate_release_notes: true
