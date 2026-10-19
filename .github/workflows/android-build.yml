@@ -260,7 +260,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: native-deps
-          path: .
+          path: src/android/app/libs
           merge-multiple: true
 
       - name: Setup JDK 17
