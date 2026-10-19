@@ -359,8 +359,8 @@ jobs:
         run: |
           cd release-assets
           for f in *.apk; do
-            if [[ "$f" == *debug* ]]; then mv "$f" "openminis-debug-${{ github.sha[:7] }}.apk"
-            elif [[ "$f" == *perf* ]]; then mv "$f" "openminis-perf-${{ github.sha[:7] }}.apk"
+            if [[ "$f" == *debug* ]]; then mv "$f" "openminis-debug-${GITHUB_SHA::7}.apk"
+            elif [[ "$f" == *perf* ]]; then mv "$f" "openminis-perf-${GITHUB_SHA::7}.apk"
             elif [[ "$f" == *signed* ]]; then mv "$f" "openminis-release-${{ github.ref_name }}.apk"
             elif [[ "$f" == *release* ]]; then mv "$f" "openminis-release-unsigned-${{ github.ref_name }}.apk"
             fi
@@ -371,15 +371,15 @@ jobs:
           cat > release_notes.md << 'RELEASE'
           ## OpenMinis ${{ github.ref_name }}
 
-          **Build:** `${{ github.sha[:7] }}`
+          **Build:** `${{ github.sha }}`
           **Date:** $(date -u +"%Y-%m-%d %H:%M UTC")
 
           ### Assets
           | File | Type | Description |
           |------|------|-------------|
           | openminis-release-${{ github.ref_name }}.apk | Release | Signed, Play Store ready |
-          | openminis-perf-${{ github.sha[:7] }}.apk | Perf | Profileable, AOT-compilable |
-          | openminis-debug-${{ github.sha[:7] }}.apk | Debug | Debug server, DEV_TOOLS |
+          | openminis-perf-${GITHUB_SHA::7}.apk | Perf | Profileable, AOT-compilable |
+          | openminis-debug-${GITHUB_SHA::7}.apk | Debug | Debug server, DEV_TOOLS |
 
           ### Verification
           - Release: Signed v1/v2/v3, zipaligned
