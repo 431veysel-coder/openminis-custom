@@ -321,7 +321,9 @@ jobs:
           fi
 
       - name: Build APK
-        run: cd src/android && ./gradlew :app:${{ matrix.gradle_task }} --no-daemon
+        run: |
+          unset ANDROID_HOME
+          cd src/android && ./gradlew :app:${{ matrix.gradle_task }} --no-daemon
 
       - name: Verify APK
         run: |
