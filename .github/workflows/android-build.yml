@@ -173,7 +173,7 @@ jobs:
           echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/${ANDROID_NDK_VERSION}" >> $GITHUB_ENV
         env:
           ANDROID_SDK_ROOT: "/opt/android-sdk"
-          ANDROID_NDK_VERSION: "r28c"
+          ANDROID_NDK_VERSION: "26.1.10909125"
           CMAKE_VERSION: "3.22.1"
 
       - name: Cache native build artifacts
@@ -297,7 +297,7 @@ jobs:
           echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/${ANDROID_NDK_VERSION}" >> $GITHUB_ENV
         env:
           ANDROID_SDK_ROOT: "/opt/android-sdk"
-          ANDROID_NDK_VERSION: "r28c"
+          ANDROID_NDK_VERSION: "26.1.10909125"
           CMAKE_VERSION: "3.22.1"
 
       - name: Configure release signing
