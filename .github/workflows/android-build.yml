@@ -184,6 +184,7 @@ jobs:
             deps/proot-build
             deps/build/rclone
             src/android/app/src/main/assets
+            src/android/app/libs
           key: native-deps-${{ runner.os }}-${{ hashFiles('deps/build_proot.sh', 'scripts/prepare_android_sandbox.sh', 'deps/build_rclone_android.sh') }}
 
       - name: Install Go + gomobile
