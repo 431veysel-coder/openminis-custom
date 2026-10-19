@@ -263,6 +263,19 @@ jobs:
           path: src/android/app/libs
           merge-multiple: true
 
+- name: Ensure rclone.aar exists (fallback build)
+        run: |
+          if [ ! -f src/android/app/libs/rclone.aar ]; then
+            echo "rclone.aar not found in artifact, building locally..."
+            mkdir -p src/android/app/libs
+            cd deps
+            ./build_rclone_android.sh
+            cp build/rclone/rclone.aar ../src/android/app/libs/
+            cd ..
+          else
+            echo "rclone.aar found in artifact"
+          fi
+
       - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
