@@ -146,12 +146,35 @@ jobs:
           cache: 'gradle'
 
       - name: Setup Android SDK & NDK
-        uses: android-actions/setup-android@v3
-        with:
-          api-level: 36
-          ndk-version: ${{ env.ANDROID_NDK_VERSION }}
-          cmake-version: ${{ env.CMAKE_VERSION }}
-          cmdline-tools-version: "latest"
+        run: |
+          ANDROID_SDK_ROOT="/opt/android-sdk"
+          ANDROID_CMDLINE_TOOLS="$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          
+          # Install cmdline-tools
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+          cd "$ANDROID_SDK_ROOT/cmdline-tools"
+          wget -q "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" -O cmdline-tools.zip
+          unzip -q cmdline-tools.zip
+          mv cmdline-tools latest
+          rm cmdline-tools.zip
+          
+          # Accept licenses
+          yes | "$ANDROID_CMDLINE_TOOLS/bin/sdkmanager" --licenses
+          
+          # Install required packages
+          "$ANDROID_CMDLINE_TOOLS/bin/sdkmanager" \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;35.0.0" \
+            "ndk;${ANDROID_NDK_VERSION}" \
+            "cmake;${CMAKE_VERSION}"
+          
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/${ANDROID_NDK_VERSION}" >> $GITHUB_ENV
+        env:
+          ANDROID_SDK_ROOT: "/opt/android-sdk"
+          ANDROID_NDK_VERSION: "r28c"
+          CMAKE_VERSION: "3.22.1"
 
       - name: Cache native build artifacts
         uses: actions/cache@v4
@@ -247,12 +270,35 @@ jobs:
           cache: 'gradle'
 
       - name: Setup Android SDK & NDK
-        uses: android-actions/setup-android@v3
-        with:
-          api-level: 36
-          ndk-version: ${{ env.ANDROID_NDK_VERSION }}
-          cmake-version: ${{ env.CMAKE_VERSION }}
-          cmdline-tools-version: "latest"
+        run: |
+          ANDROID_SDK_ROOT="/opt/android-sdk"
+          ANDROID_CMDLINE_TOOLS="$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          
+          # Install cmdline-tools
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+          cd "$ANDROID_SDK_ROOT/cmdline-tools"
+          wget -q "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" -O cmdline-tools.zip
+          unzip -q cmdline-tools.zip
+          mv cmdline-tools latest
+          rm cmdline-tools.zip
+          
+          # Accept licenses
+          yes | "$ANDROID_CMDLINE_TOOLS/bin/sdkmanager" --licenses
+          
+          # Install required packages
+          "$ANDROID_CMDLINE_TOOLS/bin/sdkmanager" \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;35.0.0" \
+            "ndk;${ANDROID_NDK_VERSION}" \
+            "cmake;${CMAKE_VERSION}"
+          
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/${ANDROID_NDK_VERSION}" >> $GITHUB_ENV
+        env:
+          ANDROID_SDK_ROOT: "/opt/android-sdk"
+          ANDROID_NDK_VERSION: "r28c"
+          CMAKE_VERSION: "3.22.1"
 
       - name: Configure release signing
         if: matrix.build_type == 'release'
