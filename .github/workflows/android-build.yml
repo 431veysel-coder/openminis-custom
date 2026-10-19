@@ -185,7 +185,7 @@ jobs:
             deps/build/rclone
             src/android/app/src/main/assets
             src/android/app/libs
-          key: native-deps-${{ runner.os }}-${{ hashFiles('deps/build_proot.sh', 'scripts/prepare_android_sandbox.sh', 'deps/build_rclone_android.sh') }}
+          key: native-deps-v2-${{ runner.os }}-${{ hashFiles('deps/build_proot.sh', 'scripts/prepare_android_sandbox.sh', 'deps/build_rclone_android.sh') }}
 
       - name: Install Go + gomobile
         uses: actions/setup-go@v5
