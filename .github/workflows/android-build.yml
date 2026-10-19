@@ -263,7 +263,7 @@ jobs:
           path: src/android/app/libs
           merge-multiple: true
 
-- name: Ensure rclone.aar exists (fallback build)
+      - name: Ensure rclone.aar exists (fallback build)
         run: |
           if [ ! -f src/android/app/libs/rclone.aar ]; then
             echo "rclone.aar not found in artifact, building locally..."
