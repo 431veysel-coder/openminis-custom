@@ -263,6 +263,24 @@ jobs:
           path: src/android/app/libs
           merge-multiple: true
 
+      - name: Download native artifacts
+        uses: actions/download-artifact@v4
+        id: download-artifact
+        with:
+          name: native-deps
+          path: src/android/app/libs
+          merge-multiple: true
+
+      - name: Install Go + gomobile (for rclone fallback)
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+        env:
+          GOPROXY: https://proxy.golang.org,direct
+      - run: |
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          gomobile init
+
       - name: Ensure rclone.aar exists (fallback build)
         run: |
           if [ ! -f src/android/app/libs/rclone.aar ]; then
