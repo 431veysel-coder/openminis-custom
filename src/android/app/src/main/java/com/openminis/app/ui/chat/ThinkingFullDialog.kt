@@ -25,8 +25,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,6 +66,7 @@ import java.text.NumberFormat
 fun ThinkingFullDialog(content: String, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
+    val scope = rememberCoroutineScope()
     val thinkingBlue = Color(0xFF007AFF)
     val chunks by produceState<List<ThinkingChunking.Chunk>?>(null, content) {
         value = withContext(Dispatchers.Default) { ThinkingChunking.chunks(content) }
@@ -91,6 +92,11 @@ fun ThinkingFullDialog(content: String, onDismiss: () -> Unit) {
         }
     }
 
+    var isTranslated by remember { mutableStateOf(false) }
+    var displayedContent by remember(content) { mutableStateOf(content) }
+    var summaryText by remember { mutableStateOf<String?>(null) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(modifier = Modifier.fillMaxSize()) {
             Column(modifier = Modifier.fillMaxSize()) {
@@ -108,18 +114,37 @@ fun ThinkingFullDialog(content: String, onDismiss: () -> Unit) {
                         Text(
                             text = stringResource(
                                 R.string.thinking_full_char_count,
-                                NumberFormat.getIntegerInstance().format(content.length),
+                                NumberFormat.getIntegerInstance().format(displayedContent.length),
                             ),
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                         )
                     }
                     MinisTextButton(onClick = {
+                        scope.launch {
+                            if (isTranslated) {
+                                displayedContent = content
+                                isTranslated = false
+                            } else {
+                                displayedContent = ThinkingEnhancer.translateThinking(content, "tr")
+                                isTranslated = true
+                            }
+                        }
+                    }) {
+                        Text(text = if (isTranslated) "Orijinal" else "Türkçe'ye Çevir")
+                    }
+                    MinisTextButton(onClick = {
+                        scope.launch {
+                            summaryText = ThinkingEnhancer.summarizeThinking(displayedContent)
+                        }
+                    }) {
+                        Text(text = "Özetle")
+                    }
+                    MinisTextButton(onClick = {
                         try {
-                            clipboard.setText(AnnotatedString(ThinkingChunking.copyText(content)))
+                            clipboard.setText(AnnotatedString(ThinkingChunking.copyText(displayedContent)))
                             Toast.makeText(context, R.string.terminal_copied_all, Toast.LENGTH_SHORT).show()
                         } catch (e: RuntimeException) {
-                            // A text past the Binder transaction limit cannot go to the clipboard.
                             Toast.makeText(context, R.string.thinking_full_copy_failed, Toast.LENGTH_SHORT).show()
                         }
                     }) {
@@ -127,6 +152,21 @@ fun ThinkingFullDialog(content: String, onDismiss: () -> Unit) {
                     }
                     MinisTextButton(onClick = onDismiss) {
                         Text(text = stringResource(android.R.string.ok))
+                    }
+                }
+                if (summaryText != null) {
+                    Surface(
+                        color = thinkingBlue.copy(alpha = 0.08f),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = summaryText!!,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
                 HorizontalDivider()
