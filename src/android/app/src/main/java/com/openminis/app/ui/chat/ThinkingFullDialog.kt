@@ -25,9 +25,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
 import androidx.compose.runtime.withFrameNanos
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -95,7 +96,6 @@ fun ThinkingFullDialog(content: String, onDismiss: () -> Unit) {
     var isTranslated by remember { mutableStateOf(false) }
     var displayedContent by remember(content) { mutableStateOf(content) }
     var summaryText by remember { mutableStateOf<String?>(null) }
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(modifier = Modifier.fillMaxSize()) {
@@ -154,7 +154,8 @@ fun ThinkingFullDialog(content: String, onDismiss: () -> Unit) {
                         Text(text = stringResource(android.R.string.ok))
                     }
                 }
-                if (summaryText != null) {
+                val currentSummary = summaryText
+                if (currentSummary != null) {
                     Surface(
                         color = thinkingBlue.copy(alpha = 0.08f),
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
@@ -162,7 +163,7 @@ fun ThinkingFullDialog(content: String, onDismiss: () -> Unit) {
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text(
-                                text = summaryText!!,
+                                text = currentSummary,
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
