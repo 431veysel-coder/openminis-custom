@@ -1,0 +1,24 @@
+{
+  "name": "OpenMinis Custom DevContainer",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "17",
+      "installMaven": "false",
+      "installGradle": "true"
+    },
+    "ghcr.io/devcontainers/features/node:1": "latest"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "ms-python.python",
+        "golang.go",
+        "redhat.vscode-yaml"
+      ]
+    }
+  },
+  "postCreateCommand": "echo 'OpenMinis Custom environment ready. Run scripts/bump_version.py or build Android app via cd src/android && ./gradlew assembleDebug'",
+  "remoteUser": "vscode"
+}

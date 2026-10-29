@@ -198,6 +198,17 @@ Apple / Swift Server Workgroup packages (Apache-2.0).
 
 ---
 
+## Automation & CI/CD
+
+OpenMinis Custom is equipped with fully automated build and release workflows:
+
+- **GitHub Actions**: Automatically builds Debug and Release APKs on every commit and pull request. See [.github/workflows/android-build.yml](.github/workflows/android-build.yml).
+- **GitHub Codespaces**: Cloud-based development environment ready out of the box with Java 17 and Android tools. See [.devcontainer/devcontainer.json](.devcontainer/devcontainer.json).
+- **Automated Versioning**: Easily bump versions using `python3 scripts/bump_version.py [patch|minor|major]`.
+- **Full Automation Guide**: See [AUTOMATION.md](AUTOMATION.md) for details.
+
+---
+
 ## License
 
 OpenMinis is licensed under the **[GNU General Public License v3.0](LICENSE)**.

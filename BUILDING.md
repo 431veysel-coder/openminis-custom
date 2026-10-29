@@ -12,6 +12,34 @@ ordered by dependency, and skipping one produces confusing link errors later.
 
 ---
 
+## Automated Building (GitHub Actions & Codespaces)
+
+If you prefer automated builds or want to build in the cloud without setting up local tools:
+
+1. **GitHub Actions (CI/CD)**:
+   - Pushing code to `main` or creating a tag `v*` automatically triggers the build workflow.
+   - APK artifacts (`app-debug.apk` and `app-release-unsigned.apk`) will be available in the Actions summary tab.
+   - For full workflow definition, see `.github/workflows/android-build.yml`.
+
+2. **GitHub Codespaces**:
+   - Open the repository in GitHub Codespaces.
+   - Pre-installed Java 17, Gradle, Node.js, and Python environment allows building Android APKs directly in the cloud container.
+   - Build Android APK via:
+     ```bash
+     cd src/android
+     ./gradlew assembleDebug
+     ```
+
+3. **Version Management**:
+   - Bump version code and name automatically before releasing:
+     ```bash
+     python3 scripts/bump_version.py [patch|minor|major]
+     ```
+
+For complete automation details, consult [AUTOMATION.md](AUTOMATION.md).
+
+---
+
 ## Common setup
 
 Clone with submodules — the iSH and PRoot forks are submodules, and a clone
