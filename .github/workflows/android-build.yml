@@ -10,6 +10,8 @@ on:
 env:
   GRADLE_OPTS: "-Dorg.gradle.daemon=true -Dorg.gradle.parallel=true -Dorg.gradle.configureondemand=true -Dorg.gradle.caching=true -Dkotlin.incremental=true -Dkotlin.daemon.jvm.options=-Xmx3g"
   JAVA_TOOL_OPTIONS: "-Xmx3g"
+  ANDROID_HOME: /usr/local/lib/android/sdk
+  ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/28.0.12433566
 
 jobs:
   # Job 1: Native Dependencies (ayrı cache'lenebilir, nadiren değişir)
