@@ -2,7 +2,6 @@ package com.openminis.app.ui.chat
 
 import android.content.Context
 import android.widget.Toast
-import com.google.mlkit.nl.languageid.LanguageIdentification
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.nl.translate.TranslatorOptions
@@ -69,35 +68,38 @@ object ThinkingEnhancer {
         text: String,
         targetLanguage: String,
         protectCode: Boolean
-    ): String = suspendCancellableCoroutine { continuation ->
-        val options = TranslatorOptions.Builder()
-            .setSourceLanguage(LanguageIdentification.UNDETERMINED)
-            .setTargetLanguage(targetLanguage)
-            .build()
-        val translator = Translation.getClient(options)
+    ): String = suspendCancellableCoroutine(
+        { continuation ->
+            val options = TranslatorOptions.Builder()
+                .setSourceLanguage("auto")
+                .setTargetLanguage(targetLanguage)
+                .build()
+            val translator = Translation.getClient(options)
 
-        // Download model if needed, then translate
-        translator.downloadModelIfNeeded()
-            .addOnSuccessListener {
-                // Protect code blocks before translation
-                val (protectedText, codeBlocks) = if (protectCode) protectCodeBlocks(text) else text to emptyList<String>()
+            // Download model if needed, then translate
+            translator.downloadModelIfNeeded()
+                .addOnSuccessListener {
+                    // Protect code blocks before translation
+                    val (protectedText, codeBlocks) = if (protectCode) protectCodeBlocks(text) else text to emptyList<String>()
 
-                translator.translate(protectedText)
-                    .addOnSuccessListener { translated ->
-                        // Restore code blocks after translation
-                        val result = if (protectCode) restoreCodeBlocks(translated, codeBlocks) else translated
-                        continuation.resume(result)
-                    }
-                    .addOnFailureListener { e ->
-                        continuation.resumeWith(Result.failure(e))
-                    }
-            }
-            .addOnFailureListener { e ->
-                continuation.resumeWith(Result.failure(e))
-            }
-    } onCancellation { continuation ->
-        // Handle cancellation if needed
-    }
+                    translator.translate(protectedText)
+                        .addOnSuccessListener { translated ->
+                            // Restore code blocks after translation
+                            val result = if (protectCode) restoreCodeBlocks(translated, codeBlocks) else translated
+                            continuation.resume(result)
+                        }
+                        .addOnFailureListener { e ->
+                            continuation.resumeWith(Result.failure(e))
+                        }
+                }
+                .addOnFailureListener { e ->
+                    continuation.resumeWith(Result.failure(e))
+                }
+        },
+        { continuation ->
+            // Handle cancellation if needed
+        }
+    )
 
     /**
      * Fallback heuristic translation with code protection.
