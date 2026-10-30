@@ -7,9 +7,9 @@ import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.nl.translate.TranslatorOptions
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Result
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlin.Result
 
 /**
  * ThinkingEnhancer: Provides advanced capabilities for deep thinking blocks:
@@ -95,7 +95,7 @@ object ThinkingEnhancer {
             .addOnFailureListener { e ->
                 continuation.resumeWith(Result.failure(e))
             }
-    } onCancellation {
+    } onCancellation { continuation ->
         // Handle cancellation if needed
     }
 
