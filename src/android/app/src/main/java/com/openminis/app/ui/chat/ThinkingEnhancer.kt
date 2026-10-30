@@ -139,7 +139,7 @@ object ThinkingEnhancer {
 
         val result = if (protectCode) restoreCodeBlocks(translatedLines.joinToString("\n"), codeBlocks) else translatedLines.joinToString("\n")
 
-        buildString {
+        return buildString {
             appendLine("--- [Türkçe'ye Çevrildi (Heuristic)] ---")
             appendLine(result)
             appendLine("\n--- [Orijinal Düşünce / Original Thinking Included] ---")
