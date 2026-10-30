@@ -127,7 +127,7 @@ fun ThinkingFullDialog(content: String, onDismiss: () -> Unit) {
                                 displayedContent = content
                                 isTranslated = false
                             } else {
-                                displayedContent = ThinkingEnhancer.translateThinking(content, "tr")
+                                displayedContent = ThinkingEnhancer.translateThinking(context, content)
                                 isTranslated = true
                             }
                         }
