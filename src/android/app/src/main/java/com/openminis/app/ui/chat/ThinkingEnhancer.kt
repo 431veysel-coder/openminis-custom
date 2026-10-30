@@ -85,14 +85,14 @@ object ThinkingEnhancer {
                     .addOnSuccessListener { translated ->
                         // Restore code blocks after translation
                         val result = if (protectCode) restoreCodeBlocks(translated, codeBlocks) else translated
-                        continuation.resume(result)
+                        continuation.resumeWith(kotlin.Result.success(result))
                     }
                     .addOnFailureListener { e ->
-                        continuation.resumeWithException(e)
+                        continuation.resumeWith(kotlin.Result.failure(e))
                     }
             }
             .addOnFailureListener { e ->
-                continuation.resumeWithException(e)
+                continuation.resumeWith(kotlin.Result.failure(e))
             }
     }
 
