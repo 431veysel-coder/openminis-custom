@@ -2,10 +2,12 @@ package com.openminis.app.ui.chat
 
 import android.content.Context
 import android.widget.Toast
+import com.google.mlkit.nl.languageid.LanguageIdentification
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.nl.translate.TranslatorOptions
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Result
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 
@@ -54,7 +56,7 @@ object ThinkingEnhancer {
      */
     suspend fun translateThinking(context: Context, text: String): String = withContext(Dispatchers.IO) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val targetLanguage = prefs.getString(KEY_TRANSLATE_TARGET_LANG, DEFAULT_TARGET_LANG)
+        val targetLanguage = prefs.getString(KEY_TRANSLATE_TARGET_LANG, DEFAULT_TARGET_LANG) ?: DEFAULT_TARGET_LANG
         val protectCode = prefs.getBoolean(KEY_TRANSLATE_PROTECT_CODE, DEFAULT_PROTECT_CODE)
         translateThinking(context, text, targetLanguage, protectCode)
     }
@@ -69,7 +71,7 @@ object ThinkingEnhancer {
         protectCode: Boolean
     ): String = suspendCancellableCoroutine { continuation ->
         val options = TranslatorOptions.Builder()
-            .setSourceLanguage(com.google.mlkit.nl.languageid.LanguageIdentification.UNDETERMINED)
+            .setSourceLanguage(LanguageIdentification.UNDETERMINED)
             .setTargetLanguage(targetLanguage)
             .build()
         val translator = Translation.getClient(options)
@@ -87,12 +89,14 @@ object ThinkingEnhancer {
                         continuation.resume(result)
                     }
                     .addOnFailureListener { e ->
-                        continuation.resumeWithException(e)
+                        continuation.resumeWith(Result.failure(e))
                     }
             }
             .addOnFailureListener { e ->
-                continuation.resumeWithException(e)
+                continuation.resumeWith(Result.failure(e))
             }
+    } onCancellation {
+        // Handle cancellation if needed
     }
 
     /**
