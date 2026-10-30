@@ -68,7 +68,7 @@ object ThinkingEnhancer {
         text: String,
         targetLanguage: String,
         protectCode: Boolean
-    ): String = suspendCancellableCoroutine { continuation ->
+    ): String = suspendCoroutine { continuation ->
         val options = TranslatorOptions.Builder()
             .setSourceLanguage("auto")
             .setTargetLanguage(targetLanguage)
@@ -88,11 +88,11 @@ object ThinkingEnhancer {
                         continuation.resume(result)
                     }
                     .addOnFailureListener { e ->
-                        continuation.resumeWith(Result.failure(e))
+                        continuation.resumeWithException(e)
                     }
             }
             .addOnFailureListener { e ->
-                continuation.resumeWith(Result.failure(e))
+                continuation.resumeWithException(e)
             }
     }
 
