@@ -231,3 +231,4 @@ accept pull requests** — there is nowhere for them to land. Issues are the way
 to shape the product, and [AwesomeMinis](https://github.com/OpenMinis/AwesomeMinis)
 and [MinisSkills](https://github.com/OpenMinis/MinisSkills) both do take
 contributions. See [CONTRIBUTING.md](CONTRIBUTING.md).
+# Trigger rebuild
