@@ -68,7 +68,7 @@ object ThinkingEnhancer {
         text: String,
         targetLanguage: String,
         protectCode: Boolean
-    ): String = suspendCoroutine { continuation ->
+    ): String = suspendCoroutine { continuation: kotlin.coroutines.Continuation<String> ->
         val options = TranslatorOptions.Builder()
             .setSourceLanguage("auto")
             .setTargetLanguage(targetLanguage)
