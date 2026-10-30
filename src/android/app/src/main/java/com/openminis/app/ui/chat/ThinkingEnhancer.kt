@@ -6,9 +6,9 @@ import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.nl.translate.TranslatorOptions
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.suspendCoroutine
 import kotlinx.coroutines.withContext
 import kotlin.Result
+import kotlin.coroutines.suspendCoroutine
 
 /**
  * ThinkingEnhancer: Provides advanced capabilities for deep thinking blocks:
