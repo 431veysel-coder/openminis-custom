@@ -443,6 +443,11 @@ dependencies {
     // Coil (image loading)
     implementation("io.coil-kt:coil-compose:2.7.0")
 
+    // ML Kit Translation (on-device, offline)
+    implementation("com.google.mlkit:translate:17.0.1")
+    // Coroutines support for ML Kit Tasks
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
+
     // Markdown rendering (mikepenz multiplatform-markdown-renderer)
     implementation("com.mikepenz:multiplatform-markdown-renderer-android:0.33.0")
     implementation("com.mikepenz:multiplatform-markdown-renderer-m3-android:0.33.0")
