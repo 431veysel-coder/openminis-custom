@@ -74,6 +74,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.openminis.app.BuildConfig
 import com.openminis.app.R
+import com.openminis.app.ui.settings.CheckUpdateSection
 import com.openminis.app.ui.components.openExternalUrl
 import com.openminis.app.i18n.uppercaseForDisplay
 
@@ -377,6 +378,8 @@ fun SettingsScreen(
                     onClick = onAboutClick,
                     badge = updateBadge,
                 )
+                // [SELF-UPDATE] Check for updates from GitHub releases
+                CheckUpdateSection()
                 SettingsItem(
                     icon = Icons.Outlined.FrontHand,
                     iconColor = Color(0xFF007AFF),
