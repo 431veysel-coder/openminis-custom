@@ -343,6 +343,8 @@
     <string name="soul_icon_error_too_large">That image is too large to store. Try a simpler one.</string>
     <string name="settings_env_vars">Environment Variables</string>
     <string name="settings_env_vars_subtitle">Variables injected into the sandbox</string>
+    <string name="settings_thinking_enhancements">Düşünce Geliştirmeleri</string>
+    <string name="settings_thinking_enhancements_subtitle">Çeviri, özet ve kod koruma ayarları</string>
     <string name="settings_section_storage">Storage</string>
     <string name="settings_storage_subtitle">Manage Alpine Linux rootfs and browse files</string>
     <string name="settings_section_permissions">Permissions</string>
