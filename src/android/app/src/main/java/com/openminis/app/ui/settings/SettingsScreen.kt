@@ -610,7 +610,7 @@ private fun SettingsSection(
  * Styled to match iOS settings rows with SF Symbol-like colored circle icons.
  */
 @Composable
-private fun SettingsItem(
+internal fun SettingsItem(
     icon: ImageVector,
     iconColor: Color,
     title: String,
