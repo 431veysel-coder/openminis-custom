@@ -96,7 +96,7 @@ fun ThinkingEnhancementsSettingsScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            Icons.Default.ArrowBack,
+                            ArrowBack,
                             contentDescription = stringResource(R.string.settings_back),
                         )
                     }
@@ -321,7 +321,7 @@ private fun SettingsItem(
             // Badge (check mark when selected)
             if (badge) {
                 Icon(
-                    imageVector = Icons.Default.Check,
+                    imageVector = Check,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp),
