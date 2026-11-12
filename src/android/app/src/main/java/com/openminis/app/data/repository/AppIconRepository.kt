@@ -29,7 +29,11 @@ object AppIconRepository {
     private const val TAG = "AppIconRepository"
     private const val PREFS = "app_icon_prefs"
     private const val KEY_SELECTED_ID = "selected_icon_id"
-    private const val PACKAGE_NAME = "com.veysel.minis"
+    // NOTE: this is a CLASS-name prefix, not the applicationId. The activity-alias
+    // components live at <namespace>.MainActivityIcon*, and our fork keeps the
+    // original namespace while only the applicationId differs. Changing this to
+    // the applicationId breaks icon switching with a ClassNotFoundException.
+    private const val PACKAGE_NAME = "com.openminis.app"
 
     enum class Variant(val id: String, val aliasClass: String) {
         Auto("auto", "$PACKAGE_NAME.MainActivityIconAuto"),

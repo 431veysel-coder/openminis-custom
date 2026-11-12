@@ -111,7 +111,11 @@ android {
                 storePassword = ownKeystorePassword
                 keyAlias = ownKeyAlias
                 keyPassword = ownKeyPassword
-                enableV1Signing = true
+                // Match the upstream APK's signature shape: v2 only, no v1 JAR
+                // block (minSdk 26 never needs it, and v1 only adds META-INF/*
+                // files upstream does not ship). v3 adds the key-rotation
+                // proof, so it stays on.
+                enableV1Signing = false
                 enableV2Signing = true
                 enableV3Signing = true
             }

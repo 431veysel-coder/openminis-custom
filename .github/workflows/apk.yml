@@ -119,6 +119,9 @@ jobs:
           } >> gradle.properties
           cat gradle.properties
 
+      - name: Identity guard
+        run: bash scripts/check_identity.sh
+
       - name: Assemble APK
         working-directory: src/android
         run: |
@@ -129,6 +132,36 @@ jobs:
           else
             ./gradlew :app:assembleGithubRelease --stacktrace
           fi
+
+      - name: Upstream unit tests (signal only — do not block our APK)
+        continue-on-error: true
+        working-directory: src/android
+        run: ./gradlew :app:testGithubDebugUnitTest --stacktrace
+
+      - name: Verify APK contents
+        working-directory: src/android
+        run: |
+          set -e
+          APK=$(find app/build/outputs/apk -name 'app-github-*.apk' | head -1)
+          echo "checking $APK"
+          BT="$ANDROID_HOME/build-tools/36.0.0"
+          # 1. identity really landed
+          "$BT/aapt2" dump badging "$APK" | head -2
+          "$BT/aapt2" dump badging "$APK" | grep -q "package: name='com.veysel.minis'" \
+            || { echo "FAIL: applicationId not applied"; exit 1; }
+          # 2. signature is ours and verifies
+          "$BT/apksigner" verify --print-certs "$APK"
+          "$BT/apksigner" verify --print-certs "$APK" | grep -q "3e62d262631a8182167bfb22df64ae413286257fc6e6a77a08c6ced0bc0bb6c9" \
+            || { echo "FAIL: not signed with the Minis Ozel key"; exit 1; }
+          # 3. the proot loaders must be inside or every shell command returns exit -1
+          for so in libproot.so libproot-loader.so libproot-loader32.so; do
+            unzip -l "$APK" | grep -q "lib/arm64-v8a/$so" \
+              || { echo "FAIL: lib/arm64-v8a/$so missing from APK"; exit 1; }
+          done
+          # 4. the sandbox must ship its rootfs
+          unzip -l "$APK" | grep -q 'assets/alpine-minirootfs' \
+            || { echo "FAIL: alpine rootfs missing from APK"; exit 1; }
+          echo "APK checks passed"
 
       - name: Collect artifacts
         run: |
