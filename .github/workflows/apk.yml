@@ -59,9 +59,14 @@ jobs:
           echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
           SM="$SDK/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SM" --licenses > /dev/null 2>&1 || true
+          # Two NDKs on purpose: AGP 8.7.3 defaults the app's CMake JNI build
+          # (pty_bridge, crash handler, jieba_jni) to 27.0.12077973, while
+          # deps/build_proot.sh wants r28. Installing only one makes the other
+          # side fail at configuration time.
           "$SM" "platform-tools" "platforms;android-36" "build-tools;36.0.0" \
-                "ndk;${NDK_VERSION}" "cmake;${CMAKE_VERSION}"
+                "ndk;27.0.12077973" "ndk;${NDK_VERSION}" "cmake;${CMAKE_VERSION}"
           echo "ANDROID_NDK_HOME=$SDK/ndk/${NDK_VERSION}" >> $GITHUB_ENV
+          ls "$SDK/ndk"
 
       - name: Install gomobile
         run: |
