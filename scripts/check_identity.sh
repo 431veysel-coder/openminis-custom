@@ -24,7 +24,7 @@ report() { # report <ok|FAIL> <what> <why>
 }
 
 chk() { # chk <path> <must-contain> <why>
-  if rg -q -F "$2" "$1" 2>/dev/null; then report ok "$1" "$3"; else report FAIL "$1" "$3"; fi
+  if grep -qF -- "$2" "$1" 2>/dev/null; then report ok "$1" "$3"; else report FAIL "$1" "$3"; fi
 }
 
 echo "identity guard: applicationId=$APP_ID  namespace=$NAMESPACE"
@@ -47,7 +47,7 @@ chk "$G" "applicationId = \"$APP_ID\"" "applicationId"
 chk "$G" "namespace = \"$NAMESPACE\"" "namespace"
 
 # self-update must not point upstream: that APK is signed with a different key
-if rg -q 'RELEASE_REPO", "OpenMinis/OpenMinis' "$G" 2>/dev/null; then
+if grep -qF -- 'RELEASE_REPO", "OpenMinis/OpenMinis' "$G" 2>/dev/null; then
   report FAIL "$G" "RELEASE_REPO still upstream — cannot install over ours"
 else
   report ok "$G" "RELEASE_REPO points at our fork"
