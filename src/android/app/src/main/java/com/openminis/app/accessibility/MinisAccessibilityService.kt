@@ -29,7 +29,7 @@ class MinisAccessibilityService : AccessibilityService() {
 
     companion object {
         private const val TAG = "MinisA11y"
-        const val SERVICE_ID = "com.openminis.app/.accessibility.MinisAccessibilityService"
+        const val SERVICE_ID = "com.veysel.minis/.accessibility.MinisAccessibilityService"
         private const val EVENT_RING_CAP = 1024
 
         @Volatile

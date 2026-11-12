@@ -163,3 +163,10 @@ src/android/app/libs/rclone.aar
 deps/aot/*.S
 deps/aot/.build/
 deps/aot/.build-iphonesimulator/
+
+# --- our identity/signing artifacts ---
+keystore.properties
+*.jks
+*.p12
+key.pem
+cert.pem

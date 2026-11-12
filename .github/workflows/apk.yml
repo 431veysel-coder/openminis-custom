@@ -1,0 +1,149 @@
+name: Build APK
+
+# Original OpenMinis source, built unchanged except for identity
+# (applicationId / label / our own signing key / self-update repo).
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: "Build type"
+        type: choice
+        options: [release, debug]
+        default: release
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NDK_VERSION: "28.2.13676358"
+  CMAKE_VERSION: "3.22.1"
+
+jobs:
+  build:
+    name: Android APK (${{ inputs.build_type || 'release' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout (only the proot submodule is needed on Android)
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Init proot submodule
+        run: |
+          git submodule update --init --depth 1 deps/proot
+          ls -la deps/proot | head -5
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: false
+
+      - name: Install Android NDK + CMake + SDK 36
+        run: |
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
+          SM="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SM" --licenses > /dev/null 2>&1 || true
+          "$SM" "platform-tools" "platforms;android-36" "build-tools;36.0.0" \
+                "ndk;${NDK_VERSION}" "cmake;${CMAKE_VERSION}"
+          echo "ANDROID_NDK_HOME=$SDK/ndk/${NDK_VERSION}" >> $GITHUB_ENV
+
+      - name: Install gomobile
+        run: |
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          go install golang.org/x/mobile/cmd/gobind@latest
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+      - name: Prepare signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::warning::No keystore secret — release will be signed with the debug key"
+            exit 0
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/minis-release.p12"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/minis-release.p12" >> $GITHUB_ENV
+          echo "ANDROID_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+          echo "ANDROID_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> $GITHUB_ENV
+          echo "ANDROID_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
+
+      - name: Build native deps — proot + Alpine rootfs
+        run: |
+          ./deps/build_proot.sh
+          ./scripts/prepare_android_sandbox.sh
+          ls -la src/android/app/src/main/jniLibs/arm64-v8a/
+          ls -la src/android/app/src/main/assets/ | head -10
+
+      - name: Build native deps — rclone.aar
+        run: |
+          chmod +x deps/build_rclone_android.sh
+          ./deps/build_rclone_android.sh
+          mkdir -p src/android/app/libs
+          cp deps/build/rclone/rclone.aar src/android/app/libs/
+          ls -la src/android/app/libs/
+
+      - name: Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('src/android/**/*.gradle.kts', 'src/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Assemble APK
+        working-directory: src/android
+        run: |
+          chmod +x gradlew
+          BT="${{ inputs.build_type || 'release' }}"
+          if [ "$BT" = "debug" ]; then
+            ./gradlew :app:assembleGithubDebug --no-daemon --stacktrace
+          else
+            ./gradlew :app:assembleGithubRelease --no-daemon --stacktrace
+          fi
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p out
+          find src/android/app/build/outputs/apk -name '*.apk' -exec cp -v {} out/ \;
+          ls -la out/
+          for f in out/*.apk; do
+            echo "### $f"
+            "$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging "$f" 2>/dev/null | head -5 || true
+            "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$f" 2>&1 | head -6 || true
+            sha256sum "$f"
+          done
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: minis-ozel-apk
+          path: out/*.apk
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Attach to release (tag builds only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: out/*.apk
+          prerelease: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

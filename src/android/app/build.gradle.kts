@@ -22,6 +22,25 @@ val appCustomization = Properties().apply {
 fun customizationValue(key: String): String =
     (appCustomization.getProperty(key) ?: "").replace("\"", "\\\"")
 
+// Own release key, injected by CI (env vars) or a local keystore.properties.
+// Without it the build falls back to the debug key, exactly like upstream.
+val ownKeystorePath: String? = System.getenv("ANDROID_KEYSTORE_PATH")
+    ?: rootProject.file("keystore.properties").takeIf { it.exists() }?.let { f ->
+        Properties().apply { f.inputStream().use { load(it) } }.getProperty("storeFile")
+    }
+val ownKeystorePassword: String? = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+    ?: rootProject.file("keystore.properties").takeIf { it.exists() }?.let { f ->
+        Properties().apply { f.inputStream().use { load(it) } }.getProperty("storePassword")
+    }
+val ownKeyAlias: String? = System.getenv("ANDROID_KEY_ALIAS")
+    ?: rootProject.file("keystore.properties").takeIf { it.exists() }?.let { f ->
+        Properties().apply { f.inputStream().use { load(it) } }.getProperty("keyAlias")
+    }
+val ownKeyPassword: String? = System.getenv("ANDROID_KEY_PASSWORD")
+    ?: rootProject.file("keystore.properties").takeIf { it.exists() }?.let { f ->
+        Properties().apply { f.inputStream().use { load(it) } }.getProperty("keyPassword")
+    }
+
 android {
     namespace = "com.openminis.app"
     // [T-android-dynamic-island] Bumped 35→36 so the Android 16 (Baklava)
@@ -33,11 +52,11 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.openminis.app"
+        applicationId = "com.veysel.minis"
         minSdk = 26
         targetSdk = 35
-        versionCode = 37
-        versionName = "1.15"
+        versionCode = 37001
+        versionName = "1.15-ozel.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -63,7 +82,7 @@ android {
         // prerelease flag and cut a tag at its first '-') see them as version
         // 0 and never offer them. UPDATE_CHANNEL is the channel a fresh
         // install starts on; the user can switch to beta in About.
-        buildConfigField("String", "RELEASE_REPO", "\"OpenMinis/OpenMinis\"")
+        buildConfigField("String", "RELEASE_REPO", "\"431veysel-coder/openminis-custom\"")
         buildConfigField("String", "UPDATE_CHANNEL", "\"stable\"")
 
         ndk {
@@ -82,6 +101,20 @@ android {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
             version = "3.22.1"
+        }
+    }
+
+    signingConfigs {
+        if (ownKeystorePath != null) {
+            create("own") {
+                storeFile = file(ownKeystorePath)
+                storePassword = ownKeystorePassword
+                keyAlias = ownKeyAlias
+                keyPassword = ownKeyPassword
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
+            }
         }
     }
 
@@ -126,7 +159,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (ownKeystorePath != null)
+                signingConfigs.getByName("own") else signingConfigs.getByName("debug")
         }
     }
 
@@ -149,7 +183,7 @@ android {
             dimension = "distribution"
             isDefault = true
             buildConfigField("boolean", "SELF_UPDATE", "true")
-            buildConfigField("boolean", "AUTO_UPDATE_CHECK", "true")
+            buildConfigField("boolean", "AUTO_UPDATE_CHECK", "false")
             buildConfigField("boolean", "IN_APP_INSTALL", "true")
         }
         create("store") {
