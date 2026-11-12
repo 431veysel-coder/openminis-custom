@@ -138,11 +138,6 @@ jobs:
             ./gradlew :app:assembleGithubRelease --stacktrace
           fi
 
-      - name: Upstream unit tests (signal only — do not block our APK)
-        continue-on-error: true
-        working-directory: src/android
-        run: ./gradlew :app:testGithubDebugUnitTest --stacktrace
-
       - name: Verify APK contents
         working-directory: src/android
         run: |
@@ -187,6 +182,15 @@ jobs:
           path: out/*.apk
           retention-days: 30
           if-no-files-found: error
+
+      # Runs last and with a hard budget: a non-blocking step still blocks the
+      # artifact upload when it hangs, and the full upstream suite takes 20+ min.
+      - name: Upstream unit tests (signal only — never blocks the APK)
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 10
+        working-directory: src/android
+        run: ./gradlew :app:testGithubDebugUnitTest --stacktrace
 
       - name: Attach to release (tag builds only)
         if: startsWith(github.ref, 'refs/tags/v')
