@@ -107,15 +107,27 @@ jobs:
           key: gradle-${{ hashFiles('src/android/**/*.gradle.kts', 'src/android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: gradle-
 
+      - name: Raise JVM heap for the runner (repo defaults assume 2 GB)
+        working-directory: src/android
+        run: |
+          {
+            echo ""
+            echo "# --- CI only: the hosted runner has 16 GB, the repo default 2 GB OOMs ---"
+            echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
+            echo "kotlin.daemon.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g"
+            echo "org.gradle.workers.max=4"
+          } >> gradle.properties
+          cat gradle.properties
+
       - name: Assemble APK
         working-directory: src/android
         run: |
           chmod +x gradlew
           BT="${{ inputs.build_type || 'release' }}"
           if [ "$BT" = "debug" ]; then
-            ./gradlew :app:assembleGithubDebug --no-daemon --stacktrace
+            ./gradlew :app:assembleGithubDebug --stacktrace
           else
-            ./gradlew :app:assembleGithubRelease --no-daemon --stacktrace
+            ./gradlew :app:assembleGithubRelease --stacktrace
           fi
 
       - name: Collect artifacts
