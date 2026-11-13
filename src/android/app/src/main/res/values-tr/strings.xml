@@ -661,47 +661,6 @@
 
     <!-- [MINIS-OZEL] Araç zincirleri -->
 
-    <!-- [MINIS-OZEL] Arka plan izinleri -->
-    <string name="gate_section_ok">Arka plan izinleri — hepsi açık</string>
-    <string name="gate_section_blocked">Arka plan izinleri — %1$d kapalı</string>
-    <string name="gate_section_footer">Ekran kapalıyken bir görevin yaşayıp yaşamadığını belirleyen sistem kapıları. Kapalı satıra dokun, düzeltecek ayarı açar.</string>
-    <string name="gate_doze_title">Pil optimizasyonu</string>
-    <string name="gate_doze_detail">Kapalıysa sistem uygulamayı Doze\'ta dondurur ve arka plan turu ortada durur.</string>
-    <string name="gate_bg_restricted_title">Arka plan kısıtlaması</string>
-    <string name="gate_bg_restricted_detail">Kapalıysa uygulama arka plandayken iş başlatamaz; Doze muafiyeti olsa bile.</string>
-    <string name="gate_exact_alarm_title">Tam alarm izni</string>
-    <string name="gate_exact_alarm_detail">Kapalıysa zamanlanmış görevler yine çalışır ama sistem bir saate kadar geciktirebilir.</string>
-    <string name="gate_notifications_title">Bildirimler</string>
-    <string name="gate_notifications_detail">Kapalıysa biten arka plan görevi sana bittiğini bildiremez.</string>
-    <string name="gate_data_saver_title">Veri tasarrufu</string>
-    <string name="gate_data_saver_detail">Açıksa arka plan ağı kısıtlanır; bu, izin hatası değil sağlayıcı zaman aşımı olarak görünür.</string>
-
-    <!-- [MINIS-OZEL] Canlı görevler paneli -->
-    <string name="live_tasks_title">Canlı Görevler</string>
-    <string name="live_tasks_section_memory">Bellek</string>
-    <string name="live_tasks_memory_footer">Java heap, uygulamanın altında çalıştığı 512 MB tavandır; RSS sürecin gerçekte kapladığı alandır, VmSize ise ayrılmış adres alanını sayar (büyük olması normaldir).</string>
-    <string name="live_tasks_heap">Heap %1$d / %2$d MB (%%%3$d)</string>
-    <string name="live_tasks_rss">RSS %1$d MB · zirve %2$d MB · sanal %3$d MB</string>
-
-    <string name="live_tasks_section_running">Şu an çalışan (%1$d)</string>
-    <string name="live_tasks_running_footer">Sırada bekleyen tur, eşzamanlı ajan yuvalarından birini bekliyor. Sohbeti açmak için satıra dokun.</string>
-    <string name="live_tasks_idle">Çalışan bir şey yok.</string>
-    <string name="live_tasks_status_running">Çalışıyor</string>
-    <string name="live_tasks_status_queued">Sırada — yuva bekliyor</string>
-    <string name="live_tasks_status_pending">Beklemede</string>
-    <string name="live_tasks_status_done">Tamamlandı</string>
-    <string name="live_tasks_status_failed">Başarısız</string>
-    <string name="live_tasks_status_cancelled">İptal edildi</string>
-    <string name="live_tasks_status_timeout">Süre aşıldı</string>
-
-    <string name="live_tasks_section_jobs">Devredilen görevler (%1$d)</string>
-    <string name="live_tasks_jobs_footer">Alt ajanlar ve arka plan yardımcıları. Birini iptal etmek yalnız o çalışmayı durdurur; ait olduğu sohbet devam eder.</string>
-    <string name="live_tasks_no_jobs">Devam eden devredilmiş görev yok.</string>
-    <string name="live_tasks_cancel">İptal</string>
-
-    <string name="live_tasks_section_scheduled">Zamanlanmış (%1$d)</string>
-    <string name="live_tasks_scheduled_footer">Sistem alarmına kayıtlıdır; uygulama kapalıyken de çalışır.</string>
-
     <string name="toolchain_title">Araç Zincirleri</string>
     <string name="toolchain_section_installed">Sandbox</string>
     <string name="toolchain_summary">%2$d araç zincirinden %1$d tanesi kurulu</string>

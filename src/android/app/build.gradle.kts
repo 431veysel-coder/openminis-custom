@@ -55,8 +55,8 @@ android {
         applicationId = "com.veysel.minis"
         minSdk = 26
         targetSdk = 35
-        versionCode = 37004
-        versionName = "1.15-ozel.4"
+        versionCode = 37005
+        versionName = "1.15-ozel.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

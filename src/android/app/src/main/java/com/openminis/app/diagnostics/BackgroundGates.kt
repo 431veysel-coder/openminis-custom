@@ -123,8 +123,14 @@ object BackgroundGates {
             titleRes = com.openminis.app.R.string.gate_data_saver_title,
             detailRes = com.openminis.app.R.string.gate_data_saver_detail,
             granted = !dataSaver,
+            // No Settings.ACTION_DATA_SAVER_SETTINGS constant in the public API
+            // (it is not in android.provider.Settings), so the action is spelled
+            // out and verified to resolve before it is offered. A dangling action
+            // would throw ActivityNotFoundException at tap time; falling back to
+            // app info keeps the row useful either way.
             fixIntent = if (dataSaver) {
-                runCatching { Intent(android.provider.Settings.ACTION_DATA_SAVER_SETTINGS) }.getOrNull()
+                val direct = Intent("android.settings.DATA_SAVER_SETTINGS")
+                if (direct.resolveActivity(context.packageManager) != null) direct else appDetails(context)
             } else {
                 null
             },
