@@ -47,6 +47,7 @@ import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Handyman
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Settings
@@ -105,6 +106,9 @@ fun SettingsScreen(
     // how the reasoning block itself behaves.
     // [MINIS-OZEL] Settings > Storage > Toolchains: install build tools into the
     // sandbox once, instead of shipping ~700 MB in every APK.
+    // [MINIS-OZEL] Live tasks: what is running right now (agent turns, sub
+    // agents, scheduled alarms) plus the live memory figures.
+    onLiveTasksClick: () -> Unit = {},
     onToolchainsClick: () -> Unit = {},
     onTranslationClick: () -> Unit = {},
     onThinkingClick: () -> Unit = {},
@@ -213,6 +217,16 @@ fun SettingsScreen(
                 // [MINIS-OZEL] Translation first: it is the one setting a user
                 // looks for after reading a thinking block they could not
                 // understand, and it was previously nowhere.
+                // [MINIS-OZEL] Live tasks sits first: it is the answer to
+                // "is something still running", which is asked before any
+                // configuration change.
+                SettingsItem(
+                    icon = Icons.Outlined.Schedule,
+                    iconColor = Color(0xFF34C759),
+                    title = stringResource(R.string.live_tasks_title),
+                    subtitle = stringResource(R.string.live_tasks_running_footer),
+                    onClick = onLiveTasksClick,
+                )
                 SettingsItem(
                     icon = Icons.Outlined.Translate,
                     iconColor = Color(0xFF30B0C7),

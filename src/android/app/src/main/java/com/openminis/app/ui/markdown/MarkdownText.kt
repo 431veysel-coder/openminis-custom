@@ -79,11 +79,17 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+/** [MINIS-OZEL #426] Leftover math placeholder: U+FFFC MATH<n> U+FFFC.
+ * Compiled once instead of per render — a per-call Regex leaks a native
+ * ICU pattern per distinct string, which is the #426 failure mode. */
+private val MATH_PLACEHOLDER_RE = Regex("\\uFFFCMATH\\d+\\uFFFC")
+
 /**
  * Renders markdown text with full formatting support.
  * Supports: headings, bold, italic, strikethrough, inline code, code blocks (with copy),
  * bullet/numbered/task lists, blockquotes, tables, thematic breaks, and links.
  */
+
 @Composable
 fun MarkdownText(
     markdown: String,
@@ -511,7 +517,10 @@ private fun InlineContent(
     // sentinel from leaking into the rendered glyph stream.
     val cleaned = remember(text) {
         if (text.contains('￼')) {
-            text.replace(Regex("\\uFFFCMATH\\d+\\uFFFC"), "")
+            // [MINIS-OZEL #426] Was Regex(...) inline, so a fresh ICU pattern
+            // (and its native MatcherState) was compiled for every distinct
+            // string this composable rendered. Hoisted to MATH_PLACEHOLDER_RE.
+            text.replace(MATH_PLACEHOLDER_RE, "")
         } else {
             text
         }

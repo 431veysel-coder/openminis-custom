@@ -753,6 +753,33 @@
     <!-- [MINIS-OZEL] Settings > Translation / Thinking -->
 
     <!-- [MINIS-OZEL] Toolchains -->
+
+    <!-- [MINIS-OZEL] Live tasks panel -->
+    <string name="live_tasks_title">Live Tasks</string>
+    <string name="live_tasks_section_memory">Memory</string>
+    <string name="live_tasks_memory_footer">Java heap is the 512 MB ceiling the app runs under; RSS is what the process really occupies, and VmSize counts address-space reservations (large is normal).</string>
+    <string name="live_tasks_heap">Heap %1$d / %2$d MB (%3$d%%)</string>
+    <string name="live_tasks_rss">RSS %1$d MB · peak %2$d MB · virtual %3$d MB</string>
+
+    <string name="live_tasks_section_running">Running now (%1$d)</string>
+    <string name="live_tasks_running_footer">A turn that is queued is waiting for one of the concurrent agent slots. Tap a row to open the chat.</string>
+    <string name="live_tasks_idle">Nothing is running.</string>
+    <string name="live_tasks_status_running">Running</string>
+    <string name="live_tasks_status_queued">Queued — waiting for a slot</string>
+    <string name="live_tasks_status_pending">Pending</string>
+    <string name="live_tasks_status_done">Done</string>
+    <string name="live_tasks_status_failed">Failed</string>
+    <string name="live_tasks_status_cancelled">Cancelled</string>
+    <string name="live_tasks_status_timeout">Timed out</string>
+
+    <string name="live_tasks_section_jobs">Delegated runs (%1$d)</string>
+    <string name="live_tasks_jobs_footer">Sub agents and background helpers. Cancelling one stops that run only; the chat it belongs to keeps going.</string>
+    <string name="live_tasks_no_jobs">No delegated runs in flight.</string>
+    <string name="live_tasks_cancel">Cancel</string>
+
+    <string name="live_tasks_section_scheduled">Scheduled (%1$d)</string>
+    <string name="live_tasks_scheduled_footer">Registered with the system alarm clock, so these fire even when the app is closed.</string>
+
     <string name="toolchain_title">Toolchains</string>
     <string name="toolchain_section_installed">Sandbox</string>
     <string name="toolchain_summary">%1$d of %2$d toolchains installed</string>

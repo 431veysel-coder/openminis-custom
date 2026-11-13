@@ -660,6 +660,33 @@
     <!-- [MINIS-OZEL] Ayarlar > Çeviri / Düşünce -->
 
     <!-- [MINIS-OZEL] Araç zincirleri -->
+
+    <!-- [MINIS-OZEL] Canlı görevler paneli -->
+    <string name="live_tasks_title">Canlı Görevler</string>
+    <string name="live_tasks_section_memory">Bellek</string>
+    <string name="live_tasks_memory_footer">Java heap, uygulamanın altında çalıştığı 512 MB tavandır; RSS sürecin gerçekte kapladığı alandır, VmSize ise ayrılmış adres alanını sayar (büyük olması normaldir).</string>
+    <string name="live_tasks_heap">Heap %1$d / %2$d MB (%%%3$d)</string>
+    <string name="live_tasks_rss">RSS %1$d MB · zirve %2$d MB · sanal %3$d MB</string>
+
+    <string name="live_tasks_section_running">Şu an çalışan (%1$d)</string>
+    <string name="live_tasks_running_footer">Sırada bekleyen tur, eşzamanlı ajan yuvalarından birini bekliyor. Sohbeti açmak için satıra dokun.</string>
+    <string name="live_tasks_idle">Çalışan bir şey yok.</string>
+    <string name="live_tasks_status_running">Çalışıyor</string>
+    <string name="live_tasks_status_queued">Sırada — yuva bekliyor</string>
+    <string name="live_tasks_status_pending">Beklemede</string>
+    <string name="live_tasks_status_done">Tamamlandı</string>
+    <string name="live_tasks_status_failed">Başarısız</string>
+    <string name="live_tasks_status_cancelled">İptal edildi</string>
+    <string name="live_tasks_status_timeout">Süre aşıldı</string>
+
+    <string name="live_tasks_section_jobs">Devredilen görevler (%1$d)</string>
+    <string name="live_tasks_jobs_footer">Alt ajanlar ve arka plan yardımcıları. Birini iptal etmek yalnız o çalışmayı durdurur; ait olduğu sohbet devam eder.</string>
+    <string name="live_tasks_no_jobs">Devam eden devredilmiş görev yok.</string>
+    <string name="live_tasks_cancel">İptal</string>
+
+    <string name="live_tasks_section_scheduled">Zamanlanmış (%1$d)</string>
+    <string name="live_tasks_scheduled_footer">Sistem alarmına kayıtlıdır; uygulama kapalıyken de çalışır.</string>
+
     <string name="toolchain_title">Araç Zincirleri</string>
     <string name="toolchain_section_installed">Sandbox</string>
     <string name="toolchain_summary">%2$d araç zincirinden %1$d tanesi kurulu</string>
