@@ -45,6 +45,8 @@ import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Handyman
 import androidx.compose.material.icons.outlined.Psychology
+import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shield
@@ -98,6 +100,10 @@ fun SettingsScreen(
     /** [T-p2-agent-settings] Settings › Agents (delegation on/off), below Memory. */
     onAgentsClick: () -> Unit = {},
     onAgentToolsClick: () -> Unit = {},
+    // [MINIS-OZEL] Two rows above Agent Tools: reasoning translation and
+    // how the reasoning block itself behaves.
+    onTranslationClick: () -> Unit = {},
+    onThinkingClick: () -> Unit = {},
     // [T-mcp-integration-android] MCP Integrations page, listed directly below
     // Memory. Default no-op for callers that haven't wired the route yet.
     onMcpClick: () -> Unit = {},
@@ -200,6 +206,23 @@ fun SettingsScreen(
             // appending each row as it landed, which put the two capability
             // switches in the middle of the identity rows.
             SettingsSection(title = stringResource(R.string.settings_section_agent_runtime)) {
+                // [MINIS-OZEL] Translation first: it is the one setting a user
+                // looks for after reading a thinking block they could not
+                // understand, and it was previously nowhere.
+                SettingsItem(
+                    icon = Icons.Outlined.Translate,
+                    iconColor = Color(0xFF30B0C7),
+                    title = stringResource(R.string.settings_translation),
+                    subtitle = stringResource(R.string.translation_enabled_subtitle),
+                    onClick = onTranslationClick,
+                )
+                SettingsItem(
+                    icon = Icons.Outlined.Lightbulb,
+                    iconColor = Color(0xFFFFB300),
+                    title = stringResource(R.string.settings_thinking),
+                    subtitle = stringResource(R.string.thinking_section_display),
+                    onClick = onThinkingClick,
+                )
                 // [T-tools-granular-switches] Which optional tools the agent may use.
                 SettingsItem(
                     icon = Icons.Outlined.Handyman,

@@ -749,6 +749,37 @@
     <string name="appearance_auto_focus_after_reply_title">Auto-Focus Input After Reply</string>
     <string name="appearance_auto_focus_after_reply_footer">When on, the keyboard pops up automatically after the model finishes replying so the input is ready for a follow-up. On by default; turn off if you prefer to read the response without an unexpected keyboard.</string>
     <string name="appearance_section_deep_thinking">Deep Thinking</string>
+
+    <!-- [MINIS-OZEL] Settings > Translation / Thinking -->
+    <string name="settings_translation">Translation</string>
+    <string name="settings_thinking">Thinking</string>
+
+    <string name="translation_section_general">Translation</string>
+    <string name="translation_general_footer">Adds a translate action to every reasoning block, so thinking written in another language can be read in yours. Nothing is translated until you ask for it.</string>
+    <string name="translation_enabled">Translation</string>
+    <string name="translation_enabled_subtitle">Show the translate action on reasoning blocks</string>
+    <string name="translation_auto">Translate automatically</string>
+    <string name="translation_auto_subtitle">Translate a block as soon as you expand it</string>
+
+    <string name="translation_section_language">Language</string>
+    <string name="translation_language_footer">Leave empty to follow the app\'s language.</string>
+    <string name="translation_target_language">Target language</string>
+
+    <string name="translation_section_model">Model</string>
+    <string name="translation_model_footer">Translation is a separate request and costs tokens. A small, fast model is usually enough — this is a mechanical transform, not a reasoning task.</string>
+    <string name="translation_model_auto">Automatic</string>
+    <string name="translation_model_effective">Using %1$s</string>
+    <string name="translation_no_models">No models available — add a provider first</string>
+
+    <string name="translation_section_cache">Cache</string>
+    <string name="translation_clear_cache">Clear translation cache</string>
+    <string name="translation_cache_size">%1$d KB stored — re-reading a block uses this instead of a new request</string>
+
+    <string name="thinking_section_display">Display</string>
+    <string name="thinking_section_translation">Translation</string>
+    <string name="thinking_translation_footer">The translate action appears at the top right of a reasoning block, once the block has finished streaming.</string>
+    <string name="thinking_translate_button_subtitle">Show the globe button on reasoning blocks</string>
+    <string name="thinking_auto_translate_subtitle">Translate as soon as a block is expanded</string>
     <string name="thinking_translate_button">Translate</string>
     <string name="thinking_translated_banner">Translated — tap the globe to see the original</string>
     <string name="thinking_translate_failed">Translation failed — no model available. Pick one in Settings › Translation.</string>

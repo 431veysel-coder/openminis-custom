@@ -656,6 +656,37 @@
     <string name="appearance_auto_focus_after_reply_title">Yanıttan Sonra Girişe Otomatik Odaklan</string>
     <string name="appearance_auto_focus_after_reply_footer">Açıkken, model yanıtını bitirdikten sonra klavye kendiliğinden açılır ve giriş alanı yeni sorunuz için hazır olur. Varsayılan olarak açıktır; yanıtı klavye aniden açılmadan okumayı yeğliyorsanız kapatın.</string>
     <string name="appearance_section_deep_thinking">Derin Düşünme</string>
+
+    <!-- [MINIS-OZEL] Ayarlar > Çeviri / Düşünce -->
+    <string name="settings_translation">Çeviri</string>
+    <string name="settings_thinking">Düşünce</string>
+
+    <string name="translation_section_general">Çeviri</string>
+    <string name="translation_general_footer">Her düşünce bloğuna bir çeviri düğmesi ekler; böylece başka dilde yazılmış içsel düşünceyi kendi dilinizde okuyabilirsiniz. Siz istemeden hiçbir şey çevrilmez.</string>
+    <string name="translation_enabled">Çeviri</string>
+    <string name="translation_enabled_subtitle">Düşünce bloklarında çeviri düğmesini göster</string>
+    <string name="translation_auto">Otomatik çevir</string>
+    <string name="translation_auto_subtitle">Bloğu açtığınız anda çevir</string>
+
+    <string name="translation_section_language">Dil</string>
+    <string name="translation_language_footer">Boş bırakırsanız uygulamanın dili kullanılır.</string>
+    <string name="translation_target_language">Hedef dil</string>
+
+    <string name="translation_section_model">Model</string>
+    <string name="translation_model_footer">Çeviri ayrı bir istektir ve token harcar. Küçük ve hızlı bir model genellikle yeterlidir — bu mekanik bir dönüşüm, akıl yürütme görevi değil.</string>
+    <string name="translation_model_auto">Otomatik</string>
+    <string name="translation_model_effective">%1$s kullanılıyor</string>
+    <string name="translation_no_models">Kullanılabilir model yok — önce bir sağlayıcı ekleyin</string>
+
+    <string name="translation_section_cache">Önbellek</string>
+    <string name="translation_clear_cache">Çeviri önbelleğini temizle</string>
+    <string name="translation_cache_size">%1$d KB kayıtlı — aynı bloğu tekrar okumak yeni istek yerine bunu kullanır</string>
+
+    <string name="thinking_section_display">Görünüm</string>
+    <string name="thinking_section_translation">Çeviri</string>
+    <string name="thinking_translation_footer">Çeviri düğmesi, akış bittikten sonra düşünce bloğunun sağ üstünde görünür.</string>
+    <string name="thinking_translate_button_subtitle">Düşünce bloklarında küre düğmesini göster</string>
+    <string name="thinking_auto_translate_subtitle">Blok açılır açılmaz çevir</string>
     <string name="thinking_translate_button">Çevir</string>
     <string name="thinking_translated_banner">Çevrildi — orijinali görmek için küreye dokun</string>
     <string name="thinking_translate_failed">Çeviri başarısız — uygun model yok. Ayarlar › Çeviri bölümünden seç.</string>

@@ -177,6 +177,10 @@ object Routes {
     // [T-sub-agents-v1] The roster the main model delegates to by name.
     const val SUB_AGENTS = "sub_agents"
     const val SUB_AGENT_DETAIL = "sub_agent/{agentId}"
+    /** [MINIS-OZEL] Settings > Agent Runtime > Translation (thinking-block translation). */
+    const val TRANSLATION_SETTINGS = "translation_settings"
+    /** [MINIS-OZEL] Settings > Agent Runtime > Thinking (block behaviour). */
+    const val THINKING_SETTINGS = "thinking_settings"
     /** [T-tools-granular-switches] Settings > Agent Runtime > Tools. */
     const val AGENT_TOOLS = "agent_tools"
     /** [T-mcp-integration-android] MCP Integrations management screen. */
@@ -659,6 +663,8 @@ fun AppNavigation(
                 onTerminalClick = { navController.safeNavigate(Routes.terminal()) },
                 onMemoryClick = { navController.safeNavigate(Routes.MEMORY) },
                 onAgentsClick = { navController.safeNavigate(Routes.AGENTS) },
+                onTranslationClick = { navController.safeNavigate(Routes.TRANSLATION_SETTINGS) },
+                onThinkingClick = { navController.safeNavigate(Routes.THINKING_SETTINGS) },
                 onAgentToolsClick = { navController.safeNavigate(Routes.AGENT_TOOLS) },
                 onMcpClick = { navController.safeNavigate(Routes.MCP) },
                 onSoulClick = { navController.safeNavigate(Routes.SOUL) },
@@ -1533,6 +1539,16 @@ fun AppNavigation(
             )
         }
 
+        composable(Routes.TRANSLATION_SETTINGS) {
+            com.openminis.app.ui.settings.TranslationSettingsScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(Routes.THINKING_SETTINGS) {
+            com.openminis.app.ui.settings.ThinkingSettingsScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
         composable(Routes.AGENT_TOOLS) {
             com.openminis.app.ui.settings.AgentToolsSettingsScreen(
                 onBack = { navController.safePopBackStack() },
