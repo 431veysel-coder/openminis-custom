@@ -658,6 +658,39 @@
     <string name="appearance_section_deep_thinking">Derin Düşünme</string>
 
     <!-- [MINIS-OZEL] Ayarlar > Çeviri / Düşünce -->
+
+    <!-- [MINIS-OZEL] Araç zincirleri -->
+    <string name="toolchain_title">Araç Zincirleri</string>
+    <string name="toolchain_section_installed">Sandbox</string>
+    <string name="toolchain_summary">%2$d araç zincirinden %1$d tanesi kurulu</string>
+    <string name="toolchain_summary_subtitle">Buraya kurulur, uygulama güncellemelerinde korunur. Satırdan kaldırılır.</string>
+    <string name="toolchain_section_progress">Kuruluyor</string>
+    <string name="toolchain_starting">Başlıyor…</string>
+    <string name="toolchain_section_available">Kurulabilir</string>
+    <string name="toolchain_available_footer">Bir kez indirir, uygulamada kalır. Her araç zincirinin ilk kurulumu için internet gerekir.</string>
+    <string name="toolchain_install">Kur</string>
+    <string name="toolchain_installing">Kuruluyor…</string>
+    <string name="toolchain_installed">Kurulu — kaldırmak için dokun</string>
+    <string name="toolchain_checking">Kontrol ediliyor…</string>
+    <string name="toolchain_approx_size">~%1$d MB</string>
+    <string name="toolchain_failed">Başarısız: %1$s</string>
+    <string name="toolchain_footer">Uygulama bilerek minimal bir Linux kabuğuyla gelir. İhtiyacınız olanı her güncellemede yeniden indirmek yerine buradan kurun.</string>
+
+    <string name="toolchain_c_title">C / C++ araç zinciri</string>
+    <string name="toolchain_c_subtitle">gcc, g++, make, binutils, git — native kod derle</string>
+    <string name="toolchain_python_title">Python</string>
+    <string name="toolchain_python_subtitle">python3, pip — betikler ve paketler</string>
+    <string name="toolchain_node_title">Node.js</string>
+    <string name="toolchain_node_subtitle">node, npm — JavaScript çalışma zamanı ve CLI'lar</string>
+    <string name="toolchain_go_title">Go</string>
+    <string name="toolchain_go_subtitle">Go derleyicisi ve araç zinciri</string>
+    <string name="toolchain_rust_title">Rust</string>
+    <string name="toolchain_rust_subtitle">rustc, cargo — sistem programlama</string>
+    <string name="toolchain_java_title">Java (JDK 17)</string>
+    <string name="toolchain_java_subtitle">javac, JVM — Java/Kotlin derle ve çalıştır</string>
+    <string name="toolchain_media_title">Medya araçları</string>
+    <string name="toolchain_media_subtitle">ffmpeg, imagemagick — dönüştür, kes, kodla</string>
+
     <string name="settings_translation">Çeviri</string>
     <string name="settings_thinking">Düşünce</string>
 
@@ -1169,6 +1202,8 @@
     <string name="add_custom_model_id_footer">Model Kimliği, şu sağlayıcıya gönderilen API tanımlayıcısıdır: %1$s. Görünen Ad ise seçicide gösterilen daha okunaklı etikettir; boş bırakılırsa Model Kimliği kullanılır.</string>
     <string name="add_custom_model_eg_id_placeholder">örn. gpt-4o-custom</string>
     <string name="add_provider_built_in_models_count">%1$d yerleşik model</string>
+    <string name="add_provider_subtitle_nvidia">NVIDIA NIM — Llama, Nemotron, DeepSeek, Qwen ve daha fazlası</string>
+    <string name="add_provider_subtitle_mistral">Mistral Large, Codestral, Pixtral ve daha fazlası</string>
     <string name="add_provider_subtitle_evren">OpenAI uyumlu ağ geçidi — GLM, DeepSeek, Qwen, Gemma ve daha fazlası</string>
     <string name="add_provider_subtitle_openai">Codex, DeepSeek, Moonshot, Groq ve diğer uyumlu sağlayıcılarla çalışır</string>
     <string name="add_provider_subtitle_anthropic">Claude ve Anthropic protokolüyle uyumlu hizmetlerle çalışır</string>

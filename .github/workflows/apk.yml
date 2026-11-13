@@ -14,6 +14,10 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  # softprops/action-gh-release creates the release the in-app updater polls.
+  contents: write
+
 concurrency:
   group: apk-${{ github.ref }}
   cancel-in-progress: true
@@ -165,15 +169,33 @@ jobs:
 
       - name: Collect artifacts
         run: |
+          set -e
           mkdir -p out
-          find src/android/app/build/outputs/apk -name '*.apk' -exec cp -v {} out/ \;
+          BT="$ANDROID_HOME/build-tools/36.0.0"
+          # The in-app updater reads the APK FILE NAME as its protocol:
+          #   MinisApp-<versionName>-build<versionCode>-<abi>.apk
+          # (UpdatePolicy.kt APK_NAME). The versionCode it parses from the name
+          # is what it compares against the installed build, and the installer
+          # re-checks the archive's own versionCode before handing it to the
+          # package manager. So the name MUST carry both, or the app silently
+          # reports "up to date" forever — which is what app-release.apk did.
+          APK=$(find src/android/app/build/outputs/apk -name 'app-github-release.apk' | head -1)
+          [ -n "$APK" ] || APK=$(find src/android/app/build/outputs/apk -name 'app-github-*.apk' | head -1)
+          echo "source apk: $APK"
+          BADGING=$("$BT/aapt2" dump badging "$APK" | head -1)
+          VERSION_CODE=$(printf '%s' "$BADGING" | sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p")
+          VERSION_NAME=$(printf '%s' "$BADGING" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p")
+          echo "versionName=$VERSION_NAME versionCode=$VERSION_CODE"
+          [ -n "$VERSION_CODE" ] || { echo "FAIL: could not read versionCode"; exit 1; }
+          OUT="out/MinisApp-${VERSION_NAME}-build${VERSION_CODE}-arm64-v8a.apk"
+          cp -v "$APK" "$OUT"
           ls -la out/
-          for f in out/*.apk; do
-            echo "### $f"
-            "$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging "$f" 2>/dev/null | head -5 || true
-            "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$f" 2>&1 | head -6 || true
-            sha256sum "$f"
-          done
+          echo "### $OUT"
+          "$BT/aapt2" dump badging "$OUT" 2>/dev/null | head -2 || true
+          "$BT/apksigner" verify --print-certs "$OUT" 2>&1 | head -6 || true
+          sha256sum "$OUT"
+          echo "MINIS_APK_NAME=$(basename "$OUT")" >> "$GITHUB_ENV"
+          echo "MINIS_VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -192,12 +214,29 @@ jobs:
         working-directory: src/android
         run: ./gradlew :app:testGithubDebugUnitTest --stacktrace
 
-      - name: Attach to release (tag builds only)
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Publish release (this is what the in-app updater reads)
+        # Runs for every release build, not just tags. The updater polls
+        # GitHub Releases of RELEASE_REPO and compares the versionCode parsed
+        # from the APK file name against its own, so a build that never becomes
+        # a release is a build the user can only install by hand.
+        #
+        # tag_name is derived from the versionName (v1.15-ozel.2), so repeated
+        # builds of the same version replace the same release instead of piling
+        # up entries the updater would have to choose between.
+        if: ${{ (inputs.build_type || 'release') == 'release' }}
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ env.MINIS_VERSION_NAME }}
+          name: Minis Özel ${{ env.MINIS_VERSION_NAME }}
           files: out/*.apk
-          prerelease: true
+          # Stable channel: UpdatePolicy.STABLE refuses a prerelease, so publishing
+          # our own builds as prereleases would hide them from the in-app updater.
+          prerelease: false
+          make_latest: true
           generate_release_notes: true
+          body: |
+            Automatically built from `${{ github.sha }}`.
+
+            Package: `com.veysel.minis` — installs alongside the official Minis.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

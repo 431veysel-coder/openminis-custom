@@ -751,6 +751,39 @@
     <string name="appearance_section_deep_thinking">Deep Thinking</string>
 
     <!-- [MINIS-OZEL] Settings > Translation / Thinking -->
+
+    <!-- [MINIS-OZEL] Toolchains -->
+    <string name="toolchain_title">Toolchains</string>
+    <string name="toolchain_section_installed">Sandbox</string>
+    <string name="toolchain_summary">%1$d of %2$d toolchains installed</string>
+    <string name="toolchain_summary_subtitle">Installed here, kept across app updates. Remove with the row action.</string>
+    <string name="toolchain_section_progress">Installing</string>
+    <string name="toolchain_starting">Starting…</string>
+    <string name="toolchain_section_available">Available</string>
+    <string name="toolchain_available_footer">Downloads once and stays in the app. An internet connection is needed for the first install of each toolchain.</string>
+    <string name="toolchain_install">Install</string>
+    <string name="toolchain_installing">Installing…</string>
+    <string name="toolchain_installed">Installed — tap to remove</string>
+    <string name="toolchain_checking">Checking…</string>
+    <string name="toolchain_approx_size">~%1$d MB</string>
+    <string name="toolchain_failed">Failed: %1$s</string>
+    <string name="toolchain_footer">The app ships a minimal Linux shell on purpose. Install what you need here instead of paying for it in every app update.</string>
+
+    <string name="toolchain_c_title">C / C++ toolchain</string>
+    <string name="toolchain_c_subtitle">gcc, g++, make, binutils, git — build native code</string>
+    <string name="toolchain_python_title">Python</string>
+    <string name="toolchain_python_subtitle">python3, pip — scripts and packages</string>
+    <string name="toolchain_node_title">Node.js</string>
+    <string name="toolchain_node_subtitle">node, npm — JavaScript runtimes and CLIs</string>
+    <string name="toolchain_go_title">Go</string>
+    <string name="toolchain_go_subtitle">Go compiler and toolchain</string>
+    <string name="toolchain_rust_title">Rust</string>
+    <string name="toolchain_rust_subtitle">rustc, cargo — systems programming</string>
+    <string name="toolchain_java_title">Java (JDK 17)</string>
+    <string name="toolchain_java_subtitle">javac, JVM — build and run Java/Kotlin</string>
+    <string name="toolchain_media_title">Media tools</string>
+    <string name="toolchain_media_subtitle">ffmpeg, imagemagick — convert, cut, transcode</string>
+
     <string name="settings_translation">Translation</string>
     <string name="settings_thinking">Thinking</string>
 
@@ -1337,6 +1370,8 @@
     <string name="add_custom_model_id_footer">Model ID is the API identifier sent to %1$s. Display Name is the friendlier label shown in the picker; defaults to Model ID when left blank.</string>
     <string name="add_custom_model_eg_id_placeholder">e.g. gpt-4o-custom</string>
     <string name="add_provider_built_in_models_count">%1$d built-in models</string>
+    <string name="add_provider_subtitle_nvidia">NVIDIA NIM — Llama, Nemotron, DeepSeek, Qwen and more</string>
+    <string name="add_provider_subtitle_mistral">Mistral Large, Codestral, Pixtral and more</string>
     <string name="add_provider_subtitle_evren">OpenAI-compatible gateway — GLM, DeepSeek, Qwen, Gemma and more</string>
     <string name="add_provider_subtitle_openai">Works with Codex, DeepSeek, Moonshot, Groq and other compatible vendors</string>
     <string name="add_provider_subtitle_anthropic">Works with Claude and Anthropic-protocol-compatible services</string>

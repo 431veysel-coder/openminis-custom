@@ -177,6 +177,8 @@ object Routes {
     // [T-sub-agents-v1] The roster the main model delegates to by name.
     const val SUB_AGENTS = "sub_agents"
     const val SUB_AGENT_DETAIL = "sub_agent/{agentId}"
+    /** [MINIS-OZEL] Settings > Storage > Toolchains (install build tools once). */
+    const val TOOLCHAINS = "toolchains"
     /** [MINIS-OZEL] Settings > Agent Runtime > Translation (thinking-block translation). */
     const val TRANSLATION_SETTINGS = "translation_settings"
     /** [MINIS-OZEL] Settings > Agent Runtime > Thinking (block behaviour). */
@@ -663,6 +665,7 @@ fun AppNavigation(
                 onTerminalClick = { navController.safeNavigate(Routes.terminal()) },
                 onMemoryClick = { navController.safeNavigate(Routes.MEMORY) },
                 onAgentsClick = { navController.safeNavigate(Routes.AGENTS) },
+                onToolchainsClick = { navController.safeNavigate(Routes.TOOLCHAINS) },
                 onTranslationClick = { navController.safeNavigate(Routes.TRANSLATION_SETTINGS) },
                 onThinkingClick = { navController.safeNavigate(Routes.THINKING_SETTINGS) },
                 onAgentToolsClick = { navController.safeNavigate(Routes.AGENT_TOOLS) },
@@ -1539,6 +1542,11 @@ fun AppNavigation(
             )
         }
 
+        composable(Routes.TOOLCHAINS) {
+            com.openminis.app.ui.settings.ToolchainScreen(
+                onBack = { navController.safePopBackStack() },
+            )
+        }
         composable(Routes.TRANSLATION_SETTINGS) {
             com.openminis.app.ui.settings.TranslationSettingsScreen(
                 onBack = { navController.popBackStack() },

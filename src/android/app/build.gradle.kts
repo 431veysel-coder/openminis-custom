@@ -55,8 +55,8 @@ android {
         applicationId = "com.veysel.minis"
         minSdk = 26
         targetSdk = 35
-        versionCode = 37001
-        versionName = "1.15-ozel.1"
+        versionCode = 37002
+        versionName = "1.15-ozel.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -159,6 +159,19 @@ android {
                 debugSymbolLevel = "FULL"
             }
             isMinifyEnabled = true
+            // [MINIS-OZEL] Keep the on-device developer tooling in RELEASE too.
+            //
+            // The debug server is what makes the installed app reachable: it
+            // listens on 127.0.0.1:5321 and serves the JSON-RPC surface the
+            // minis-* CLIs, the log reader and the LLM request log all use. With
+            // DEV_TOOLS=false a release build ships neither the server nor the
+            // handler, so an installed APK can be tested by hand but cannot be
+            // inspected, which is exactly what this fork must be able to do.
+            //
+            // Loopback only: the socket never binds a routable interface, so
+            // nothing outside the device can reach it. It also turns on the
+            // LLM request log and the AOT/perf probes that ship with `perf`.
+            buildConfigField("boolean", "DEV_TOOLS", "true")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -187,13 +200,13 @@ android {
             dimension = "distribution"
             isDefault = true
             buildConfigField("boolean", "SELF_UPDATE", "true")
-            buildConfigField("boolean", "AUTO_UPDATE_CHECK", "false")
+            buildConfigField("boolean", "AUTO_UPDATE_CHECK", "true")
             buildConfigField("boolean", "IN_APP_INSTALL", "true")
         }
         create("store") {
             dimension = "distribution"
             buildConfigField("boolean", "SELF_UPDATE", "true")
-            buildConfigField("boolean", "AUTO_UPDATE_CHECK", "false")
+            buildConfigField("boolean", "AUTO_UPDATE_CHECK", "true")
             buildConfigField("boolean", "IN_APP_INSTALL", "true")
         }
     }

@@ -54,6 +54,9 @@ class DeviceOffloadHandler(private val context: Context) : NativeOffloadHandler 
 
     private fun deviceInfo(): JSONObject {
         val runtime = Runtime.getRuntime()
+        val mb = 1024L * 1024L
+        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
+        val memInfo = android.app.ActivityManager.MemoryInfo().also { am?.getMemoryInfo(it) }
         val manufacturer = Build.MANUFACTURER.orFallback(Build.BRAND.orFallback("unknown"))
         val model = Build.MODEL.orFallback(Build.DEVICE.orFallback(Build.PRODUCT.orFallback("unknown")))
         return JSONObject()
@@ -69,9 +72,28 @@ class DeviceOffloadHandler(private val context: Context) : NativeOffloadHandler 
             .put("hardware", Build.HARDWARE.orFallback("unknown"))
             .put("supported_abis", runCatching { Build.SUPPORTED_ABIS.joinToString(", ") }.getOrDefault(""))
             .put("available_processors", runtime.availableProcessors())
-            .put("total_memory_mb", runtime.totalMemory() / (1024 * 1024))
-            .put("free_memory_mb", runtime.freeMemory() / (1024 * 1024))
-            .put("max_memory_mb", runtime.maxMemory() / (1024 * 1024))
+            // [MINIS-OZEL] These used to be named `total_memory_mb` /
+            // `free_memory_mb`, which read as a device figure or a hard limit.
+            // They are neither: Runtime.totalMemory() is the heap ART has
+            // COMMITTED right now (it starts at dalvik.vm.heapstartsize, ~16 MB,
+            // and grows on demand), and freeMemory() is the free space inside
+            // that committed chunk. Read as a ceiling they look like a ~30 MB
+            // cap, which is how a real 512 MB budget gets misdiagnosed.
+            // The ceiling is heap_max_mb (Runtime.maxMemory(), 512 MB because
+            // android:largeHeap="true"), and the device figures come from
+            // ActivityManager instead of being approximated by heap numbers.
+            .put("heap_committed_mb", runtime.totalMemory() / mb)
+            .put("heap_free_in_committed_mb", runtime.freeMemory() / mb)
+            .put("heap_used_mb", (runtime.totalMemory() - runtime.freeMemory()) / mb)
+            .put("heap_max_mb", runtime.maxMemory() / mb)
+            .put("heap_used_percent", runCatching {
+                ((runtime.totalMemory() - runtime.freeMemory()) * 100 / runtime.maxMemory()).toInt()
+            }.getOrDefault(-1))
+            .put("memory_class_mb", am?.memoryClass ?: -1)
+            .put("large_memory_class_mb", am?.largeMemoryClass ?: -1)
+            .put("device_ram_total_mb", memInfo.totalMem / mb)
+            .put("device_ram_available_mb", memInfo.availMem / mb)
+            .put("device_low_memory", memInfo.lowMemory)
     }
 
     private fun batteryInfo(): JSONObject {

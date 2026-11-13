@@ -45,8 +45,34 @@ data class ChatProviderPreset(
             subtitleRes = com.openminis.app.R.string.add_provider_subtitle_evren,
         )
 
+        /**
+         * NVIDIA NIM — OpenAI-compatible inference for the hosted catalogue
+         * (Llama, Nemotron, DeepSeek, Mistral, Qwen and more). Key prefix `nvapi-`.
+         */
+        val NVIDIA = ChatProviderPreset(
+            id = "nvidia",
+            displayName = "NVIDIA NIM",
+            providerType = ProviderType.openAI,
+            baseURL = "https://integrate.api.nvidia.com",
+            appendV1 = true,
+            subtitleRes = com.openminis.app.R.string.add_provider_subtitle_nvidia,
+        )
+
+        /**
+         * Mistral — OpenAI-compatible. Base already carries `/v1`, so the
+         * suffix is not appended again (Mistral serves /v1/chat/completions).
+         */
+        val MISTRAL = ChatProviderPreset(
+            id = "mistral",
+            displayName = "Mistral AI",
+            providerType = ProviderType.openAI,
+            baseURL = "https://api.mistral.ai/v1",
+            appendV1 = false,
+            subtitleRes = com.openminis.app.R.string.add_provider_subtitle_mistral,
+        )
+
         /** Every preset the picker offers, in display order. */
-        val all: List<ChatProviderPreset> = listOf(EVREN)
+        val all: List<ChatProviderPreset> = listOf(EVREN, NVIDIA, MISTRAL)
 
         fun byId(id: String?): ChatProviderPreset? =
             id?.let { key -> all.firstOrNull { it.id == key } }

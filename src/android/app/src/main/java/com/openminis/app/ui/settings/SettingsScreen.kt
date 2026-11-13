@@ -31,6 +31,7 @@ import androidx.compose.material.icons.outlined.BatteryFull
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.DeveloperMode
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.outlined.Feedback
@@ -102,6 +103,9 @@ fun SettingsScreen(
     onAgentToolsClick: () -> Unit = {},
     // [MINIS-OZEL] Two rows above Agent Tools: reasoning translation and
     // how the reasoning block itself behaves.
+    // [MINIS-OZEL] Settings > Storage > Toolchains: install build tools into the
+    // sandbox once, instead of shipping ~700 MB in every APK.
+    onToolchainsClick: () -> Unit = {},
     onTranslationClick: () -> Unit = {},
     onThinkingClick: () -> Unit = {},
     // [T-mcp-integration-android] MCP Integrations page, listed directly below
@@ -289,6 +293,13 @@ fun SettingsScreen(
                     title = stringResource(R.string.settings_section_storage),
                     subtitle = stringResource(R.string.settings_storage_subtitle),
                     onClick = onRootfsClick,
+                )
+                SettingsItem(
+                    icon = Icons.Outlined.DeveloperMode,
+                    iconColor = Color(0xFF5E5CE6),
+                    title = stringResource(R.string.toolchain_title),
+                    subtitle = stringResource(R.string.toolchain_summary_subtitle),
+                    onClick = onToolchainsClick,
                 )
                 SettingsItem(
                     icon = Icons.Outlined.Folder,
