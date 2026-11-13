@@ -131,6 +131,29 @@ jobs:
       - name: Identity guard
         run: bash scripts/check_identity.sh
 
+      - name: Resource string sanity
+        # A single unescaped apostrophe in a translated string fails resource
+        # flattening with "Invalid unicode escape sequence", ~40 s into the
+        # build and only for the locale that has it. Catching it here costs a
+        # second and names the exact file and line.
+        run: |
+          python3 - <<'PY'
+          import re, sys, pathlib
+          bad = []
+          for f in pathlib.Path('src/android/app/src/main/res').rglob('strings.xml'):
+              for n, line in enumerate(f.read_text(encoding='utf-8').split('\n'), 1):
+                  if '<string' not in line:
+                      continue
+                  for i, ch in enumerate(line):
+                      if ch == "'" and (i == 0 or line[i-1] != '\\'):
+                          bad.append(f'{f}:{n}: unescaped apostrophe')
+                          break
+          if bad:
+              print('\n'.join(bad))
+              sys.exit(1)
+          print('resource strings OK')
+          PY
+
       - name: Assemble APK
         working-directory: src/android
         run: |

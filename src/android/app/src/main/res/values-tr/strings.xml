@@ -681,7 +681,7 @@
     <string name="toolchain_python_title">Python</string>
     <string name="toolchain_python_subtitle">python3, pip — betikler ve paketler</string>
     <string name="toolchain_node_title">Node.js</string>
-    <string name="toolchain_node_subtitle">node, npm — JavaScript çalışma zamanı ve CLI'lar</string>
+    <string name="toolchain_node_subtitle">node, npm — JavaScript çalışma zamanı ve komut satırı araçları</string>
     <string name="toolchain_go_title">Go</string>
     <string name="toolchain_go_subtitle">Go derleyicisi ve araç zinciri</string>
     <string name="toolchain_rust_title">Rust</string>
