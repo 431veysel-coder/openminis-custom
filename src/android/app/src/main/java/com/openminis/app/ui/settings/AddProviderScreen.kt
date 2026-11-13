@@ -102,6 +102,13 @@ fun AddProviderScreen(
     var selectedVoiceTemplate by remember {
         mutableStateOf<com.openminis.app.data.model.VoiceProviderTemplate?>(null)
     }
+    // [MINIS-OZEL] Non-null when the flow was entered from a chat-provider
+    // PRESET row (e.g. Evren API). Same idea as the voice template above, but
+    // for the chat protocols: it prefills the base URL and the /v1 policy and
+    // skips the credential picker, since a preset always implies an API key.
+    var selectedPreset by remember {
+        mutableStateOf<com.openminis.app.data.model.ChatProviderPreset?>(null)
+    }
 
     // Unified back handler: reuse each step's onBack so predictive-back gesture
     // and the top-bar arrow behave identically (go back to prior step, not exit).
@@ -119,6 +126,11 @@ fun AddProviderScreen(
                     step = AddProviderStep.CHOOSE_TYPE
                     selectedType = null
                     selectedVoiceTemplate = null
+                } else if (selectedPreset != null) {
+                    // Same shortcut for a chat-provider preset.
+                    step = AddProviderStep.CHOOSE_TYPE
+                    selectedType = null
+                    selectedPreset = null
                 } else {
                     val creds = availableCredentials(selectedType!!)
                     if (creds.size == 1) {
@@ -158,6 +170,15 @@ fun AddProviderScreen(
                 selectedCredential = ProviderCredential.apiKey
                 step = AddProviderStep.CONFIGURE
             },
+            onSelectPreset = { preset ->
+                // [MINIS-OZEL] A preset fixes the protocol and the credential
+                // kind, so both picker steps are skipped: straight to configure
+                // with the base URL already filled in.
+                selectedPreset = preset
+                selectedType = preset.providerType
+                selectedCredential = ProviderCredential.apiKey
+                step = AddProviderStep.CONFIGURE
+            },
         )
         AddProviderStep.CHOOSE_CREDENTIAL -> ChooseCredentialScreen(
             providerType = selectedType!!,
@@ -172,21 +193,35 @@ fun AddProviderScreen(
             credentialType = selectedCredential!!,
             providerRepository = providerRepository,
             voiceTemplate = selectedVoiceTemplate,
+            preset = selectedPreset,
             onBack = handleBack,
             onSaved = onSaved,
         )
     }
 }
 
+/**
+ * [MINIS-OZEL] What the "choose a provider" list can offer: an upstream
+ * protocol type, or a preconfigured vendor preset that speaks one of those
+ * protocols. Keeping them in one list is what lets a preset sit inline with
+ * the protocols instead of in a separate section.
+ */
+private sealed interface ProviderChoice {
+    data class Type(val type: ProviderType) : ProviderChoice
+    data class Preset(val preset: com.openminis.app.data.model.ChatProviderPreset) : ProviderChoice
+}
+
 /** Display order matching iOS. */
 private val providerDisplayOrder = listOf(
-    ProviderType.openAI,
-    ProviderType.anthropic,
-    ProviderType.gemini,
-    ProviderType.xAI,
-    ProviderType.kimiCode,
-    ProviderType.openRouter,
-)
+    ProviderChoice.Type(ProviderType.openAI),
+    ProviderChoice.Type(ProviderType.anthropic),
+    ProviderChoice.Type(ProviderType.gemini),
+    ProviderChoice.Type(ProviderType.xAI),
+    ProviderChoice.Type(ProviderType.kimiCode),
+    ProviderChoice.Type(ProviderType.openRouter),
+    // [MINIS-OZEL] Preconfigured vendors, appended after the protocols they
+    // build on so the upstream ordering above stays recognisable.
+) + com.openminis.app.data.model.ChatProviderPreset.all.map { ProviderChoice.Preset(it) }
 
 // [T-copilot-provider] Copilot is appended to `providerDisplayOrder` at the
 // call site, gated on CopilotFeatureFlag. Gating the LIST rather than the enum
@@ -251,6 +286,8 @@ private fun ChooseProviderScreen(
     onBack: () -> Unit,
     onSelect: (ProviderType) -> Unit,
     onSelectVoiceTemplate: (com.openminis.app.data.model.VoiceProviderTemplate) -> Unit = {},
+    // [MINIS-OZEL] A preset row was tapped; the caller pre-fills the form.
+    onSelectPreset: (com.openminis.app.data.model.ChatProviderPreset) -> Unit = {},
 ) {
     SettingsScaffold(
         title = stringResource(R.string.provider_list_add_provider),
@@ -272,12 +309,28 @@ private fun ChooseProviderScreen(
         // actually matters, since it stands between the user and the first
         // request.
         val context = LocalContext.current
-        val offeredTypes = providerDisplayOrder + ProviderType.githubCopilot
+        val offeredTypes = providerDisplayOrder + ProviderChoice.Type(ProviderType.githubCopilot)
         SettingsSection(
             header = stringResource(R.string.add_provider_choose_provider),
             footer = stringResource(R.string.add_provider_you_can_add_multiple_instances_of_the_sa),
         ) {
-            offeredTypes.forEachIndexed { index, type ->
+            offeredTypes.forEachIndexed { index, choice ->
+                // [MINIS-OZEL] A preset renders with its own title/subtitle and
+                // its own callback; everything else keeps the upstream path.
+                if (choice is ProviderChoice.Preset) {
+                    val preset = choice.preset
+                    val (pIcon, pColor) = providerIcon(preset.providerType)
+                    SettingsRow(
+                        title = preset.displayName,
+                        subtitle = stringResource(preset.subtitleRes),
+                        icon = pIcon,
+                        iconColor = pColor,
+                        onClick = { onSelectPreset(preset) },
+                        showDivider = index < offeredTypes.size - 1,
+                    )
+                    return@forEachIndexed
+                }
+                val type = (choice as ProviderChoice.Type).type
                 val displayTitle = when (type) {
                     ProviderType.openAI -> "OpenAI / Compatible API"
                     ProviderType.anthropic -> "Anthropic / Compatible API"
@@ -436,14 +489,19 @@ private fun ConfigureProviderScreen(
     credentialType: ProviderCredential,
     providerRepository: ProviderRepository,
     voiceTemplate: com.openminis.app.data.model.VoiceProviderTemplate? = null,
+    // [MINIS-OZEL] Chat-provider preset (e.g. Evren API). Same role as
+    // `voiceTemplate` for the chat protocols: prefills the base URL, the /v1
+    // policy and the suggested label.
+    preset: com.openminis.app.data.model.ChatProviderPreset? = null,
     onBack: () -> Unit,
     onSaved: () -> Unit,
 ) {
     // Compute default label with auto-increment (e.g. "OpenAI", "OpenAI 2", ...)
-    // A voice template preseeds its vendor name instead of the protocol name.
+    // A voice template or a preset preseeds its vendor name instead of the
+    // protocol name.
     val config by providerRepository.config.collectAsState()
     val defaultLabel = remember(config) {
-        val baseName = voiceTemplate?.name ?: providerType.displayName
+        val baseName = preset?.displayName ?: voiceTemplate?.name ?: providerType.displayName
         val existingLabels = config.instances.map { it.label }.toSet()
         if (baseName !in existingLabels) baseName
         else {
@@ -471,7 +529,9 @@ private fun ConfigureProviderScreen(
         if (!labelEdited) label = defaultLabel
     }
     var apiKey by remember { mutableStateOf("") }
-    var customBaseURL by remember { mutableStateOf(voiceTemplate?.baseURL ?: "") }
+    var customBaseURL by remember {
+        mutableStateOf(preset?.baseURL ?: voiceTemplate?.baseURL ?: "")
+    }
 
     SettingsScaffold(
         title = stringResource(R.string.add_provider_configure_provider, providerType.displayName),
@@ -506,7 +566,7 @@ private fun ConfigureProviderScreen(
                 customBaseURL = customBaseURL,
                 onCustomBaseURLChange = { customBaseURL = it },
                 providerRepository = providerRepository,
-                initialAppendV1 = voiceTemplate?.appendV1,
+                initialAppendV1 = preset?.appendV1 ?: voiceTemplate?.appendV1,
                 onSaved = onSaved,
             )
             ProviderCredential.oauth -> OAuthConfigSection(

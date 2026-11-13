@@ -1135,6 +1135,7 @@
     <string name="add_custom_model_id_footer">Model Kimliği, şu sağlayıcıya gönderilen API tanımlayıcısıdır: %1$s. Görünen Ad ise seçicide gösterilen daha okunaklı etikettir; boş bırakılırsa Model Kimliği kullanılır.</string>
     <string name="add_custom_model_eg_id_placeholder">örn. gpt-4o-custom</string>
     <string name="add_provider_built_in_models_count">%1$d yerleşik model</string>
+    <string name="add_provider_subtitle_evren">OpenAI uyumlu ağ geçidi — GLM, DeepSeek, Qwen, Gemma ve daha fazlası</string>
     <string name="add_provider_subtitle_openai">Codex, DeepSeek, Moonshot, Groq ve diğer uyumlu sağlayıcılarla çalışır</string>
     <string name="add_provider_subtitle_anthropic">Claude ve Anthropic protokolüyle uyumlu hizmetlerle çalışır</string>
     <string name="add_provider_subtitle_gemini">Gemini serisi ve Google AI Studio ile çalışır</string>
