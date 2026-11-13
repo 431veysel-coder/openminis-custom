@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Cancel
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.Schedule
@@ -31,6 +33,8 @@ import com.openminis.app.agent.jobs.AgentJob
 import com.openminis.app.agent.jobs.AgentJobOrigin
 import com.openminis.app.agent.jobs.AgentJobRegistry
 import com.openminis.app.agent.jobs.AgentJobState
+import com.openminis.app.diagnostics.BackgroundGate
+import com.openminis.app.diagnostics.BackgroundGates
 import com.openminis.app.diagnostics.MemorySnapshot
 import com.openminis.app.service.SessionConcurrencyManager
 import kotlinx.coroutines.delay
@@ -85,6 +89,21 @@ fun LiveTasksScreen(
         }
     }
 
+    // Gates are OS state, not app state, so they are re-read every time this
+    // screen is entered and whenever the user comes back from a fix intent.
+    var gates by remember { mutableStateOf(BackgroundGates.collect(context)) }
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                gates = BackgroundGates.collect(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    val blockedGates = gates.count { !it.granted }
+
     val activeJobs = allJobs.values.filter {
         it.state == AgentJobState.RUNNING || it.state == AgentJobState.PENDING
     }
@@ -94,6 +113,29 @@ fun LiveTasksScreen(
         title = stringResource(R.string.live_tasks_title),
         onBack = onBack,
     ) {
+        // ── Background gates ──────────────────────────────────────────────
+        // Placed first: a task that dies with the screen off is usually one of
+        // these, not a bug, and it is the fastest thing to rule out.
+        SettingsSection(
+            header = if (blockedGates == 0) {
+                stringResource(R.string.gate_section_ok)
+            } else {
+                stringResource(R.string.gate_section_blocked, blockedGates)
+            },
+            footer = stringResource(R.string.gate_section_footer),
+        ) {
+            gates.forEachIndexed { index, gate ->
+                SettingsRow(
+                    title = stringResource(gate.titleRes),
+                    subtitle = stringResource(gate.detailRes),
+                    icon = if (gate.granted) Icons.Outlined.CheckCircle else Icons.Outlined.ErrorOutline,
+                    iconColor = if (gate.granted) Color(0xFF34C759) else Color(0xFFFF9500),
+                    onClick = gate.fixIntent?.let { intent -> { runCatching { context.startActivity(intent) } } },
+                    showDivider = index < gates.size - 1,
+                )
+            }
+        }
+
         // ── Memory ────────────────────────────────────────────────────────
         SettingsSection(
             header = stringResource(R.string.live_tasks_section_memory),

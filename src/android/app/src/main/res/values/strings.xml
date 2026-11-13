@@ -754,6 +754,21 @@
 
     <!-- [MINIS-OZEL] Toolchains -->
 
+    <!-- [MINIS-OZEL] Background gates -->
+    <string name="gate_section_ok">Background permissions — all clear</string>
+    <string name="gate_section_blocked">Background permissions — %1$d blocked</string>
+    <string name="gate_section_footer">These are the OS gates that decide whether a task survives with the screen off. Tap a blocked row to open the setting that fixes it.</string>
+    <string name="gate_doze_title">Battery optimisation</string>
+    <string name="gate_doze_detail">Off: the system freezes the app in Doze and a background turn stops mid-way.</string>
+    <string name="gate_bg_restricted_title">Background restriction</string>
+    <string name="gate_bg_restricted_detail">Off: the app may not start work while in the background, even if it is exempt from Doze.</string>
+    <string name="gate_exact_alarm_title">Exact alarms</string>
+    <string name="gate_exact_alarm_detail">Off: scheduled tasks still fire, but the system may delay them by up to an hour.</string>
+    <string name="gate_notifications_title">Notifications</string>
+    <string name="gate_notifications_detail">Off: a finished background task has no way to tell you it is done.</string>
+    <string name="gate_data_saver_title">Data saver</string>
+    <string name="gate_data_saver_detail">On: background network is capped, which shows up as a provider timeout, not a permission error.</string>
+
     <!-- [MINIS-OZEL] Live tasks panel -->
     <string name="live_tasks_title">Live Tasks</string>
     <string name="live_tasks_section_memory">Memory</string>
