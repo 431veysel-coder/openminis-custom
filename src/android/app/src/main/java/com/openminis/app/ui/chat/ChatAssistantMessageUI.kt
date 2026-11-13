@@ -245,6 +245,7 @@ import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
@@ -1133,6 +1134,57 @@ internal fun ThinkingBlock(block: AssistantBlock, isStreaming: Boolean, isLast: 
     val canOpenFull = !isStreaming
     var showFullContent by remember(block.id) { mutableStateOf(false) }
 
+    // [MINIS-OZEL] On-demand translation of the reasoning text. Reasoning
+    // models often think in a language the reader does not know (English or
+    // Chinese regardless of the answer's language), so the block gets a
+    // translate action in its header.
+    //
+    // Only offered once the block has stopped streaming: the text changes on
+    // every token while it streams, so a translation started mid-stream would
+    // describe a prefix that no longer exists — and each attempt would bill a
+    // full request.
+    val translatePrefsOn = remember { com.openminis.app.data.TranslationPrefs.enabled(context) }
+    var translatedText by remember(block.id) { mutableStateOf<String?>(null) }
+    var translating by remember(block.id) { mutableStateOf(false) }
+    var translateFailed by remember(block.id) { mutableStateOf(false) }
+    val translateScope = rememberCoroutineScope()
+    val canTranslate = translatePrefsOn && !isStreaming && charCount > 0
+    val onToggleTranslation: () -> Unit = {
+        when {
+            translatedText != null -> translatedText = null
+            translating -> Unit // a second tap while running is a no-op
+            else -> {
+                translating = true
+                translateFailed = false
+                translateScope.launch {
+                    val app = context.applicationContext as? com.openminis.app.MinisApp
+                    val repo = app?.providerRepositoryOrNull
+                    val result = if (repo == null) {
+                        null
+                    } else {
+                        val visible = repo.config.value.modelEntries.filter { !it.isHidden }
+                        com.openminis.app.ui.chat.ThinkingTranslator.translate(
+                            repo = repo,
+                            context = context,
+                            text = block.content,
+                            targetLanguage = com.openminis.app.data.TranslationPrefs
+                                .resolvedTargetLanguage(context),
+                            modelEntryId = com.openminis.app.data.TranslationPrefs
+                                .effectiveModelEntryId(
+                                    context,
+                                    available = visible.map { it.id },
+                                    loopEntries = repo.config.value.agentLoopModelEntryIds,
+                                ),
+                            sessionId = null,
+                        )
+                    }
+                    translating = false
+                    if (result.isNullOrBlank()) translateFailed = true else translatedText = result
+                }
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1212,6 +1264,36 @@ internal fun ThinkingBlock(block: AssistantBlock, isStreaming: Boolean, isLast: 
                 color = thinkingBlue,
             )
             Spacer(modifier = Modifier.weight(1f))
+            // [MINIS-OZEL] Translate action, left of the character count.
+            if (canTranslate || translating) {
+                val active = translatedText != null
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (active) thinkingBlue.copy(alpha = 0.14f) else Color.Transparent,
+                        )
+                        .clickable(enabled = !translating) { onToggleTranslation() },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (translating) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(12.dp),
+                            strokeWidth = 1.5.dp,
+                            color = thinkingBlue,
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Outlined.Translate,
+                            contentDescription = stringResource(R.string.thinking_translate_button),
+                            tint = thinkingBlue.copy(alpha = if (active) 1f else 0.55f),
+                            modifier = Modifier.size(15.dp),
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(2.dp))
+            }
             if (charCount > 0) {
                 Text(
                     text = charLabel,
@@ -1254,16 +1336,24 @@ internal fun ThinkingBlock(block: AssistantBlock, isStreaming: Boolean, isLast: 
             // keyed on the length recomputes the substring on each token, but
             // the cost is O(window) not O(total). Snap the cut to the next
             // newline (within 200 chars) so we don't start mid-line.
-            val isTruncated = charCount > thinkingWindowSize
-            val displayContent = remember(charCount) {
+            //
+            // [MINIS-OZEL] When a translation is showing, the window is taken
+            // over the TRANSLATED text instead: the translation is what the
+            // user is reading, and it is usually shorter than the source, so a
+            // window computed on the source would show the wrong tail.
+            val bodySource = translatedText ?: block.content
+            val bodyLength = bodySource.length
+            val isTranslatedView = translatedText != null
+            val isTruncated = bodyLength > thinkingWindowSize
+            val displayContent = remember(bodyLength, isTranslatedView) {
                 if (isTruncated) {
-                    val full = block.content
-                    val start = charCount - thinkingWindowSize
+                    val full = bodySource
+                    val start = bodyLength - thinkingWindowSize
                     val nl = full.indexOf('\n', start)
                     if (nl in start until start + 200) full.substring(nl + 1)
                     else full.substring(start)
                 } else {
-                    block.content
+                    bodySource
                 }
             }
             // [T-android-thinking-inner-scroll] Pause auto-follow once the user
@@ -1324,6 +1414,25 @@ internal fun ThinkingBlock(block: AssistantBlock, isStreaming: Boolean, isLast: 
                     .heightIn(max = 300.dp)
                     .verticalScroll(scrollState),
             ) {
+                // [MINIS-OZEL] Say so when this is a translation: the reader
+                // must never be unsure whether they are looking at the model's
+                // own words or a machine translation of them.
+                if (isTranslatedView || translateFailed) {
+                    Text(
+                        text = stringResource(
+                            if (isTranslatedView) R.string.thinking_translated_banner
+                            else R.string.thinking_translate_failed,
+                        ),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isTranslatedView) {
+                            thinkingBlue.copy(alpha = 0.75f)
+                        } else {
+                            MaterialTheme.colorScheme.error.copy(alpha = 0.85f)
+                        },
+                        modifier = Modifier.padding(vertical = 4.dp),
+                    )
+                }
                 if (isTruncated) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(

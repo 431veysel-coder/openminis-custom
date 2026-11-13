@@ -656,6 +656,9 @@
     <string name="appearance_auto_focus_after_reply_title">Yanıttan Sonra Girişe Otomatik Odaklan</string>
     <string name="appearance_auto_focus_after_reply_footer">Açıkken, model yanıtını bitirdikten sonra klavye kendiliğinden açılır ve giriş alanı yeni sorunuz için hazır olur. Varsayılan olarak açıktır; yanıtı klavye aniden açılmadan okumayı yeğliyorsanız kapatın.</string>
     <string name="appearance_section_deep_thinking">Derin Düşünme</string>
+    <string name="thinking_translate_button">Çevir</string>
+    <string name="thinking_translated_banner">Çevrildi — orijinali görmek için küreye dokun</string>
+    <string name="thinking_translate_failed">Çeviri başarısız — uygun model yok. Ayarlar › Çeviri bölümünden seç.</string>
     <string name="chat_thinking_block_title">Derin Düşünme</string>
     <string name="appearance_auto_expand_thinking_title">Akış Sırasında Düşünmeyi Genişlet</string>
     <string name="appearance_auto_expand_thinking_footer">Açıkken, model akıl yürütürken yeni düşünme bloğu kendiliğinden genişler ve bittiğinde daralır. Kapalıyken düşünme blokları daralmış kalır — okumak için dokunun.</string>

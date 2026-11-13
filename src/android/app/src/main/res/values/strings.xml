@@ -749,6 +749,9 @@
     <string name="appearance_auto_focus_after_reply_title">Auto-Focus Input After Reply</string>
     <string name="appearance_auto_focus_after_reply_footer">When on, the keyboard pops up automatically after the model finishes replying so the input is ready for a follow-up. On by default; turn off if you prefer to read the response without an unexpected keyboard.</string>
     <string name="appearance_section_deep_thinking">Deep Thinking</string>
+    <string name="thinking_translate_button">Translate</string>
+    <string name="thinking_translated_banner">Translated — tap the globe to see the original</string>
+    <string name="thinking_translate_failed">Translation failed — no model available. Pick one in Settings › Translation.</string>
     <string name="chat_thinking_block_title">Deep Thinking</string>
     <string name="appearance_auto_expand_thinking_title">Expand Thinking While Streaming</string>
     <string name="appearance_auto_expand_thinking_footer">When on, a new thinking block expands automatically while the model is reasoning and collapses when it finishes. When off, thinking blocks stay collapsed — tap one to read it.</string>
