@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Cancel
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.HourglassEmpty
@@ -334,7 +335,7 @@ private fun CancelJobButton(jobId: String) {
         onClick = { AgentJobRegistry.cancel(jobId, "cancelled from Live tasks") },
     ) {
         androidx.compose.material3.Icon(
-            imageVector = androidx.compose.material.icons.Icons.Outlined.Cancel,
+            imageVector = Icons.Outlined.Cancel,
             contentDescription = stringResource(R.string.live_tasks_cancel),
             tint = Color(0xFFFF3B30),
         )
