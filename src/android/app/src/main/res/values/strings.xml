@@ -1395,7 +1395,7 @@
     <string name="add_provider_built_in_models_count">%1$d built-in models</string>
     <string name="add_provider_subtitle_nvidia">NVIDIA NIM — Llama, Nemotron, DeepSeek, Qwen and more</string>
     <string name="add_provider_subtitle_mistral">Mistral Large, Codestral, Pixtral and more</string>
-    <string name="add_provider_subtitle_evren">OpenAI-compatible gateway — GLM, DeepSeek, Qwen, Gemma and more</string>
+    <string name="add_provider_subtitle_evren">OpenAI-compatible gateway — GLM, DeepSeek, Qwen, Gemma and more. Third-party service; not run or audited by this app.</string>
     <string name="add_provider_subtitle_openai">Works with Codex, DeepSeek, Moonshot, Groq and other compatible vendors</string>
     <string name="add_provider_subtitle_anthropic">Works with Claude and Anthropic-protocol-compatible services</string>
     <string name="add_provider_subtitle_gemini">Works with the Gemini series and Google AI Studio</string>

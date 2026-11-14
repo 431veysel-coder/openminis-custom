@@ -706,11 +706,11 @@
     <string name="toolchain_total_all">Tüm gruplar kurulursa %1$d MB</string>
     <string name="toolchain_total_all_subtitle">Sen istemeden hiçbir şey indirilmez. Gruplar bağımsız — yalnız ihtiyacın olanı kur.</string>
     <string name="toolchain_custom_header">Belirli paketler</string>
-    <string name="toolchain_custom_footer">Alpine paket adları, boşlukla ayrılmış — örneğin jq sqlite ripgrep. Aynı sandbox'a kurulur, uygulama güncellemelerinde korunur. Tam liste: pkgs.alpinelinux.org.</string>
+    <string name="toolchain_custom_footer">Alpine paket adları, boşlukla ayrılmış — örneğin jq sqlite ripgrep. Aynı sandbox\'a kurulur, uygulama güncellemelerinde korunur. Tam liste: pkgs.alpinelinux.org.</string>
     <string name="toolchain_custom_label">Paketler</string>
     <string name="toolchain_custom_action">Kur</string>
     <string name="toolchain_custom_running">Kuruluyor…</string>
-    <string name="toolchain_custom_ok">Kuruldu. Sandbox'ta kullanılabilir.</string>
+    <string name="toolchain_custom_ok">Kuruldu. Sandbox\'ta kullanılabilir.</string>
     <string name="toolchain_custom_failed">Kurulum başarısız — paket adlarını ve bağlantını kontrol et.</string>
 
     <string name="settings_translation">Çeviri</string>
@@ -1226,7 +1226,7 @@
     <string name="add_provider_built_in_models_count">%1$d yerleşik model</string>
     <string name="add_provider_subtitle_nvidia">NVIDIA NIM — Llama, Nemotron, DeepSeek, Qwen ve daha fazlası</string>
     <string name="add_provider_subtitle_mistral">Mistral Large, Codestral, Pixtral ve daha fazlası</string>
-    <string name="add_provider_subtitle_evren">OpenAI uyumlu ağ geçidi — GLM, DeepSeek, Qwen, Gemma ve daha fazlası</string>
+    <string name="add_provider_subtitle_evren">OpenAI uyumlu ağ geçidi — GLM, DeepSeek, Qwen, Gemma ve daha fazlası. Üçüncü taraf servis; bu uygulama tarafından işletilmez veya denetlenmez.</string>
     <string name="add_provider_subtitle_openai">Codex, DeepSeek, Moonshot, Groq ve diğer uyumlu sağlayıcılarla çalışır</string>
     <string name="add_provider_subtitle_anthropic">Claude ve Anthropic protokolüyle uyumlu hizmetlerle çalışır</string>
     <string name="add_provider_subtitle_gemini">Gemini serisi ve Google AI Studio ile çalışır</string>
