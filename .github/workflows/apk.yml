@@ -11,8 +11,14 @@ on:
         options: [release, debug]
         default: release
   push:
+    branches:
+      - main
     tags:
       - 'v*'
+    # Code-only changes skip the 10-minute build; the docs are not shipped.
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
 
 permissions:
   # softprops/action-gh-release creates the release the in-app updater polls.

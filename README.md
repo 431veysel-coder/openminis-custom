@@ -3,6 +3,30 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Platforms](https://img.shields.io/badge/Platforms-iOS%20%7C%20Android-lightgrey.svg)](#beta-programme)
 
+> ## 🔧 Bu depo bir çataldır — **Minis Özel**
+>
+> Burası [OpenMinis/OpenMinis](https://github.com/OpenMinis/OpenMinis)'in
+> kişisel çatalı. Uygulamayı **kullanmakla kalmayıp sahip olmak** için
+> kuruldu: kendi imzamızla derlenen, kendi CI'mızla dağıtılan, kendi
+> ihtiyaçlarımıza göre büyütülen bir sürüm.
+>
+> | | |
+> |---|---|
+> | Paket | `com.veysel.minis` — resmî uygulamayla yan yana kurulur |
+> | Sürüm | `1.15-ozel.7` (37007) |
+> | Durum | upstream v1.15 tabanı + **19 commit özel geliştirme** |
+>
+> **Neden var, ne eklendi, nasıl güncellenir → [FORK.md](FORK.md)**
+>
+> Özet: Evren API preset'i · düşünme bloğu çevirisi · Canlı Görevler paneli
+> (görevi gerçek araç çağrılarına açan) · 11 gruplu araç zinciri ekranı
+> (`jq`, `ssh`, `sqlite3`, `openssl`, `adb`, `gradle`, `ruby`, `perl`, `php`,
+> `uv`, `clang`…) · Hızlı Ayarlar karosu · kendi GitHub Actions derleme hattı.
+>
+> Aşağısı upstream'in kendi README'sidir, olduğu gibi korunmuştur.
+
+---
+
 **Your private, on-device AI agent.**
 
 OpenMinis brings leading models — Claude, GPT, Gemini and more — into a native
