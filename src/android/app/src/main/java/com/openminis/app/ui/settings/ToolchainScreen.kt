@@ -4,13 +4,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Computer
+import androidx.compose.material.icons.outlined.DataObject
 import androidx.compose.material.icons.outlined.DeveloperMode
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.Pets
+import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.Terminal
+import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -183,6 +187,10 @@ private fun iconFor(id: String): ImageVector = when (id) {
     "rust" -> Icons.Outlined.Memory
     "java" -> Icons.Outlined.DeveloperMode
     "media" -> Icons.Outlined.Movie
+    "devtools" -> Icons.Outlined.Build
+    "network" -> Icons.Outlined.Wifi
+    "scripting" -> Icons.Outlined.DataObject
+    "android" -> Icons.Outlined.PhoneAndroid
     else -> Icons.Outlined.DeveloperMode
 }
 
@@ -194,5 +202,9 @@ private fun colorFor(id: String): Color = when (id) {
     "rust" -> Color(0xFFFF9500)
     "java" -> Color(0xFFE76F00)
     "media" -> Color(0xFFFF3B30)
+    "devtools" -> Color(0xFF8E8E93)
+    "network" -> Color(0xFF007AFF)
+    "scripting" -> Color(0xFFAF52DE)
+    "android" -> Color(0xFF3DDC84)
     else -> Color(0xFF8E8E93)
 }

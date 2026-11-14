@@ -691,6 +691,17 @@
     <string name="toolchain_java_subtitle">javac, JVM — Java/Kotlin derle ve çalıştır</string>
     <string name="toolchain_media_title">Medya araçları</string>
     <string name="toolchain_media_subtitle">ffmpeg, imagemagick — dönüştür, kes, kodla</string>
+    <string name="toolchain_devtools_title">Kabuk araçları</string>
+    <string name="toolchain_devtools_subtitle">jq, sqlite3, openssl, ripgrep, nano, vim, tmux, tree, less</string>
+    <string name="toolchain_network_title">Uzak erişim</string>
+    <string name="toolchain_network_subtitle">ssh, scp, ssh-keygen, rsync, curl, wget</string>
+    <string name="toolchain_scripting_title">Betik dilleri</string>
+    <string name="toolchain_scripting_subtitle">Ruby, Perl, PHP — eski betikler ve CLI araçları</string>
+    <string name="toolchain_android_title">Android derleme araçları</string>
+    <string name="toolchain_android_subtitle">adb (kablosuz hata ayıklama), gradle — APK derle ve yönet</string>
+
+    <string name="qs_tile_label">Minis</string>
+    <string name="qs_tile_subtitle">Yeni sohbet</string>
 
     <string name="settings_translation">Çeviri</string>
     <string name="settings_thinking">Düşünce</string>

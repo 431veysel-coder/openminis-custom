@@ -492,6 +492,23 @@
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 
+        <!-- [MINIS-OZEL] Quick Settings tile: one tap from the shade into a
+             new chat. Uses the same minis://action/new_chat deep link as the
+             app-icon long-press shortcut, so navigation stays in MainActivity.
+             A static (manifest-declared) tile rather than
+             requestAddTileService() so it appears in the tile picker without
+             the user first opening the app. -->
+        <service
+            android:name=".service.MinisTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_shortcut_new_chat"
+            android:label="@string/qs_tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
         <!-- [T-android-backup-fgs] Keeps a running backup alive in the
              background (progress notification + wake lock). Started by
              BackupRunController, stops itself when the run ends. -->

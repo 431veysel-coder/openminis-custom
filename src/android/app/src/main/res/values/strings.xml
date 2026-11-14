@@ -784,6 +784,18 @@
     <string name="toolchain_java_subtitle">javac, JVM — build and run Java/Kotlin</string>
     <string name="toolchain_media_title">Media tools</string>
     <string name="toolchain_media_subtitle">ffmpeg, imagemagick — convert, cut, transcode</string>
+    <string name="toolchain_devtools_title">Shell utilities</string>
+    <string name="toolchain_devtools_subtitle">jq, sqlite3, openssl, ripgrep, nano, vim, tmux, tree, less</string>
+    <string name="toolchain_network_title">Remote access</string>
+    <string name="toolchain_network_subtitle">ssh, scp, ssh-keygen, rsync, curl, wget</string>
+    <string name="toolchain_scripting_title">Scripting runtimes</string>
+    <string name="toolchain_scripting_subtitle">Ruby, Perl, PHP — older scripts and CLI tooling</string>
+    <string name="toolchain_android_title">Android build tools</string>
+    <string name="toolchain_android_subtitle">adb (wireless debugging), gradle — build and drive APKs</string>
+
+    <!-- [MINIS-OZEL] Quick Settings tile -->
+    <string name="qs_tile_label">Minis</string>
+    <string name="qs_tile_subtitle">New chat</string>
 
     <string name="settings_translation">Translation</string>
     <string name="settings_thinking">Thinking</string>

@@ -60,16 +60,16 @@ object ToolchainManager {
             id = "c",
             titleRes = com.openminis.app.R.string.toolchain_c_title,
             subtitleRes = com.openminis.app.R.string.toolchain_c_subtitle,
-            packages = listOf("build-base", "musl-dev", "binutils", "git", "make"),
-            sizeMb = 180,
+            packages = listOf("build-base", "musl-dev", "binutils", "git", "make", "clang19"),
+            sizeMb = 220,
             probe = "gcc --version",
         ),
         Group(
             id = "python",
             titleRes = com.openminis.app.R.string.toolchain_python_title,
             subtitleRes = com.openminis.app.R.string.toolchain_python_subtitle,
-            packages = listOf("python3", "py3-pip", "python3-dev"),
-            sizeMb = 45,
+            packages = listOf("python3", "py3-pip", "python3-dev", "uv"),
+            sizeMb = 70,
             probe = "python3 --version",
         ),
         Group(
@@ -111,6 +111,52 @@ object ToolchainManager {
             packages = listOf("ffmpeg", "imagemagick"),
             sizeMb = 120,
             probe = "ffmpeg -version",
+        ),
+        // [MINIS-OZEL] Everyday shell utilities. These are the ones an agent
+        // reaches for constantly — `jq` for JSON, `sqlite3` for local data,
+        // `openssl` for certificates — and the bare rootfs has none of them,
+        // so every such task used to start with the agent asking to install
+        // something. ~35 MB installed.
+        Group(
+            id = "devtools",
+            titleRes = com.openminis.app.R.string.toolchain_devtools_title,
+            subtitleRes = com.openminis.app.R.string.toolchain_devtools_subtitle,
+            packages = listOf(
+                "jq", "sqlite", "openssl", "ripgrep", "less", "tree", "tmux", "nano", "vim",
+            ),
+            sizeMb = 35,
+            probe = "jq --version",
+        ),
+        // Remote work: ssh out, rsync files, scp them around. openssh-client
+        // also brings ssh-keygen, which is what the agent needs before any
+        // `git push` over SSH.
+        Group(
+            id = "network",
+            titleRes = com.openminis.app.R.string.toolchain_network_title,
+            subtitleRes = com.openminis.app.R.string.toolchain_network_subtitle,
+            packages = listOf("openssh-client", "rsync", "curl", "wget"),
+            sizeMb = 20,
+            probe = "ssh -V",
+        ),
+        // Scripting runtimes that are not Python/Node: Ruby, Perl, PHP.
+        Group(
+            id = "scripting",
+            titleRes = com.openminis.app.R.string.toolchain_scripting_title,
+            subtitleRes = com.openminis.app.R.string.toolchain_scripting_subtitle,
+            packages = listOf("ruby-full", "perl", "php83", "php83-phar", "php83-openssl", "php83-common"),
+            sizeMb = 90,
+            probe = "ruby --version",
+        ),
+        // Android build plumbing: adb to talk to a device over wireless
+        // debugging, gradle to drive a build. gradle pulls its own JDK, so it
+        // is usable without the Java group — but install both to compile.
+        Group(
+            id = "android",
+            titleRes = com.openminis.app.R.string.toolchain_android_title,
+            subtitleRes = com.openminis.app.R.string.toolchain_android_subtitle,
+            packages = listOf("android-tools", "gradle"),
+            sizeMb = 180,
+            probe = "adb version",
         ),
     )
 
