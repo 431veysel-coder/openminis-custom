@@ -1,6 +1,9 @@
 package com.openminis.app.ui.settings
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -13,11 +16,14 @@ import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material.icons.outlined.Pets
 import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.Terminal
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -54,6 +60,11 @@ fun ToolchainScreen(onBack: () -> Unit) {
     var busyGroup by remember { mutableStateOf<String?>(null) }
     var lastLine by remember { mutableStateOf("") }
     var installedBytes by remember { mutableStateOf(0L) }
+    // [MINIS-OZEL] custom package install state
+    var customInput by remember { mutableStateOf("") }
+    var customBusy by remember { mutableStateOf<String?>(null) }
+    var customLine by remember { mutableStateOf("") }
+    var customResult by remember { mutableStateOf<Boolean?>(null) }
 
     LaunchedEffect(Unit) {
         ToolchainManager.refresh(context)
@@ -69,6 +80,9 @@ fun ToolchainScreen(onBack: () -> Unit) {
         ToolchainManager.groups.size,
         installedBytes / (1024L * 1024L),
     )
+    // [MINIS-OZEL] What installing everything would cost. The groups look
+    // small one at a time; the total is 1.4 GB and was nowhere on screen.
+    val totalMb = ToolchainManager.groups.sumOf { it.sizeMb }
 
     SettingsScaffold(
         title = stringResource(R.string.toolchain_title),
@@ -83,6 +97,14 @@ fun ToolchainScreen(onBack: () -> Unit) {
                 subtitle = stringResource(R.string.toolchain_summary_subtitle),
                 icon = Icons.Outlined.DeveloperMode,
                 iconColor = Color(0xFF34C759),
+                showChevron = false,
+                showDivider = true,
+            )
+            SettingsRow(
+                title = stringResource(R.string.toolchain_total_all, totalMb),
+                subtitle = stringResource(R.string.toolchain_total_all_subtitle),
+                icon = Icons.Outlined.Storage,
+                iconColor = Color(0xFFFF9500),
                 showChevron = false,
                 showDivider = false,
             )
@@ -172,6 +194,84 @@ fun ToolchainScreen(onBack: () -> Unit) {
                     },
                     showDivider = index < ToolchainManager.groups.size - 1,
                 )
+            }
+        }
+
+        // [MINIS-OZEL] Custom packages: the groups are coarse. Someone who
+        // needs `jq` and `sqlite` should not pay 35 MB for the whole shell
+        // group, and someone installing everything should not have to.
+        SettingsSection(
+            header = stringResource(R.string.toolchain_custom_header),
+            footer = stringResource(R.string.toolchain_custom_footer),
+        ) {
+            SettingsCardBlock {
+                OutlinedTextField(
+                    value = customInput,
+                    onValueChange = { customInput = it },
+                    label = { Text(stringResource(R.string.toolchain_custom_label), fontSize = 13.sp) },
+                    placeholder = { Text("jq sqlite", fontSize = 13.sp) },
+                    singleLine = true,
+                    enabled = customBusy == null && busyGroup == null,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(
+                        enabled = customBusy == null && busyGroup == null && customInput.isNotBlank(),
+                        onClick = {
+                            customBusy = customInput
+                            customLine = ""
+                            scope.launch {
+                                val packages = customInput
+                                    .split(' ', ',', '\n')
+                                    .map { it.trim() }
+                                    .filter { it.isNotEmpty() }
+                                val first = packages.firstOrNull() ?: ""
+                                val ok = ToolchainManager.installPackages(
+                                    context = context,
+                                    packages = packages,
+                                    probe = first,
+                                    onLine = { customLine = it },
+                                )
+                                customResult = ok
+                                installedBytes = ToolchainManager.installedBytes(context)
+                                ToolchainManager.refresh(context)
+                                customBusy = null
+                                if (ok) customInput = ""
+                            }
+                        },
+                    ) {
+                        Text(
+                            text = stringResource(
+                                if (customBusy != null) R.string.toolchain_custom_running
+                                else R.string.toolchain_custom_action
+                            ),
+                            fontSize = 13.sp,
+                        )
+                    }
+                }
+                if (customLine.isNotBlank()) {
+                    Text(
+                        text = customLine,
+                        fontSize = 11.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    )
+                }
+                customResult?.let { ok ->
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = stringResource(
+                            if (ok) R.string.toolchain_custom_ok else R.string.toolchain_custom_failed
+                        ),
+                        fontSize = 12.sp,
+                        color = if (ok) Color(0xFF34C759) else MaterialTheme.colorScheme.error,
+                    )
+                }
             }
         }
 

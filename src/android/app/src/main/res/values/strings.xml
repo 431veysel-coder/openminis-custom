@@ -58,6 +58,7 @@
     <string name="check_update_open_release">Open Release Page</string>
     <string name="check_update_verify_failed">The download did not pass verification. Please try again.</string>
     <string name="check_update_package_invalid">The downloaded package is not a newer version of Minis, so it was not installed.</string>
+    <string name="check_update_signature_mismatch">This update is not signed with the same key as the installed app, so it was refused. A genuine Minis Özel update is always signed with the key already on this device. Do not install this file manually.</string>
     <string name="check_update_checking">Checking…</string>
     <string name="check_update_up_to_date">You\'re on the latest version.</string>
     <string name="check_update_no_release">No release published yet.</string>
@@ -796,6 +797,15 @@
     <!-- [MINIS-OZEL] Quick Settings tile -->
     <string name="qs_tile_label">Minis</string>
     <string name="qs_tile_subtitle">New chat</string>
+    <string name="toolchain_total_all">%1$d MB if every group is installed</string>
+    <string name="toolchain_total_all_subtitle">Nothing is downloaded until you ask for it. Groups are independent — install only what you need.</string>
+    <string name="toolchain_custom_header">Specific packages</string>
+    <string name="toolchain_custom_footer">Alpine package names, space separated — for example jq sqlite ripgrep. Installs into the same sandbox and survives app updates. Full list at pkgs.alpinelinux.org.</string>
+    <string name="toolchain_custom_label">Packages</string>
+    <string name="toolchain_custom_action">Install</string>
+    <string name="toolchain_custom_running">Installing…</string>
+    <string name="toolchain_custom_ok">Installed. Available in the sandbox now.</string>
+    <string name="toolchain_custom_failed">Install failed — check the package names and your connection.</string>
 
     <string name="settings_translation">Translation</string>
     <string name="settings_thinking">Thinking</string>
@@ -823,7 +833,7 @@
 
     <string name="thinking_section_display">Display</string>
     <string name="thinking_section_translation">Translation</string>
-    <string name="thinking_translation_footer">The translate action appears at the top right of a reasoning block, once the block has finished streaming.</string>
+    <string name="thinking_translation_footer">The translate action appears at the top right of a reasoning block, once the block has finished streaming. Translation is a second request to your chosen model: it is billed as extra input and output by your provider, and longer reasoning blocks cost more.</string>
     <string name="thinking_translate_button_subtitle">Show the globe button on reasoning blocks</string>
     <string name="thinking_auto_translate_subtitle">Translate as soon as a block is expanded</string>
     <string name="thinking_translate_button">Translate</string>

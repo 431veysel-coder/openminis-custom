@@ -243,6 +243,66 @@ jobs:
         working-directory: src/android
         run: ./gradlew :app:testGithubDebugUnitTest --stacktrace
 
+      - name: Build the release notes from commits
+        if: ${{ (inputs.build_type || 'release') == 'release' }}
+        id: notes
+        run: |
+          set -e
+          # The checkout above is depth=1 (the build does not need history),
+          # so fetch just what the notes need. Shallow-fetching tags alongside
+          # the branch is enough to find the previous version tag.
+          git fetch --tags --depth=50 origin main >/dev/null 2>&1 || \
+            git fetch --tags origin main >/dev/null 2>&1 || true
+
+          # Group the commits since the previous version tag by type, so the
+          # release reads as "what changed" rather than GitHub's default list
+          # of every merge commit. Conventional-commit prefixes are what the
+          # rest of this repo already uses (see CONTRIBUTING.md §4).
+          PREV=$(git tag --list 'v*' --sort=-v:refname | head -1 || true)
+          if [ -n "$PREV" ] && git rev-parse "$PREV" >/dev/null 2>&1; then
+            RANGE="$PREV..HEAD"
+            echo "notes: since $PREV"
+          else
+            RANGE="HEAD~20..HEAD"
+            echo "notes: no reachable previous tag, using the last 20 commits"
+          fi
+
+          {
+            echo "body<<__NOTES_EOF__"
+            echo ""
+            # feat
+            FEAT=$(git log "$RANGE" --no-merges --pretty=%s | grep -E '^feat' || true)
+            if [ -n "$FEAT" ]; then
+              echo "### Yeni"
+              echo ""
+              echo "$FEAT" | sed -E 's/^feat(\([^)]*\))?: /- /'
+              echo ""
+            fi
+            # fix
+            FIX=$(git log "$RANGE" --no-merges --pretty=%s | grep -E '^fix' || true)
+            if [ -n "$FIX" ]; then
+              echo "### Düzeltmeler"
+              echo ""
+              echo "$FIX" | sed -E 's/^fix(\([^)]*\))?: /- /'
+              echo ""
+            fi
+            # everything else that is user-facing
+            OTHER=$(git log "$RANGE" --no-merges --pretty=%s | grep -E '^(perf|refactor)' || true)
+            if [ -n "$OTHER" ]; then
+              echo "### İyileştirmeler"
+              echo ""
+              echo "$OTHER" | sed -E 's/^(perf|refactor)(\([^)]*\))?: /- /'
+              echo ""
+            fi
+            echo "---"
+            echo ""
+            echo "Kurulum: \`com.veysel.minis\` — resmî Minis'in yanına kurulur."
+            echo "Tam değişiklik listesi: [FORK.md §10](https://github.com/${{ github.repository }}/blob/main/FORK.md#10-değişiklik-günlüğü)."
+            echo ""
+            echo "_Derleme: \`${{ github.sha }}\`_"
+            echo "__NOTES_EOF__"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Publish release (this is what the in-app updater reads)
         # Runs for every release build, not just tags. The updater polls
         # GitHub Releases of RELEASE_REPO and compares the versionCode parsed
@@ -262,10 +322,9 @@ jobs:
           # our own builds as prereleases would hide them from the in-app updater.
           prerelease: false
           make_latest: true
-          generate_release_notes: true
-          body: |
-            Automatically built from `${{ github.sha }}`.
-
-            Package: `com.veysel.minis` — installs alongside the official Minis.
+          # [MINIS-OZEL] Notes come from the commits, not from GitHub's default
+          # merge-commit list. generate_release_notes would be ignored anyway
+          # once body is set.
+          body: ${{ steps.notes.outputs.body }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

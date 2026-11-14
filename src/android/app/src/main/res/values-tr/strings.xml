@@ -54,6 +54,7 @@
     <string name="check_update_open_release">Sürüm sayfasını aç</string>
     <string name="check_update_verify_failed">İndirilen dosya doğrulamayı geçemedi. Lütfen tekrar deneyin.</string>
     <string name="check_update_package_invalid">İndirilen paket Minis\'in daha yeni bir sürümü değil, bu yüzden yüklenmedi.</string>
+    <string name="check_update_signature_mismatch">Bu güncelleme, kurulu uygulamayla aynı anahtarla imzalanmamış — bu yüzden reddedildi. Gerçek bir Minis Özel güncellemesi her zaman bu cihazdaki anahtarla imzalanır. Bu dosyayı elle kurmayın.</string>
     <string name="check_update_checking">Denetleniyor…</string>
     <string name="check_update_up_to_date">En son sürümü kullanıyorsunuz.</string>
     <string name="check_update_no_release">Henüz yayımlanmış bir sürüm yok.</string>
@@ -702,6 +703,15 @@
 
     <string name="qs_tile_label">Minis</string>
     <string name="qs_tile_subtitle">Yeni sohbet</string>
+    <string name="toolchain_total_all">Tüm gruplar kurulursa %1$d MB</string>
+    <string name="toolchain_total_all_subtitle">Sen istemeden hiçbir şey indirilmez. Gruplar bağımsız — yalnız ihtiyacın olanı kur.</string>
+    <string name="toolchain_custom_header">Belirli paketler</string>
+    <string name="toolchain_custom_footer">Alpine paket adları, boşlukla ayrılmış — örneğin jq sqlite ripgrep. Aynı sandbox'a kurulur, uygulama güncellemelerinde korunur. Tam liste: pkgs.alpinelinux.org.</string>
+    <string name="toolchain_custom_label">Paketler</string>
+    <string name="toolchain_custom_action">Kur</string>
+    <string name="toolchain_custom_running">Kuruluyor…</string>
+    <string name="toolchain_custom_ok">Kuruldu. Sandbox'ta kullanılabilir.</string>
+    <string name="toolchain_custom_failed">Kurulum başarısız — paket adlarını ve bağlantını kontrol et.</string>
 
     <string name="settings_translation">Çeviri</string>
     <string name="settings_thinking">Düşünce</string>
@@ -729,7 +739,7 @@
 
     <string name="thinking_section_display">Görünüm</string>
     <string name="thinking_section_translation">Çeviri</string>
-    <string name="thinking_translation_footer">Çeviri düğmesi, akış bittikten sonra düşünce bloğunun sağ üstünde görünür.</string>
+    <string name="thinking_translation_footer">Çeviri düğmesi, akış bittikten sonra düşünce bloğunun sağ üstünde görünür. Çeviri, seçtiğin modele ikinci bir istektir: sağlayıcın bunu ek girdi ve çıktı olarak faturalandırır; uzun düşünce blokları daha pahalıya gelir.</string>
     <string name="thinking_translate_button_subtitle">Düşünce bloklarında küre düğmesini göster</string>
     <string name="thinking_auto_translate_subtitle">Blok açılır açılmaz çevir</string>
     <string name="thinking_translate_button">Çevir</string>

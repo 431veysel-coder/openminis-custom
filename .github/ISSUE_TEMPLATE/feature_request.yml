@@ -1,0 +1,64 @@
+name: Özellik isteği
+description: Bu çatala eklenmesini istediğin bir özellik
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Bu depo bir çatal — amacı **kendi ihtiyacımıza göre büyütmek**
+        ([FORK.md §1](https://github.com/431veysel-coder/openminis-custom/blob/main/FORK.md)).
+        Bir özellik isterken "ne" kadar "neden" de önemli.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Hangi sorunu çözüyor?
+      description: |
+        Özelliği değil, **derdi** anlat. "X düğmesi olsun" yerine
+        "şu işi yaparken şurada takılıyorum".
+      placeholder: "Her JSON yanıtını işlemek için ajan önce jq kurmak istiyor, bu da her seferinde bir onay turu demek."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Nasıl çözülmesini düşünüyorsun?
+      description: Varsa fikrin. Yoksa "bilmiyorum, bu sorun çözülsün" de yeter.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Şu an nasıl idare ediyorsun?
+      description: Geçici çözüm var mı? Bu, özelliğin gerçekten gerekli olup olmadığını gösterir.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Hangi alan?
+      options:
+        - Ajan araçları / sandbox
+        - Araç zincirleri
+        - Sağlayıcı / model
+        - Arayüz
+        - Android entegrasyonu (widget, karo, kısayol)
+        - Belgeleme
+        - Diğer
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Onaylar
+      options:
+        - label: Bu özellik upstream'de zaten var (çatala taşınması yeterli)
+          required: false
+        - label: Depoda aynı isteği arayan açık bir issue yok
+          required: true
+        - label: Uygulamak için gönüllüyüm
+          required: false

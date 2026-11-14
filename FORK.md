@@ -235,6 +235,58 @@ daha can sıkıcı.
 Release'lerinden bu repodan kontrol ediyor — resmî OpenMinis sürümünü değil.
 `versionCode` şeması (§6) sayesinde resmî uygulamayla çakışmıyor.
 
+### 3.9 Güncelleme imza doğrulaması
+
+`data/UpdateSignatureGuard.kt`
+
+Güncelleme yolunda zaten üç kontrol vardı: dosyanın SHA-256'sı GitHub'ın
+bildirdiği özetle, arşiv içindeki paket adı, ve `versionCode`'un daha yeni
+olması. **Üçü de aynı GitHub hesabından geliyor** — yani "indirme bozulmadan
+geldi mi" sorusunu yanıtlıyorlar, *"bunu yayınlayan bizim imza anahtarını
+tutuyor muydu"* sorusunu değil.
+
+Hesap ele geçirilirse, saldırgan özeti ve paket adı doğru olan bir release
+yayınlayabilir. Android'in kendisi bunu kurmayı reddeder (imza
+sertifikalarını karşılaştırır) — ama kullanıcı 39 MB indirdikten sonra
+açıklamasız bir "Uygulama yüklenemedi" görür ve bunun bozuk bir release mi
+yoksa saldırı mı olduğunu ayırt edemez.
+
+Bu kontrol kararı **daha erken** ve **okunabilir** hâle getiriyor:
+
+- İmza, çalışan uygulamanınkiyle karşılaştırılıyor. Sabit bir parmak izi
+  gömülmüyor — öyle olsaydı anahtar döndüğünde elle güncellenmesi gerekir ve
+  unutulması sessiz bir arızaya yol açardı. "Bu uygulama neyle imzalı" sorusu
+  ise tanım gereği kayamaz.
+- İmzası **okunamayan** arşiv de reddediliyor; atlanmıyor. Okunamayan imza ya
+  bozuk ya da kasten bozulmuş demektir.
+- Reddetme sebebi ayrı bir mesajla gösteriliyor: imza uyuşmazlığı ile hatalı
+  paket adı aynı şey değil.
+
+**Korumadığı şey:** hem GitHub hesabını hem imza anahtarını tutan bir
+saldırgan. O noktada güncelleme yolunda kontrol edilecek bir şey kalmaz —
+çözüm anahtar rotasyonudur, kod içindeki bir kontrol değil.
+
+### 3.10 Belirli paket kurulumu
+
+`sandbox/ToolchainManager.installPackages()` · `ui/settings/ToolchainScreen.kt`
+
+Gruplar kaba birimler: `jq` ve `sqlite` için 35 MB'lık koca "kabuk araçları"
+grubunu kurmak gerekiyordu. Artık serbest paket listesi girilebiliyor —
+Alpine paket adları, boşlukla ayrılmış. Aynı sandbox'a kurulur, aynı şekilde
+güncellemelerde korunur.
+
+Ayrıca ekranın başında **toplam maliyet** görünüyor: bütün gruplar 1.4 GB.
+Tek tek bakınca hiçbiri büyük görünmüyordu; toplam hiçbir yerde yazmıyordu.
+
+### 3.11 Maliyet şeffaflığı
+
+Çeviri varsayılan **açık** ve her çeviri seçili modele **ikinci bir istek**
+gönderiyor — yani sağlayıcı bunu ek girdi/çıktı olarak faturalandırıyor. Bu
+artık ayar ekranının alt bilgisinde açıkça yazıyor.
+
+Çeviri kendiliğinden çalışmıyor (düğmeye kullanıcı basıyor), ama maliyetin
+varlığı görünmüyordu. Sessiz ücret, ücretin kendisinden daha kötü.
+
 ---
 
 ## 4. Altyapı — kendi derleme hattımız
@@ -261,6 +313,41 @@ Hattın çözdüğü problemler — her biri CI'da bir kez patladıktan sonra ya
 `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`) ya da yerelde
 `keystore.properties`'ten okur; ikisi de yoksa debug anahtarına düşer —
 **yani derleme asla anahtar yüzünden durmaz**, yalnızca dağıtılamaz olur.
+
+### 4.1 Upstream nöbeti
+
+`.github/workflows/upstream-sync.yml` — her **pazartesi 06:00 UTC**.
+
+Upstream'i çeker, bir deneme merge'i yapar ve **tek bir yuvarlanan issue**'yu
+günceller:
+
+- kaç commit gerideyiz, upstream hangi SHA'da
+- deneme merge'i temiz mi, değilse hangi dosyalar çakışıyor
+- upstream'in eklediği commit'ler (ilk 40)
+- **hem bizim hem onların dokunduğu dosyalar** — asıl riskli liste
+
+`main`'e hiçbir şey push etmez, hiçbir şey merge etmez. Kararı insan verir.
+§1 ilkesi 2'nin ("merge edilebilir kal") alarmı: sapma sessizce büyümeden
+görünür olur.
+
+### 4.2 Sürüm notları
+
+`apk.yml` → *Build the release notes* adımı, son sürüm etiketinden bu yana
+geçen commit'leri `feat` / `fix` / `perf` başlıklarına göre gruplayıp Release
+gövdesine yazıyor. GitHub'ın varsayılan "tüm merge commit'leri" listesi yerine
+okunabilir bir *ne değişti*. `generate_release_notes` kullanılmıyor — `body`
+verildiğinde zaten yok sayılıyor.
+
+### 4.3 Belgeler
+
+| Dosya | Ne |
+|---|---|
+| `FORK.md` | Bu belge — neden, ne, nasıl |
+| `CONTRIBUTING.md` | Geliştirme ortamı, kod kuralları, commit/PR akışı, inceleme kriterleri |
+| `SECURITY.md` | Tehdit modeli, kapsam, bildirim kanalı, yanıt süreleri |
+| `PRIVACY.md` | Hangi veri nereye gidiyor — sağlayıcılar, Evren API, çeviri maliyeti, izinler |
+| `.github/ISSUE_TEMPLATE/` | Hata ve özellik şablonları |
+| `.github/PULL_REQUEST_TEMPLATE.md` | PR kontrol listesi |
 
 ---
 
@@ -355,13 +442,18 @@ Yapılması düşünülenler — sıra ve kapsam kesin değil:
 | Öncelik | İş | Neden |
 |---|---|---|
 | Yüksek | **Ana ekran widget'ı** (Glance) | Repoda `AppWidgetProvider`/Glance yok; ana ekrandan giriş imkânı hiç yok |
-| Orta | **Provider seviyesinde özel HTTP başlıkları** | Upstream'in 1 numaralı talebi (#221, 7 👍). `customHeaders` şu an yalnız *model* seviyesinde var; *provider* seviyesinde yok — kendi header'ıyla çalışan API'lere bağlanılamıyor |
+| Orta | **Provider seviyesinde özel HTTP başlıkları** | Upstream'in 1 numaralı talebi (#221, 7 👍). `customHeaders` şu an yalnız *model* seviyesinde var; *provider* seviyesinde yok |
 | Orta | **Proje / mini uygulama üretimi** | Ajanın ürettiği kodu (web sitesi, mini app, script) tek yerde toplayıp çalıştırma. Şu an üretim var, *yönetim* yok |
-| Düşük | **IzzyOnDroid yayını** | Mağazadan kurulabilir/güncellenebilir hâle gelmek. proot rootfs boyutu F-Droid kurallarını zorlar; IzzyOnDroid gerçekçi |
-| Düşük | **Upstream otomatik takibi** | Yeni upstream commit'i geldiğinde haber veren zamanlanmış görev |
+| Orta | **Smoke test paketi** | CI 722 birim testi çalıştırıyor ama `continue-on-error`. Kritik yollar (sohbet, araç çağrısı, güncelleme) için engelleyici bir set yok |
+| Düşük | **IzzyOnDroid yayını** | Mağazadan kurulabilir hâle gelmek. proot rootfs boyutu F-Droid kurallarını zorlar; IzzyOnDroid gerçekçi |
+| Düşük | **Erişilebilirlik denetimi** | TalkBack, kontrast, font ölçekleme — hiçbiri sistematik test edilmedi |
 
 Yapılmayacaklar: iOS, mağaza dışı dağıtım karmaşası, upstream'de zaten olan
 özelliklerin yeniden yazımı.
+
+**Tamamlananlar:** imza doğrulaması (§3.9), belirli paket kurulumu (§3.10),
+maliyet şeffaflığı (§3.11), upstream nöbeti (§4.1), sürüm notu otomasyonu
+(§4.2), güvenlik/katkı/gizlilik belgeleri (§4.3).
 
 ---
 
@@ -377,6 +469,7 @@ Yapılmayacaklar: iOS, mağaza dışı dağıtım karmaşası, upstream'de zaten
 | 2026-11-14 | `1.15-ozel.5` | Canlı Görevler: veri tasarrufu niyeti; özel stringler `strings.xml` dışına taşındı. |
 | 2026-11-14 | `1.15-ozel.6` | Canlı Görevler: görevi gerçekte yaptığı araç çağrılarına açma (`AgentStepExtractor`). Delegasyon import düzeltmeleri. |
 | 2026-11-14 | `1.15-ozel.7` | **Araç zincirleri 7 → 11 grup:** kabuk araçları, uzak erişim, betik dilleri, Android derleme. `clang` ve `uv` kendi gruplarına eklendi. **Hızlı Ayarlar karosu.** CI artık `main` push'unda da çalışıyor (yalnız belge değişiklikleri hariç). |
+| 2026-11-14 | `1.15-ozel.8` | **Güncelleme imza doğrulaması** (`UpdateSignatureGuard`) — GitHub hesabı ele geçse bile farklı anahtarla imzalanmış APK reddedilir; imza uyuşmazlığı ayrı ve açık bir mesajla gösterilir. **Belirli paket kurulumu** + toplam boyut uyarısı (1.4 GB). **Maliyet şeffaflığı**: çeviri ayarının alt bilgisi ikinci isteğin ücretlendirildiğini söylüyor. **Haftalık upstream nöbeti** (`upstream-sync.yml`) — çakışma raporu tek issue'da. **Sürüm notları commit'lerden üretiliyor.** Yeni belgeler: `SECURITY.md`, `CONTRIBUTING.md`, `PRIVACY.md`, issue/PR şablonları. |
 
 ---
 

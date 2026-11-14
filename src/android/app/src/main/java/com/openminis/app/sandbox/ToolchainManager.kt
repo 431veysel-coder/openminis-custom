@@ -177,6 +177,55 @@ object ToolchainManager {
     }
 
     /**
+     * [MINIS-OZEL] Installs an arbitrary list of Alpine packages.
+     *
+     * The group list answers "give me a working Python"; this answers "I only
+     * need `jq` and `sqlite`". Without it the smallest useful unit is a whole
+     * group — 35 MB for the shell utilities when two packages would have done,
+     * and 1.4 GB if someone installs every group. The packages land in the
+     * same rootfs and survive updates like the groups do.
+     *
+     * [probe] decides success: apk's exit code alone is not enough, since a
+     * partial install can succeed per-package.
+     */
+    suspend fun installPackages(
+        context: Context,
+        packages: List<String>,
+        probe: String,
+        onLine: (String) -> Unit = {},
+    ): Boolean = withContext(Dispatchers.IO) {
+        if (packages.isEmpty()) return@withContext false
+        AppLogger.info(TAG, "[install-custom] packages=${packages.joinToString(" ")}")
+
+        val cmd = "apk update >/dev/null 2>&1; apk add --no-cache ${packages.joinToString(" ")} 2>&1"
+        val result = runCatching {
+            ExecutionCoordinator.execute(
+                TOOLCHAIN_SESSION,
+                cmd,
+                timeout = 30L * 60_000L,
+                lineCallback = { line ->
+                    val trimmed = line.trim()
+                    if (trimmed.isNotEmpty()) onLine(trimmed)
+                },
+            )
+        }.getOrElse { t ->
+            onLine(t.message ?: t.javaClass.simpleName)
+            return@withContext false
+        }
+
+        val probeOk = runCatching {
+            ExecutionCoordinator.execute(
+                TOOLCHAIN_SESSION,
+                "$probe >/dev/null 2>&1 && echo __ok || echo __failed",
+                timeout = 60_000L,
+            ).output.contains("__ok")
+        }.getOrDefault(result.exitCode == 0)
+
+        AppLogger.info(TAG, "[install-custom] exit=${result.exitCode} probe=$probeOk")
+        probeOk
+    }
+
+    /**
      * Probes every group with one shell call and updates [states].
      *
      * A single round-trip for all groups: seven separate `command -v` calls

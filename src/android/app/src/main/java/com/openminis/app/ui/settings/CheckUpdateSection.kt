@@ -320,8 +320,19 @@ fun CheckUpdateSection() {
                             downloadProgress = null
                             // [T-update-channels] The archive itself must be this
                             // app and a newer build, whatever its name said.
-                            if (UpdateChecker.archiveRefusal(context, result.file) != null) {
-                                downloadError = context.getString(R.string.check_update_package_invalid)
+                            // [MINIS-OZEL] A signature mismatch is a different
+                            // answer from a bad package name: one means the
+                            // release is mislabelled, the other means whoever
+                            // published it did not hold our signing key.
+                            val refusal = UpdateChecker.archiveRefusal(context, result.file)
+                            if (refusal != null) {
+                                downloadError = context.getString(
+                                    if (refusal == "signature-mismatch" || refusal == "signature-unreadable") {
+                                        R.string.check_update_signature_mismatch
+                                    } else {
+                                        R.string.check_update_package_invalid
+                                    }
+                                )
                                 result.file.delete()
                                 com.openminis.app.data.PendingUpdateStore.clearPending(context)
                             } else if (UpdateChecker.canInstall(context)) {

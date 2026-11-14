@@ -458,6 +458,13 @@ object UpdateChecker {
      * by a mislabelled asset.
      */
     fun archiveRefusal(context: Context, apk: File): String? {
+        // [MINIS-OZEL] Signing certificate first: package name and versionCode
+        // come from the same publisher as the release, so they cannot answer
+        // "is this signed by our key". See UpdateSignatureGuard.
+        UpdateSignatureGuard.refusal(context, apk)?.let { reason ->
+            AppLogger.info(TAG, "[UpdateCheck] archive refused: $reason")
+            return reason
+        }
         val info = runCatching {
             if (Build.VERSION.SDK_INT >= 33) {
                 context.packageManager.getPackageArchiveInfo(apk.absolutePath, android.content.pm.PackageManager.PackageInfoFlags.of(0))

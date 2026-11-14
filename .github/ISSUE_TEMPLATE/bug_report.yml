@@ -1,0 +1,99 @@
+name: Hata bildirimi
+description: Bir şey çalışmıyor — yeniden üretme adımlarıyla bildir
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Güvenlik açığıysa buraya yazma.** [SECURITY.md](https://github.com/431veysel-coder/openminis-custom/blob/main/SECURITY.md) dosyasındaki özel bildirim yolunu kullan.
+
+        **Upstream'de de varsa** [oraya bildir](https://github.com/OpenMinis/OpenMinis/issues) — burada düzeltilmesi upstream'e de taşınmalı.
+
+  - type: input
+    id: version
+    attributes:
+      label: Sürüm
+      description: "Ayarlar → Hakkında ekranındaki versionName ve versionCode"
+      placeholder: "1.15-ozel.7 (37007)"
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Cihaz ve Android sürümü
+      placeholder: "Infinix X6873 / Android 16 (SDK 36)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Hangi alan?
+      options:
+        - Sohbet / yanıt akışı
+        - Ajan araçları (shell, dosya, tarayıcı)
+        - Araç zincirleri / sandbox kurulumu
+        - Sağlayıcı / model yapılandırması
+        - Düşünme bloğu çevirisi
+        - Canlı Görevler paneli
+        - Güncelleme (kendi kendini güncelleme)
+        - Hızlı Ayarlar karosu
+        - Arayüz / görünüm
+        - Diğer
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Ne oldu?
+      description: Ne beklediğin ve ne olduğu arasındaki farkı yaz.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Yeniden üretme adımları
+      placeholder: |
+        1. Ayarlar → Araç Zincirleri'ne git
+        2. "Kabuk araçları" satırına dokun
+        3. Kurulum %40'ta duruyor
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log veya ekran görüntüsü
+      description: |
+        Ayarlar → Loglar ekranından ilgili satırları kopyalayabilirsin.
+        Hata ayıklama günlüğü 24 saatliktir, sonrasında kaybolur.
+      render: text
+    validations:
+      required: false
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: Ne sıklıkla?
+      options:
+        - Her seferinde
+        - Bazen (yaklaşık yarısında)
+        - Nadiren, bir kez oldu
+        - Belirli bir koşulda (aşağıda yazdım)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Onaylar
+      options:
+        - label: Bu hatayı resmî OpenMinis uygulamasında da denedim
+          required: false
+        - label: Depoda aynı hatayı arayan açık bir issue yok
+          required: true
+        - label: Loglarda API anahtarım veya kişisel veri yok
+          required: true
