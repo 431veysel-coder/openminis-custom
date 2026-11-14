@@ -36,6 +36,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openminis.app.R
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 /**
  * [MINIS-OZEL] One task, expandable into the steps the model actually took.

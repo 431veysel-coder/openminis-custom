@@ -41,6 +41,8 @@ import com.openminis.app.diagnostics.BackgroundGates
 import com.openminis.app.diagnostics.MemorySnapshot
 import com.openminis.app.service.SessionConcurrencyManager
 import kotlinx.coroutines.delay
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 /**
  * [MINIS-OZEL] Settings › Live tasks.
