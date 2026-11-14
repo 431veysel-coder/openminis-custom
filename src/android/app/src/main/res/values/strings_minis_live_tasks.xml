@@ -38,4 +38,12 @@
     <string name="live_tasks_cancel">Cancel</string>
     <string name="live_tasks_section_scheduled">Scheduled (%1$d)</string>
     <string name="live_tasks_scheduled_footer">Registered with the system alarm clock, so these fire even when the app is closed.</string>
+    <!-- [MINIS-OZEL] Live task steps (expandable) -->
+    <string name="live_steps_count">%1$d steps</string>
+    <string name="live_steps_none">No tool calls yet.</string>
+    <string name="live_steps_running">running</string>
+    <string name="live_steps_input">INPUT</string>
+    <string name="live_steps_output">OUTPUT</string>
+    <string name="live_steps_error">ERROR</string>
+    <string name="live_steps_open_chat">Open in chat</string>
 </resources>

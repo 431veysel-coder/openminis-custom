@@ -38,4 +38,12 @@
     <string name="live_tasks_cancel">İptal</string>
     <string name="live_tasks_section_scheduled">Zamanlanmış (%1$d)</string>
     <string name="live_tasks_scheduled_footer">Sistem alarmına kayıtlıdır; uygulama kapalıyken de çalışır.</string>
+    <!-- [MINIS-OZEL] Canlı görev adımları (genişlenebilir) -->
+    <string name="live_steps_count">%1$d adım</string>
+    <string name="live_steps_none">Henüz araç çağrısı yok.</string>
+    <string name="live_steps_running">çalışıyor</string>
+    <string name="live_steps_input">GİRDİ</string>
+    <string name="live_steps_output">ÇIKTI</string>
+    <string name="live_steps_error">HATA</string>
+    <string name="live_steps_open_chat">Sohbette aç</string>
 </resources>
