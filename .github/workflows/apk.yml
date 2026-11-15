@@ -101,14 +101,23 @@ jobs:
         continue-on-error: true
         working-directory: src/android
         run: ./gradlew :app:testGithubDebugUnitTest --stacktrace
-
-  build:
-    name: Android APK (${{ inputs.build_type || 'release' }})
+  # [MINIS-OZEL] Native dependencies are their own layer, built in parallel.
+  #
+  # These are C and Go trees that depend on neither the Kotlin sources nor the
+  # app's resources: proot + talloc (~2 s of small C), the Alpine rootfs (a
+  # download), and rclone.aar (2 min of Go + gomobile). Inside the APK job they
+  # were a serial prefix to every build and were re-run for a one-line Compose
+  # change. As a layer they run once, in parallel with the tests, and the APK
+  # job consumes the result.
+  #
+  # Wall clock becomes max(native + build, tests) instead of
+  # native + build + tests.
+  native:
+    name: Native dependencies
     runs-on: ubuntu-latest
-    timeout-minutes: 90
-
+    timeout-minutes: 30
     steps:
-      - name: Checkout (only the proot submodule is needed on Android)
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: false
@@ -119,31 +128,19 @@ jobs:
           git submodule update --init --depth 1 deps/proot
           ls -la deps/proot | head -5
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: "1.25"
           cache: false
 
-      - name: Install Android NDK + CMake + SDK 36
+      - name: Install NDK for the proot cross-build
+        # r28 only: this job compiles proot and talloc, nothing through CMake.
         run: |
           SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
-          echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
           SM="$SDK/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SM" --licenses > /dev/null 2>&1 || true
-          # Two NDKs on purpose: AGP 8.7.3 defaults the app's CMake JNI build
-          # (pty_bridge, crash handler, jieba_jni) to 27.0.12077973, while
-          # deps/build_proot.sh wants r28. Installing only one makes the other
-          # side fail at configuration time.
-          "$SM" "platform-tools" "platforms;android-36" "build-tools;36.0.0" \
-                "ndk;27.0.12077973" "ndk;${NDK_VERSION}" "cmake;${CMAKE_VERSION}"
+          "$SM" "ndk;${NDK_VERSION}" "cmake;${CMAKE_VERSION}"
           echo "ANDROID_NDK_HOME=$SDK/ndk/${NDK_VERSION}" >> $GITHUB_ENV
           ls "$SDK/ndk"
 
@@ -152,30 +149,6 @@ jobs:
           go install golang.org/x/mobile/cmd/gomobile@latest
           go install golang.org/x/mobile/cmd/gobind@latest
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-
-      - name: Prepare signing key
-        env:
-          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        run: |
-          if [ -z "$KEYSTORE_B64" ]; then
-            echo "::warning::No keystore secret — release will be signed with the debug key"
-            exit 0
-          fi
-          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/minis-release.p12"
-          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/minis-release.p12" >> $GITHUB_ENV
-          echo "ANDROID_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
-          echo "ANDROID_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> $GITHUB_ENV
-          echo "ANDROID_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
-
-      - name: Build native deps — proot + Alpine rootfs
-        # ~2 s: proot and talloc are small C trees and the runner compiles them
-        # with all four cores. Cheap enough that caching them would cost more
-        # in cache restore than it saves; kept uncached on purpose.
-        run: |
-          ./deps/build_proot.sh
-          ./scripts/prepare_android_sandbox.sh
-          ls -la src/android/app/src/main/jniLibs/arm64-v8a/
-          ls -la src/android/app/src/main/assets/ | head -10
 
       - name: Native cache key
         # Everything the rclone build depends on, and nothing that changes on
@@ -190,10 +163,17 @@ jobs:
           path: src/android/app/libs/rclone.aar
           key: rclone-${{ steps.native.outputs.key }}
 
-      - name: Build native deps — rclone.aar
-        # 2 minutes of Go + gomobile, and it only depends on deps/rclone-mobile
-        # and its build script — never on the Kotlin code. Rebuilding it on a
-        # one-line UI change was the pipeline's second-largest cost.
+      - name: Build proot + Alpine rootfs
+        # ~2 s: small C trees, all four cores, no dependency to fetch. Caching
+        # this would cost more in restore than it saves — hence uncached, on
+        # purpose, and this comment is why that is not an oversight.
+        run: |
+          ./deps/build_proot.sh
+          ./scripts/prepare_android_sandbox.sh
+          ls -la src/android/app/src/main/jniLibs/arm64-v8a/
+          ls -la src/android/app/src/main/assets/ | head -10
+
+      - name: Build rclone.aar
         if: steps.rclone-cache.outputs.cache-hit != 'true'
         run: |
           chmod +x deps/build_rclone_android.sh
@@ -202,13 +182,99 @@ jobs:
           cp deps/build/rclone/rclone.aar src/android/app/libs/
           ls -la src/android/app/libs/
 
-      - name: Confirm rclone.aar is present
+      - name: Upload the native layer
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-deps
+          path: |
+            src/android/app/libs/rclone.aar
+            src/android/app/src/main/assets/proot-aarch64
+            src/android/app/src/main/assets/alpine-minirootfs.tar.gz
+            src/android/app/src/main/jniLibs/arm64-v8a/libproot.so
+            src/android/app/src/main/jniLibs/arm64-v8a/libproot-loader.so
+            src/android/app/src/main/jniLibs/arm64-v8a/libproot-loader32.so
+          retention-days: 7
+          if-no-files-found: error
+
+
+  build:
+    name: Android APK (${{ inputs.build_type || 'release' }})
+    # The native layer arrives as an artifact. This is what makes the pipeline
+    # max(native + build, tests) instead of native + build + tests.
+    needs: native
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout (the proot submodule is built in the native job)
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Restore the native layer
+        uses: actions/download-artifact@v4
+        with:
+          name: native-deps
+          path: .native-layer
+
+      - name: Place the native layer where Gradle expects it
         run: |
-          test -f src/android/app/libs/rclone.aar || {
-            echo "FAIL: rclone.aar missing after cache restore and build"
-            exit 1
-          }
-          ls -la src/android/app/libs/rclone.aar
+          set -e
+          mkdir -p src/android/app/libs \
+                   src/android/app/src/main/assets \
+                   src/android/app/src/main/jniLibs/arm64-v8a
+          cp .native-layer/libs/rclone.aar src/android/app/libs/
+          cp .native-layer/assets/* src/android/app/src/main/assets/
+          cp .native-layer/jniLibs/arm64-v8a/* src/android/app/src/main/jniLibs/arm64-v8a/
+
+          # A layer that arrived incomplete would still let Gradle finish — and
+          # produce an APK whose every shell command returns exit -1, because
+          # the proot loaders are what the installer places in
+          # nativeLibraryDir. Check the four that matter, by name.
+          for f in src/android/app/libs/rclone.aar \
+                   src/android/app/src/main/assets/proot-aarch64 \
+                   src/android/app/src/main/assets/alpine-minirootfs.tar.gz \
+                   src/android/app/src/main/jniLibs/arm64-v8a/libproot.so \
+                   src/android/app/src/main/jniLibs/arm64-v8a/libproot-loader.so; do
+            test -f "$f" || { echo "FAIL: native layer missing $f"; exit 1; }
+          done
+          ls -la src/android/app/libs/ src/android/app/src/main/assets/
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android NDK + CMake + SDK 36
+        run: |
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
+          SM="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SM" --licenses > /dev/null 2>&1 || true
+          # Only NDK 27 here. AGP 8.7.3 resolves the app's CMake JNI build
+          # (pty_bridge, crash handler, jieba_jni) to 27.0.12077973. NDK r28 was
+          # only ever needed by deps/build_proot.sh, which now runs in the
+          # native job — so this job no longer downloads a second 1 GB NDK.
+          "$SM" "platform-tools" "platforms;android-36" "build-tools;36.0.0" \
+                "ndk;27.0.12077973" "cmake;${CMAKE_VERSION}"
+          ls "$SDK/ndk"
+
+      - name: Prepare signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::warning::No keystore secret — release will be signed with the debug key"
+            exit 0
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/minis-release.p12"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/minis-release.p12" >> $GITHUB_ENV
+          echo "ANDROID_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+          echo "ANDROID_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> $GITHUB_ENV
+          echo "ANDROID_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
 
       - name: Gradle cache
         uses: actions/cache@v4
@@ -267,14 +333,18 @@ jobs:
           PY
 
       - name: Assemble APK
+        # `--build-cache` + `--parallel` on a warm cache is what turns a repeat
+        # build of unchanged Kotlin from ~7 min into ~1. The first build after a
+        # source change still pays full price; every build that only touches
+        # resources, strings or a single file does not.
         working-directory: src/android
         run: |
           chmod +x gradlew
           BT="${{ inputs.build_type || 'release' }}"
           if [ "$BT" = "debug" ]; then
-            ./gradlew :app:assembleGithubDebug --stacktrace
+            ./gradlew :app:assembleGithubDebug --build-cache --parallel --stacktrace
           else
-            ./gradlew :app:assembleGithubRelease --stacktrace
+            ./gradlew :app:assembleGithubRelease --build-cache --parallel --stacktrace
           fi
 
       - name: Verify APK contents
