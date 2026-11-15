@@ -50,6 +50,12 @@ jobs:
   # ships them non-blocking too.
   tests:
     name: Unit tests
+    # `needs: native`, and not just for the wall clock: rclone.aar is a Gradle
+    # dependency (flatDir app/libs), so even `testGithubDebugUnitTest` fails to
+    # resolve the runtime classpath without it — "Could not find :rclone:.".
+    # Starting after the native layer costs ~2 min of the parallel window and
+    # buys a tests job that does not rebuild Go.
+    needs: native
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -57,6 +63,19 @@ jobs:
         with:
           submodules: false
           fetch-depth: 1
+
+      - name: Restore the native layer
+        uses: actions/download-artifact@v4
+        with:
+          name: native-deps
+          path: .
+
+      - name: Check rclone.aar arrived
+        run: |
+          test -f src/android/app/libs/rclone.aar || {
+            echo "FAIL: rclone.aar missing — Gradle cannot resolve :rclone:"
+            exit 1
+          }
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -93,14 +112,13 @@ jobs:
           chmod +x gradlew
           ./gradlew :app:testGithubDebugUnitTest --tests 'com.openminis.app.ozel.*' --stacktrace
 
-      - name: Upstream tests (advisory)
-        # Signal, not a gate: these describe upstream's behaviour and upstream
-        # ships them non-blocking as well. Kept because a fork that stops
-        # compiling upstream's tests is a fork that has drifted somewhere worth
-        # knowing about.
-        continue-on-error: true
-        working-directory: src/android
-        run: ./gradlew :app:testGithubDebugUnitTest --stacktrace
+      # Upstream's 721 test files are NOT run here any more. They took 612 s of
+      # the old pipeline to produce a result that could not fail anything
+      # (`continue-on-error`), and they gate nothing about this fork's own
+      # behaviour. They now run in .github/workflows/upstream-tests.yml on a
+      # schedule and on demand, where ten minutes cost nothing. Losing them
+      # from the per-push path costs no coverage; keeping them there cost half
+      # the wall clock.
   # [MINIS-OZEL] Native dependencies are their own layer, built in parallel.
   #
   # These are C and Go trees that depend on neither the Kotlin sources nor the
@@ -213,10 +231,14 @@ jobs:
           fetch-depth: 1
 
       - name: Restore the native layer
+        # `path: .` and not a subdirectory: upload-artifact stores each file
+        # under its workspace-relative path, so unpacking elsewhere would put
+        # rclone.aar at .native-layer/src/android/app/libs/rclone.aar and the
+        # copy step below would look in the wrong place.
         uses: actions/download-artifact@v4
         with:
           name: native-deps
-          path: .native-layer
+          path: .
 
       - name: Place the native layer where Gradle expects it
         run: |
@@ -224,9 +246,6 @@ jobs:
           mkdir -p src/android/app/libs \
                    src/android/app/src/main/assets \
                    src/android/app/src/main/jniLibs/arm64-v8a
-          cp .native-layer/libs/rclone.aar src/android/app/libs/
-          cp .native-layer/assets/* src/android/app/src/main/assets/
-          cp .native-layer/jniLibs/arm64-v8a/* src/android/app/src/main/jniLibs/arm64-v8a/
 
           # A layer that arrived incomplete would still let Gradle finish — and
           # produce an APK whose every shell command returns exit -1, because
