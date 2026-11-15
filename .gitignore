@@ -170,3 +170,21 @@ keystore.properties
 *.p12
 key.pem
 cert.pem
+
+# [MINIS-OZEL] Credential-bearing local files. Each of these is read by the
+# build or by a script and holds a secret, so it must never be tracked. The
+# pre-push hook (.githooks/pre-push) also refuses a push that has any of them
+# in the index, because .gitignore only stops *accidental* adds — `git add -f`
+# and an existing index entry both walk straight past it.
+provider-customization.properties
+provider-customization.properties.bak
+.env.*.local
+*.pfx
+*.p8
+*.pem
+.gradle/gradle.properties
+*.token
+*.secret
+secrets.json
+credentials.json
+gh-token*

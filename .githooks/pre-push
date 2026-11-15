@@ -1,0 +1,51 @@
+#!/bin/sh
+# [MINIS-OZEL] Pre-push secret guard.
+#
+# Runs before anything leaves this device. The CI counterpart
+# (.github/workflows/security.yml) catches what this misses, but by then the
+# secret is already public — pushed, indexed, and in every fork made in the
+# meantime. This side is the one that matters.
+#
+# Bypass with `git push --no-verify` only when you are certain: the value will
+# still be published, and rotating it afterwards is the only remedy.
+
+set -u
+
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+cd "$repo_root" || exit 0
+
+# Nothing to scan without python3 (a stripped environment); let CI decide.
+command -v python3 >/dev/null 2>&1 || {
+    echo "pre-push: python3 not found, skipping local secret scan" >&2
+    exit 0
+}
+
+echo "pre-push: scanning for secrets before pushing..."
+
+# 1. Everything that is about to be published, as tracked at HEAD.
+if ! python3 scripts/secret_scan.py --mode tracked; then
+    echo "" >&2
+    echo "pre-push: blocked — remove the secret from the commit, rotate it," >&2
+    echo "          then re-commit. Amending is enough only if you never pushed." >&2
+    exit 1
+fi
+
+# 2. The staged snapshot, to catch a secret added but not yet committed when
+#    someone pushes a commit that predates it.
+if ! python3 scripts/secret_scan.py --mode staged --quiet; then
+    echo "" >&2
+    echo "pre-push: blocked — a staged file contains a secret." >&2
+    exit 1
+fi
+
+# 3. Files that must never be tracked at all, whatever their contents.
+forbidden=$(git ls-files | grep -Ei '(^|/)(keystore\.properties|provider-customization\.properties|local\.properties)$|\.(jks|keystore|p12|pfx)$' || true)
+if [ -n "$forbidden" ]; then
+    echo "pre-push: blocked — secret-bearing files are tracked:" >&2
+    echo "$forbidden" | sed 's/^/          /' >&2
+    echo "          git rm --cached <file>, then add it to .gitignore" >&2
+    exit 1
+fi
+
+echo "pre-push: clean"
+exit 0

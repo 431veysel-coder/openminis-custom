@@ -1,0 +1,59 @@
+name: Secret Scan
+
+# Two-sided guard, by design.
+#
+# The pre-push hook (.githooks/pre-push) stops a secret before it leaves the
+# device. This workflow is the other side: it runs on the pushed branch, so a
+# clone without hooks installed, a commit made from another machine, or a
+# force-push cannot silently publish a credential. A guard that only exists
+# where someone remembered to install it is not a guard.
+#
+# Full history is swept on a schedule, because a secret that was committed and
+# then deleted stays in the repository forever — and in every fork of it.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  schedule:
+    - cron: '0 4 * * 1'  # Mondays 04:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: secret-scan-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    name: Scan for committed secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history for the scheduled sweep
+          submodules: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Self-test the scanner
+        # A scanner that silently stops matching is worse than none: it reports
+        # "clean" forever. These fixtures must trip the rules.
+        run: python3 scripts/secret_scan.py --self-test
+
+      - name: Scan the tree
+        run: python3 scripts/secret_scan.py --mode tracked
+
+      - name: Scan the pushed commits
+        if: github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000'
+        run: python3 scripts/secret_scan.py --mode changed --base "${{ github.event.before }}"
+
+      - name: Full history sweep
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: python3 scripts/secret_scan.py --mode history
