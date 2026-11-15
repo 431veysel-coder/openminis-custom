@@ -80,7 +80,10 @@ BRANCH="${1:-main}"
 AUTH_B64=$(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')
 
 echo "push: $ROOT -> origin/$BRANCH"
+# No refspec: the branch is a positional argument above only for the log line.
+# Adding HEAD:refs/heads/$BRANCH here as well makes git see two sources for one
+# destination ("receives from more than one src") and refuse.
 git -c "http.https://github.com/.extraHeader=AUTHORIZATION: basic $AUTH_B64" \
-    push origin "HEAD:refs/heads/$BRANCH" "$@"
+    push origin "refs/heads/$BRANCH:refs/heads/$BRANCH"
 
 echo "push: done"

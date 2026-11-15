@@ -766,6 +766,13 @@
     <string name="toolchain_install">Install</string>
     <string name="toolchain_installing">Installing…</string>
     <string name="toolchain_installed">Installed — tap to remove</string>
+    <!-- [MINIS-OZEL] Shown on a group that is only partly installed; the row's
+         subtitle lists the missing binaries. -->
+    <string name="toolchain_partial_action">Complete</string>
+    <string name="toolchain_custom_installed_header">Added packages</string>
+    <string name="toolchain_custom_remove">Remove</string>
+    <string name="toolchain_custom_removed">Removed %1$s</string>
+    <string name="toolchain_custom_remove_failed">Could not remove %1$s</string>
     <string name="toolchain_checking">Checking…</string>
     <string name="toolchain_approx_size">~%1$d MB</string>
     <string name="toolchain_failed">Failed: %1$s</string>

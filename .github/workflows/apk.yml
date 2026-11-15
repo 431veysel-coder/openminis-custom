@@ -33,6 +33,75 @@ env:
   CMAKE_VERSION: "3.22.1"
 
 jobs:
+  # [MINIS-OZEL] Tests run in their OWN job, in parallel with the build.
+  #
+  # Why this is a separate job and not a step: the previous arrangement was a
+  # step at the end of the build job that took 10.2 of the pipeline's 21.4
+  # minutes, ran after the APK was already uploaded, and could not fail
+  # anything (`continue-on-error: true`). It cost half the wall clock and
+  # bought no enforcement. Moving it here costs nothing on the clock — it runs
+  # on a second runner while the APK builds — and its result is now a real red
+  # or green on the run.
+  #
+  # The fork's own tests (com.openminis.app.ozel.*) are the ones that must
+  # pass: they cover features upstream has never seen, so the upstream suite
+  # cannot catch their regressions. Upstream's 721 test files stay advisory —
+  # a red upstream test is not our bug to hold a release for, and upstream
+  # ships them non-blocking too.
+  tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-tests-${{ hashFiles('src/android/**/*.gradle.kts', 'src/android/gradle/wrapper/gradle-wrapper.properties', 'src/android/**/*.toml') }}
+          restore-keys: gradle-
+
+      - name: Raise JVM heap for the runner
+        working-directory: src/android
+        run: |
+          {
+            echo ""
+            echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
+            echo "kotlin.daemon.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g"
+            echo "org.gradle.workers.max=4"
+            echo "org.gradle.caching=true"
+            echo "org.gradle.parallel=true"
+          } >> gradle.properties
+
+      - name: Fork tests (blocking)
+        # Our own code, our own tests. A red here is a regression in something
+        # this fork added and upstream will never test.
+        working-directory: src/android
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:testGithubDebugUnitTest --tests 'com.openminis.app.ozel.*' --stacktrace
+
+      - name: Upstream tests (advisory)
+        # Signal, not a gate: these describe upstream's behaviour and upstream
+        # ships them non-blocking as well. Kept because a fork that stops
+        # compiling upstream's tests is a fork that has drifted somewhere worth
+        # knowing about.
+        continue-on-error: true
+        working-directory: src/android
+        run: ./gradlew :app:testGithubDebugUnitTest --stacktrace
+
   build:
     name: Android APK (${{ inputs.build_type || 'release' }})
     runs-on: ubuntu-latest
@@ -99,13 +168,33 @@ jobs:
           echo "ANDROID_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
 
       - name: Build native deps — proot + Alpine rootfs
+        # ~2 s: proot and talloc are small C trees and the runner compiles them
+        # with all four cores. Cheap enough that caching them would cost more
+        # in cache restore than it saves; kept uncached on purpose.
         run: |
           ./deps/build_proot.sh
           ./scripts/prepare_android_sandbox.sh
           ls -la src/android/app/src/main/jniLibs/arm64-v8a/
           ls -la src/android/app/src/main/assets/ | head -10
 
+      - name: Native cache key
+        # Everything the rclone build depends on, and nothing that changes on
+        # every commit. See scripts/ci/native_cache_key.sh for the reasoning.
+        id: native
+        run: echo "key=$(sh scripts/ci/native_cache_key.sh)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore rclone.aar
+        id: rclone-cache
+        uses: actions/cache@v4
+        with:
+          path: src/android/app/libs/rclone.aar
+          key: rclone-${{ steps.native.outputs.key }}
+
       - name: Build native deps — rclone.aar
+        # 2 minutes of Go + gomobile, and it only depends on deps/rclone-mobile
+        # and its build script — never on the Kotlin code. Rebuilding it on a
+        # one-line UI change was the pipeline's second-largest cost.
+        if: steps.rclone-cache.outputs.cache-hit != 'true'
         run: |
           chmod +x deps/build_rclone_android.sh
           ./deps/build_rclone_android.sh
@@ -113,13 +202,21 @@ jobs:
           cp deps/build/rclone/rclone.aar src/android/app/libs/
           ls -la src/android/app/libs/
 
+      - name: Confirm rclone.aar is present
+        run: |
+          test -f src/android/app/libs/rclone.aar || {
+            echo "FAIL: rclone.aar missing after cache restore and build"
+            exit 1
+          }
+          ls -la src/android/app/libs/rclone.aar
+
       - name: Gradle cache
         uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ hashFiles('src/android/**/*.gradle.kts', 'src/android/gradle/wrapper/gradle-wrapper.properties') }}
+          key: gradle-${{ hashFiles('src/android/**/*.gradle.kts', 'src/android/gradle/wrapper/gradle-wrapper.properties', 'src/android/**/*.toml') }}
           restore-keys: gradle-
 
       - name: Raise JVM heap for the runner (repo defaults assume 2 GB)
@@ -131,6 +228,15 @@ jobs:
             echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
             echo "kotlin.daemon.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g"
             echo "org.gradle.workers.max=4"
+            echo "# [MINIS-OZEL] Reuse task outputs across builds and run modules in"
+            echo "# parallel. Without the build cache every CI run recompiles the same"
+            echo "# 776 Kotlin files from scratch. Gradle's local build cache lives"
+            echo "# under ~/.gradle/caches/build-cache-1, which the cache step above"
+            echo "# already persists, so no extra path is needed."
+            echo "org.gradle.caching=true"
+            echo "org.gradle.parallel=true"
+            echo "kotlin.incremental=true"
+            echo "ksp.incremental=true"
           } >> gradle.properties
           cat gradle.properties
 
@@ -236,13 +342,6 @@ jobs:
 
       # Runs last and with a hard budget: a non-blocking step still blocks the
       # artifact upload when it hangs, and the full upstream suite takes 20+ min.
-      - name: Upstream unit tests (signal only — never blocks the APK)
-        if: always()
-        continue-on-error: true
-        timeout-minutes: 10
-        working-directory: src/android
-        run: ./gradlew :app:testGithubDebugUnitTest --stacktrace
-
       - name: Build the release notes from commits
         if: ${{ (inputs.build_type || 'release') == 'release' }}
         id: notes

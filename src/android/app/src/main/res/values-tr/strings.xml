@@ -673,6 +673,13 @@
     <string name="toolchain_install">Kur</string>
     <string name="toolchain_installing">Kuruluyor…</string>
     <string name="toolchain_installed">Kurulu — kaldırmak için dokun</string>
+    <!-- [MINIS-OZEL] Yalnız kısmen kurulu grupta görünür; satırın alt yazısı
+         eksik ikilileri listeler. -->
+    <string name="toolchain_partial_action">Tamamla</string>
+    <string name="toolchain_custom_installed_header">Eklenen paketler</string>
+    <string name="toolchain_custom_remove">Kaldır</string>
+    <string name="toolchain_custom_removed">%1$s kaldırıldı</string>
+    <string name="toolchain_custom_remove_failed">%1$s kaldırılamadı</string>
     <string name="toolchain_checking">Kontrol ediliyor…</string>
     <string name="toolchain_approx_size">~%1$d MB</string>
     <string name="toolchain_failed">Başarısız: %1$s</string>
