@@ -84,8 +84,8 @@ Bu depoya dokunan herkesin (gelecekteki ben dahil) uyduğu kurallar:
 | `applicationId` | `com.openminis.app` | `com.veysel.minis` |
 | `namespace` | `com.openminis.app` | **aynı bırakıldı** (bkz. §5'teki tuzak) |
 | Uygulama adı | Minis | Minis Özel |
-| `versionCode` | 37 | 37007 |
-| `versionName` | 1.15 | 1.15-ozel.7 |
+| `versionCode` | 37 | 37014 |
+| `versionName` | 1.15 | 1.15-ozel.9 |
 | İmza | OpenMinis anahtarı | kendi 4096-bit RSA anahtarımız |
 | `RELEASE_REPO` | `OpenMinis/OpenMinis` | bu çatal |
 | `AUTO_UPDATE_CHECK` | true | true — **ama bu repoya bakıyor** |
@@ -381,8 +381,13 @@ versionName = "<upstream>-ozel.<özel_sürüm>"
 
 | Upstream | Bizimki |
 |---|---|
-| 1.15 / 37 | `1.15-ozel.7` / `37007` |
+| 1.15 / 37 | `1.15-ozel.9` / `37014` |
 | 1.16 / 38 | `1.16-ozel.1` / `38001` (planlanan) |
+
+**Yakılmış numaralar: `37009`–`37013`.** Silinen `özel 12` / `özel 13` denemeleri
+bu aralığı harcadı. Bir numara iki farklı APK'yı gösteremez; o numaralarla kurulu
+bir cihaz varsa ve daha küçük/eşit bir sürüm yayınlanırsa o cihaz **sonsuza dek**
+güncelleme alamaz. Bu yüzden `1.15-ozel.9` `37014`'tür ve geri dönüş yoktur.
 
 Bu şema iki şeyi garanti ediyor: (a) kendi sürümlerimiz kendi içinde artıyor,
 (b) upstream yeni bir taban yayınladığında bizim `versionCode`'umuz onunkinden
@@ -470,6 +475,7 @@ maliyet şeffaflığı (§3.11), upstream nöbeti (§4.1), sürüm notu otomasyo
 | 2026-11-14 | `1.15-ozel.6` | Canlı Görevler: görevi gerçekte yaptığı araç çağrılarına açma (`AgentStepExtractor`). Delegasyon import düzeltmeleri. |
 | 2026-11-14 | `1.15-ozel.7` | **Araç zincirleri 7 → 11 grup:** kabuk araçları, uzak erişim, betik dilleri, Android derleme. `clang` ve `uv` kendi gruplarına eklendi. **Hızlı Ayarlar karosu.** CI artık `main` push'unda da çalışıyor (yalnız belge değişiklikleri hariç). |
 | 2026-11-14 | `1.15-ozel.8` | **Güncelleme imza doğrulaması** (`UpdateSignatureGuard`) — GitHub hesabı ele geçse bile farklı anahtarla imzalanmış APK reddedilir; imza uyuşmazlığı ayrı ve açık bir mesajla gösterilir. **Belirli paket kurulumu** + toplam boyut uyarısı (1.4 GB). **Maliyet şeffaflığı**: çeviri ayarının alt bilgisi ikinci isteğin ücretlendirildiğini söylüyor. **Haftalık upstream nöbeti** (`upstream-sync.yml`) — çakışma raporu tek issue'da. **Sürüm notları commit'lerden üretiliyor.** Yeni belgeler: `SECURITY.md`, `CONTRIBUTING.md`, `PRIVACY.md`, issue/PR şablonları. |
+| 2026-11-16 | `1.15-ozel.9` | **Onarım sürümü.** GeckoView denemesi (12/13) tamamen geri alındı. **DebugServer artık `127.0.0.1`'e bağlanıyor ve loopback'te de jeton istiyor** — önce `0.0.0.0`'a bağlanıp loopback'i jeton'dan muaf tutuyordu, yani cihazdaki her uygulama `provider.export` ile API anahtarlarını okuyabiliyordu. Geliştirici sunucusu varsayılan **kapalı**. **Keystore yoksa release derlemesi kırılır.** `app_name` 22 dilde "Minis Özel". **Özellik anahtarları**: Ayarlar › Görünüm › Minis Özel — Canlı Görevler, Araç zincirleri, Çeviri, Arka plan denetimi, QS karosu, Evren ön ayarı, geliştirici sunucusu. **4 yeni sağlayıcı ön ayarı**: DeepSeek, Together AI, Fireworks AI, Hugging Face. CI: `tags: v*` tetikleyicisi kaldırıldı, aynı etikete düşük `versionCode` ile yayın yapan kapı eklendi, artefakt yolu düzeltildi (v4 ortak kökü buduyor). |
 
 ---
 
