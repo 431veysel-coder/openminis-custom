@@ -2,6 +2,7 @@ package com.openminis.app.ui.chat
 
 import android.content.Context
 import com.openminis.app.data.TranslationPacks
+import com.openminis.app.data.TranslationPrefs
 import com.openminis.app.data.model.LLMMessage
 import com.openminis.app.data.model.ModelEntry
 import com.openminis.app.data.model.ThinkingLevel
