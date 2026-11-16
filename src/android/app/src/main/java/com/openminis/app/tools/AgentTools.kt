@@ -58,6 +58,8 @@ object AgentTools {
         // [MINIS-OZEL 11.3.1] Settings › Minis Özel › Action journal. Absent =
         // the model never learns the tool exists, same rule as notesEnabled.
         journalEnabled: Boolean = true,
+        // [MINIS-OZEL 11.3.1] Settings › Minis Özel › Acceptance criteria.
+        acceptanceEnabled: Boolean = true,
     ): List<AgentToolDefinition> = buildList {
         add(shellExecuteDefinition())
         add(FileReadTool.definition())
@@ -82,6 +84,10 @@ object AgentTools {
         // that cannot see what the main run already changed is the one most
         // likely to undo it by accident.
         if (journalEnabled) add(com.openminis.app.tools.JournalTool.definition())
+        // [MINIS-OZEL 11.3.1] Available to helpers as well: a sub agent that
+        // cannot state what finished looks like is the one that returns "done"
+        // with nothing done.
+        if (acceptanceEnabled) add(com.openminis.app.tools.VerifyTool.definition())
     }
 
     /**

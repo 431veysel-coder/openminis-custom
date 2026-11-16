@@ -129,6 +129,18 @@ object OzelFeatures {
          * stay readable until they age out.
          */
         JOURNAL("journal", true),
+
+        /**
+         * [MINIS-OZEL 11.3.1] Acceptance criteria: the `verify` tool, which
+         * lets a run record what "done" means and check it before claiming
+         * completion.
+         *
+         * ON by default. The failure it prevents ("it said it was done and it
+         * was not") is the most common complaint about an agent, and the tool
+         * costs one prompt slot. Turning it off removes the tool from the
+         * schema, so the model is not even offered it.
+         */
+        ACCEPTANCE_CRITERIA("acceptance_criteria", true),
         ;
 
         companion object {

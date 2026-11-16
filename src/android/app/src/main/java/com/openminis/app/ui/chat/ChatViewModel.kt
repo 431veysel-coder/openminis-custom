@@ -2567,6 +2567,11 @@ class ChatViewModel(
                 context,
                 com.openminis.app.data.OzelFeatures.Feature.JOURNAL,
             ),
+            // [MINIS-OZEL 11.3.1] The acceptance-criteria tool.
+            acceptanceEnabled = com.openminis.app.data.OzelFeatures.isEnabled(
+                context,
+                com.openminis.app.data.OzelFeatures.Feature.ACCEPTANCE_CRITERIA,
+            ),
         )
 
     /**
@@ -14263,6 +14268,19 @@ class ChatViewModel(
                 } else {
                     toolDisabledResult("journal")
                 }
+            // [MINIS-OZEL 11.3.1] Acceptance criteria. Same dispatcher gate as
+            // the journal, for the same replay reason.
+            com.openminis.app.tools.VerifyTool.NAME ->
+                if (com.openminis.app.tools.VerifyTool.enabled(context)) {
+                    val r = com.openminis.app.tools.VerifyTool.execute(
+                        argsJson = argsJson,
+                        context = context,
+                        sessionId = fsSessionId,
+                    )
+                    ToolExecutionResult(output = r.output, success = r.success)
+                } else {
+                    toolDisabledResult("verify")
+                }
             // [T-sub-agents-v1] One tool, five actions. The legacy names are
             // accepted so a replayed call from a transcript written before the
             // rename still dispatches instead of hitting "Unknown tool".
@@ -18709,6 +18727,7 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
         // the USER took; the row is the agent's notebook.
         com.openminis.app.tools.NoteTool.NAME -> "Notes"
         com.openminis.app.tools.JournalTool.NAME -> "Action journal"
+        com.openminis.app.tools.VerifyTool.NAME -> "Acceptance criteria"
         com.openminis.app.agent.userask.UserAskPromptText.TOOL_NAME -> "Question for you"
         "web_search" -> "Search Web"
         else -> toolName
