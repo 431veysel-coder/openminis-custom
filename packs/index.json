@@ -1,0 +1,42 @@
+{
+  "packs": [
+    {
+      "url": "https://raw.githubusercontent.com/431veysel-coder/openminis-custom/main/packs/tr-technical.json",
+      "pack": {
+        "id": "tr-technical",
+        "name": "Türkçe — Teknik",
+        "targetLanguage": "Turkish",
+        "version": 1,
+        "description": "reasoning blokları için sade teknik Türkçe; terimler tutarlı",
+        "style": "Sade, akıcı teknik Türkçe. İngilizce sözcükleri Türkçe karşılığı varken kullanma; yoksa parantez içinde bir kez ver. Devrik ve süslü cümle kurma, kısa cümle yaz. '-mektedir/-maktadır' yerine geniş zaman kullan. Kod, komut, dosya yolu ve tanımlayıcıları çevirme.",
+        "glossary": {
+          "context window": "bağlam penceresi",
+          "prompt": "istem",
+          "tool call": "araç çağrısı",
+          "reasoning": "akıl yürütme",
+          "rate limit": "hız sınırı",
+          "endpoint": "uç nokta",
+          "provider": "sağlayıcı",
+          "agent": "ajan",
+          "session": "oturum",
+          "cache": "önbellek",
+          "feature flag": "özellik anahtarı",
+          "regression": "gerileme",
+          "trade-off": "ödün",
+          "rollback": "geri alma"
+        },
+        "keepAsIs": [
+          "Minis", "Android", "Kotlin", "Gradle", "Git", "GitHub", "Alpine",
+          "PRoot", "OpenAI", "Anthropic", "Claude", "Gemini", "DeepSeek",
+          "Hugging Face", "API", "URL", "JSON", "HTTP", "APK", "CI", "JVM"
+        ],
+        "examples": [
+          {
+            "source": "The model returned an empty response because the context window was exceeded. I should retry with a shorter prompt.",
+            "target": "Bağlam penceresi aşıldığı için model boş yanıt döndürdü. Daha kısa bir istemle yeniden denemeliyim."
+          }
+        ]
+      }
+    }
+  ]
+}

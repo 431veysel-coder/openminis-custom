@@ -187,6 +187,8 @@ object Routes {
     const val THINKING_SETTINGS = "thinking_settings"
     /** [MINIS-OZEL] Settings > Appearance > Minis Özel: one switch per fork feature. */
     const val OZEL_FEATURES = "ozel_features"
+    /** [MINIS-OZEL] Settings > Translation > Packs. */
+    const val TRANSLATION_PACKS = "translation_packs"
     /** [T-tools-granular-switches] Settings > Agent Runtime > Tools. */
     const val AGENT_TOOLS = "agent_tools"
     /** [T-mcp-integration-android] MCP Integrations management screen. */
@@ -1561,9 +1563,15 @@ fun AppNavigation(
                 onBack = { navController.safePopBackStack() },
             )
         }
+        composable(Routes.TRANSLATION_PACKS) {
+            com.openminis.app.ui.settings.TranslationPacksScreen(
+                onBack = { navController.safePopBackStack() },
+            )
+        }
         composable(Routes.TRANSLATION_SETTINGS) {
             com.openminis.app.ui.settings.TranslationSettingsScreen(
                 onBack = { navController.popBackStack() },
+                onOpenPacks = { navController.safeNavigate(Routes.TRANSLATION_PACKS) },
             )
         }
         composable(Routes.OZEL_FEATURES) {

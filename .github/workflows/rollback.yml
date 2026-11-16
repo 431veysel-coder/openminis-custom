@@ -1,0 +1,174 @@
+name: Roll back to an earlier version
+
+# [MINIS-OZEL] "Go back to the previous version" on Android is not installing an
+# older APK. The package manager refuses a lower versionCode for the same
+# package — signature matches or not — so `adb install` of yesterday's build
+# fails with a bare "App not installed", and the user is stuck on the broken
+# one until a higher number exists.
+#
+# The only route back is FORWARD: re-publish the OLD CODE under a HIGHER
+# versionCode. That is what this workflow does. Nothing is uninstalled, no data
+# is touched, and the in-app updater sees an ordinary update.
+#
+# Inputs are deliberately narrow: a tag or commit to restore, and a reason that
+# ends up in the release notes (a rollback whose reason is not written down is
+# indistinguishable from a regression).
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Tag or commit to restore (e.g. v1.15-ozel.8 or c3d6cf2)"
+        required: true
+        type: string
+      reason:
+        description: "Why — goes into the release notes"
+        required: true
+        type: string
+      keep_version_name:
+        description: "Reuse the target's versionName instead of -rollback.N"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: rollback
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    name: Republish ${{ inputs.source }} with a higher versionCode
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: false
+
+      - name: Resolve the target and compute the new version
+        id: plan
+        run: |
+          set -euo pipefail
+          git fetch --tags --force origin >/dev/null 2>&1 || true
+
+          TARGET="${{ inputs.source }}"
+          if ! git rev-parse --verify "$TARGET^{commit}" >/dev/null 2>&1; then
+            echo "::error::'$TARGET' is not a tag or commit in this repository."
+            exit 1
+          fi
+          SHA=$(git rev-parse "$TARGET^{commit}")
+          echo "target $TARGET -> $SHA"
+
+          # The version we are restoring FROM (the target's own numbers) …
+          OLD_CODE=$(git show "$SHA:src/android/app/build.gradle.kts" \
+            | sed -n 's/.*versionCode = \([0-9]*\).*/\1/p' | head -1)
+          OLD_NAME=$(git show "$SHA:src/android/app/build.gradle.kts" \
+            | sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' | head -1)
+          echo "target version: $OLD_NAME ($OLD_CODE)"
+
+          # … and the highest build number this repo has ever published, so the
+          # rollback is unambiguously newer than the release it is undoing.
+          # Both sources are consulted because a release can exist without its
+          # tag being reachable from the shallow clone.
+          HIGHEST_TAG=$(git tag --list 'v*' --sort=-v:refname | head -50 \
+            | while read -r t; do
+                git show "$t:src/android/app/build.gradle.kts" 2>/dev/null \
+                  | sed -n 's/.*versionCode = \([0-9]*\).*/\1/p' | head -1
+              done | sort -n | tail -1)
+          CURRENT_CODE=$(sed -n 's/.*versionCode = \([0-9]*\).*/\1/p' \
+            src/android/app/build.gradle.kts | head -1)
+          HIGHEST=$(printf '%s\n%s\n' "$OLD_CODE" "$HIGHEST_TAG" "$CURRENT_CODE" \
+            | sort -n | tail -1)
+          NEW_CODE=$((HIGHEST + 1))
+
+          # versionName keeps the rollback visible: 1.15-ozel.8-rb1 or, if the
+          # caller insists, exactly the restored name (still a NEW build).
+          N=1
+          while git rev-parse --verify "v${OLD_NAME}-rb${N}^{commit}" >/dev/null 2>&1; do
+            N=$((N + 1))
+          done
+          if [ "${{ inputs.keep_version_name }}" = "true" ]; then
+            NEW_NAME="$OLD_NAME"
+          else
+            NEW_NAME="${OLD_NAME}-rb${N}"
+          fi
+
+          echo "plan: $OLD_NAME ($OLD_CODE) -> $NEW_NAME ($NEW_CODE)"
+          {
+            echo "sha=$SHA"
+            echo "old_code=$OLD_CODE"
+            echo "old_name=$OLD_NAME"
+            echo "new_code=$NEW_CODE"
+            echo "new_name=$NEW_NAME"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Restore the code into a rollback branch
+        run: |
+          set -euo pipefail
+          # A new branch off the target, with the CURRENT workflow files so the
+          # pipeline that builds the rollback is the pipeline we are fixing
+          # bugs in — not the one that shipped the broken release.
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          BRANCH="rollback/${{ steps.plan.outputs.new_name }}"
+          git checkout -B "$BRANCH" "${{ steps.plan.outputs.sha }}"
+          git checkout origin/main -- .github/workflows scripts/check_identity.sh
+          echo "BRANCH=$BRANCH" >> "$GITHUB_ENV"
+
+      - name: Bump the version
+        run: |
+          set -euo pipefail
+          F=src/android/app/build.gradle.kts
+          sed -i "s/versionCode = [0-9]*/versionCode = ${{ steps.plan.outputs.new_code }}/" "$F"
+          sed -i "s/versionName = \"[^\"]*\"/versionName = \"${{ steps.plan.outputs.new_name }}\"/" "$F"
+          grep -nE 'versionCode|versionName' "$F" | head -3
+
+      - name: Identity guard (must pass before anything is published)
+        run: bash scripts/check_identity.sh
+
+      - name: Commit and push the rollback branch
+        env:
+          OLD_NAME: ${{ steps.plan.outputs.old_name }}
+          NEW_NAME: ${{ steps.plan.outputs.new_name }}
+          NEW_CODE: ${{ steps.plan.outputs.new_code }}
+          REASON: ${{ inputs.reason }}
+        run: |
+          set -euo pipefail
+          # Written to a file rather than passed with -m: the message is
+          # multi-line and a block scalar would end at the first unindented
+          # line, which is a YAML error rather than a shell one.
+          {
+            echo "revert: restore $OLD_NAME as $NEW_NAME (build $NEW_CODE)"
+            echo ""
+            echo "$REASON"
+            echo ""
+            echo "Rollback is forward-only on Android: the package manager refuses"
+            echo "a lower versionCode for an existing package, so the old code is"
+            echo "republished under a higher build number instead of reinstalling"
+            echo "an old APK."
+          } > /tmp/rollback-msg.txt
+          git add -A
+          git -c core.pager=cat commit -q -F /tmp/rollback-msg.txt
+          git push origin "HEAD:$BRANCH" --force
+
+      - name: Summary
+        run: |
+          {
+            echo "### Rollback prepared"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Restored from | \`${{ inputs.source }}\` (\`${{ steps.plan.outputs.sha }}\`) |"
+            echo "| Old version | \`${{ steps.plan.outputs.old_name }}\` / ${{ steps.plan.outputs.old_code }} |"
+            echo "| New version | \`${{ steps.plan.outputs.new_name }}\` / **${{ steps.plan.outputs.new_code }}** |"
+            echo "| Branch | \`${{ env.BRANCH }}\` |"
+            echo ""
+            echo "The branch is pushed but **not** built: the team decides whether"
+            echo "the rollback should land on \`main\` first. Merging it (or running"
+            echo "Build APK on it) publishes the release the in-app updater picks up."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -12,11 +12,14 @@ import java.net.ServerSocket
 import java.net.Socket
 
 /**
- * Debug-only JSON-RPC 2.0 server on port 8321.
- * Listens on all interfaces (0.0.0.0) so it's reachable from the local network for debugging.
- * Mirrors the iOS DebugServer for parity with the debug-server CLI skill.
+ * JSON-RPC 2.0 server on 127.0.0.1:5321 — the app's local API surface.
  *
- * IMPORTANT: Only start this in debug builds. Never start in release.
+ * [MINIS-OZEL] The header used to claim this listens on 0.0.0.0 "for debugging"
+ * and that it must never start in release. Both were wrong by the time this
+ * fork shipped: release builds set DEV_TOOLS=true, and the socket bound every
+ * interface. Now it binds loopback only, requires the per-install token even
+ * there, and is off unless the user enables it in Settings › Minis Özel
+ * (see [DevServerController] for the lifecycle).
  */
 class DebugServer(
     private val context: Context,
@@ -25,20 +28,6 @@ class DebugServer(
     companion object {
         private const val TAG = "DebugServer"
 
-        /**
-         * [T-android-debugserver-auth] Remote-connection auth decision, kept
-         * pure for unit testing. Loopback connections (adb forward — the
-         * developer's own machine over USB) stay token-free so the local
-         * tooling keeps working unchanged; any NON-loopback (LAN) connection
-         * must present the device token. Rationale: Android debug builds are
-         * never distributed (release channel ships assembleRelease without
-         * this server), but the dev workflow leaves the device reachable on
-         * the LAN for remote-worker e2e — an unauthenticated 0.0.0.0 RPC
-         * surface there can read logs/files and burn API quota. The iOS
-         * protocol-v1 encrypted envelope (358e3ded) is deliberately NOT
-         * ported: with no distribution surface the token gate is the
-         * proportionate hardening (evaluated in the A8 batch report).
-         */
         /**
          * [MINIS-OZEL] Loopback no longer means "trusted".
          *
@@ -113,7 +102,27 @@ class DebugServer(
     @Volatile
     private var stopped = false
 
-    fun start() {
+    /** Whether the socket is currently bound. Read by Settings and the CLI. */
+    val isRunning: Boolean get() = serverSocket != null
+
+    /** The address a client should use. Loopback by construction. */
+    val address: String get() = "127.0.0.1:$port"
+
+    /**
+     * The per-install token, for the Settings screen to show and copy.
+     *
+     * Showing it is the point: the token used to be reachable only through
+     * `adb shell run-as`, which does not work on a release build ("package not
+     * debuggable") — so in practice nobody outside the app could authenticate
+     * at all. A credential the owner cannot read is not a credential.
+     */
+    fun token(): String = authToken
+
+    /**
+     * Binds the socket. Idempotent; [onStopped] fires when the loop ends, so a
+     * caller holding UI state does not have to poll.
+     */
+    fun start(onStopped: (() -> Unit)? = null) {
         if (serverSocket != null) return
         stopped = false
 
@@ -140,7 +149,13 @@ class DebugServer(
                     }
                 }
             } catch (e: Exception) {
+                // A bind failure (port taken, or a second instance) must not
+                // leave the caller believing the server runs: reset the handle
+                // before reporting, or isRunning lies until the next restart.
+                serverSocket = null
                 Log.e(TAG, "Failed to start server on port $port: ${e.message}")
+            } finally {
+                onStopped?.invoke()
             }
         }
     }

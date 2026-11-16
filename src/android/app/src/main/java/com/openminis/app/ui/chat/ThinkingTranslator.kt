@@ -1,6 +1,7 @@
 package com.openminis.app.ui.chat
 
 import android.content.Context
+import com.openminis.app.data.TranslationPacks
 import com.openminis.app.data.model.LLMMessage
 import com.openminis.app.data.model.ModelEntry
 import com.openminis.app.data.model.ThinkingLevel
@@ -59,7 +60,16 @@ internal object ThinkingTranslator {
     /** Cache ceiling; oldest files are dropped past this. */
     private const val MAX_CACHE_FILES = 400
 
-    private fun systemPrompt(targetLanguage: String): String = buildString {
+    /**
+     * [MINIS-OZEL] The prompt, plus an installed translation pack.
+     *
+     * The base rules are the same for every call; a pack appends terminology
+     * and style so consecutive blocks agree with each other instead of each
+     * request inventing its own translation for "context window". The pack is
+     * resolved per language, so a Turkish pack can never shape a German
+     * translation.
+     */
+    private fun systemPrompt(targetLanguage: String, pack: TranslationPacks.Pack? = null): String = buildString {
         append("You are a translation engine. Translate the user's text into $targetLanguage.\n")
         append("Rules:\n")
         append("- Output ONLY the translation. No preamble, no explanation, no quotes around it.\n")
@@ -68,6 +78,13 @@ internal object ThinkingTranslator {
         append("mathematical notation; leave them exactly as they are.\n")
         append("- Preserve the author's tone and level of technical detail.\n")
         append("- If the text is already in $targetLanguage, return it unchanged.\n")
+        // Appended after the rules on purpose: the rules are the contract, the
+        // pack is the terminology, and a pack must not be able to weaken them.
+        val fragment = TranslationPacks.promptFragment(pack)
+        if (fragment.isNotBlank()) {
+            append("\nTerminology pack (follow it strictly):\n")
+            append(fragment)
+        }
     }
 
     /**
@@ -94,7 +111,11 @@ internal object ThinkingTranslator {
             return null
         }
 
-        val cacheKey = cacheKey(targetLanguage, entry.id, text)
+        val pack = TranslationPacks.forLanguage(context, targetLanguage)
+        // The pack is part of the cache key: installing one must not return
+        // translations produced before it existed, or the feature looks broken
+        // until every cached block is translated again by hand.
+        val cacheKey = cacheKey(targetLanguage, entry.id, text, pack?.id ?: "-")
         readCache(context, cacheKey)?.let {
             AppLogger.info(TAG, "[xlate] cache hit chars=${text.length} lang=$targetLanguage")
             return it
@@ -118,7 +139,7 @@ internal object ThinkingTranslator {
             val piece = try {
                 provider.sendMessage(
                     messages = listOf(LLMMessage(role = LLMMessage.Role.USER, content = chunk)),
-                    systemPrompt = systemPrompt(targetLanguage),
+                    systemPrompt = systemPrompt(targetLanguage, pack),
                     maxTokens = maxOf(BASE_OUTPUT_TOKENS, chunk.length / 2),
                     // null omits the field entirely — several models 400 on
                     // anything but their fixed temperature.
@@ -226,11 +247,13 @@ internal object ThinkingTranslator {
     private fun cacheDir(ctx: Context): File =
         File(ctx.applicationContext.cacheDir, CACHE_DIR).apply { if (!exists()) mkdirs() }
 
-    private fun cacheKey(lang: String, modelId: String, text: String): String {
+    private fun cacheKey(lang: String, modelId: String, text: String, packId: String = "-"): String {
         val digest = MessageDigest.getInstance("SHA-256")
         digest.update(lang.toByteArray(Charsets.UTF_8))
         digest.update(0)
         digest.update(modelId.toByteArray(Charsets.UTF_8))
+        digest.update(0)
+        digest.update(packId.toByteArray(Charsets.UTF_8))
         digest.update(0)
         digest.update(text.toByteArray(Charsets.UTF_8))
         return digest.digest().joinToString("") { "%02x".format(it) }

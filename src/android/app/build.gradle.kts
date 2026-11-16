@@ -62,8 +62,8 @@ android {
         // more than tidy: UpdatePolicy.isNewer compares the raw counter, so
         // anything at or below 37013 would leave those installs unable to
         // update, forever.
-        versionCode = 37014
-        versionName = "1.15-ozel.9"
+        versionCode = 37015
+        versionName = "1.15-ozel.10"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

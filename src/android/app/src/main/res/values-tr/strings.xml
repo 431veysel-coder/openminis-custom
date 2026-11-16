@@ -2086,4 +2086,27 @@
     <string name="add_provider_subtitle_together">OpenAI uyumlu barındırılan katalog — Llama, Qwen, DeepSeek, Mistral ve daha fazlası</string>
     <string name="add_provider_subtitle_fireworks">OpenAI uyumlu hızlı çıkarım — Llama, Qwen, Mixtral ve ince ayarlı modeller</string>
     <string name="add_provider_subtitle_huggingface">OpenAI uyumlu çıkarım yönlendiricisi — binlerce topluluk modeli</string>
+    <string name="ozel_feature_dev_server_running">%1$s üzerinde dinliyor — %2$d dakika sonra kendiliğinden kapanır</string>
+    <string name="ozel_feature_dev_server_token">Erişim jetonu</string>
+    <string name="ozel_feature_dev_server_usage">Sandbox\'tan: \"minis-debug discover\". Bilgisayardan: \"adb forward tcp:5321 tcp:5321\" ve her istekte X-Minis-Token gönder. Adres: %1$s</string>
+    <string name="translation_packs_title">Çeviri paketleri</string>
+    <string name="translation_packs_installed">Kurulu paketler</string>
+    <string name="translation_packs_none">Kurulu paket yok. Çeviri paketsiz de çalışır — paket yalnız tutarlı kılar.</string>
+    <string name="translation_packs_footer">Paket, bir dil için terim ve üslup kuralları taşıyan küçük bir JSON dosyasıdır. O dile yapılan her çeviriye uygulanır; diskte %1$d KB.</string>
+    <string name="translation_packs_remove">Bu paketi kaldır</string>
+    <string name="translation_packs_removed">%1$s kaldırıldı.</string>
+    <string name="translation_packs_installed_toast">%1$s kuruldu.</string>
+    <string name="translation_packs_catalog">Kullanılabilir paketler</string>
+    <string name="translation_packs_catalog_footer">Bu projenin deposundan çekilir. Sen seçene kadar hiçbir şey kurulmaz.</string>
+    <string name="translation_packs_refresh">Kataloğu denetle</string>
+    <string name="translation_packs_loading">Çalışıyor…</string>
+    <string name="translation_packs_empty_catalog">Katalog boş.</string>
+    <string name="translation_packs_catalog_failed">Katalog okunamadı: %1$s</string>
+    <string name="translation_packs_installed_ok">%1$s kuruldu.</string>
+    <string name="translation_packs_import">Bağlantıdan kur</string>
+    <string name="translation_packs_import_footer">Paket biçimindeki her JSON dosyası olur — kendininki, bir arkadaşınınki ya da katalogdan bir kopya. Hiçbir şey yüklenmez.</string>
+    <string name="translation_packs_install">Kur</string>
+    <string name="translation_packs_active">Bu dil için etkin: %1$s</string>
+    <string name="translation_packs_none_active">yok — çeviri çalışır, yalnız daha az tutarlı olur</string>
+    <string name="translation_packs_active_subtitle">Her çeviriye uygulanan terim ve üslup kuralları</string>
 </resources>

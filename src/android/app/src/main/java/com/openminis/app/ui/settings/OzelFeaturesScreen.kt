@@ -1,6 +1,8 @@
 package com.openminis.app.ui.settings
 
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Restore
@@ -9,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
@@ -16,11 +19,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.openminis.app.BuildConfig
 import com.openminis.app.R
 import com.openminis.app.data.OzelFeatures
 import com.openminis.app.data.OzelFeatures.Feature
+import com.openminis.app.debug.DevServerController
+import com.openminis.app.ui.components.RowLabel
 
 /**
  * [MINIS-OZEL] Settings › Minis Özel › Features.
@@ -49,7 +56,15 @@ fun OzelFeaturesScreen(onBack: () -> Unit) {
     fun set(feature: Feature, enabled: Boolean) {
         values[feature] = enabled
         OzelFeatures.setEnabled(context, feature, enabled)
+        // [MINIS-OZEL] The developer server takes effect immediately. Applying
+        // it here (not only at launch) is the whole point of the switch: a
+        // user turning it off expects the port closed now.
+        if (feature == Feature.DEV_SERVER) {
+            DevServerController.applySwitch(context, enabled)
+        }
     }
+
+    val devServer by DevServerController.state.collectAsState()
 
     SettingsScaffold(
         title = stringResource(R.string.ozel_features_title),
@@ -114,11 +129,46 @@ fun OzelFeaturesScreen(onBack: () -> Unit) {
             ) {
                 SettingsSwitchRow(
                     title = stringResource(R.string.ozel_feature_dev_server),
-                    subtitle = stringResource(R.string.ozel_feature_dev_server_subtitle),
+                    subtitle = if (devServer.running) {
+                        stringResource(
+                            R.string.ozel_feature_dev_server_running,
+                            devServer.address,
+                            DevServerController.TIMEOUT_MINUTES,
+                        )
+                    } else {
+                        stringResource(R.string.ozel_feature_dev_server_subtitle)
+                    },
                     checked = values[Feature.DEV_SERVER] == true,
                     onCheckedChange = { set(Feature.DEV_SERVER, it) },
-                    showDivider = false,
+                    showDivider = devServer.running,
                 )
+                if (devServer.running) {
+                    // The token used to be reachable only through
+                    // `adb shell run-as`, which a release build rejects
+                    // ("package not debuggable") — so nothing outside the app
+                    // could authenticate. Showing it here is what makes the
+                    // surface usable at all.
+                    SettingsCardBlock {
+                        RowLabel(text = stringResource(R.string.ozel_feature_dev_server_token))
+                        SelectionContainer {
+                            Text(
+                                text = devServer.token,
+                                fontSize = 13.sp,
+                                fontFamily = FontFamily.Monospace,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(
+                                R.string.ozel_feature_dev_server_usage,
+                                devServer.address,
+                            ),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        )
+                    }
+                }
             }
         }
 

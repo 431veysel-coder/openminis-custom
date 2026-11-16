@@ -2851,4 +2851,27 @@
     <string name="add_provider_subtitle_together">OpenAI-compatible hosted catalogue — Llama, Qwen, DeepSeek, Mistral and more</string>
     <string name="add_provider_subtitle_fireworks">OpenAI-compatible fast inference — Llama, Qwen, Mixtral and fine-tunes</string>
     <string name="add_provider_subtitle_huggingface">OpenAI-compatible inference router — thousands of community models</string>
+    <string name="ozel_feature_dev_server_running">Listening on %1$s — closes itself in %2$d minutes</string>
+    <string name="ozel_feature_dev_server_token">Access token</string>
+    <string name="ozel_feature_dev_server_usage">From the sandbox: \"minis-debug discover\". From a computer: \"adb forward tcp:5321 tcp:5321\" and send X-Minis-Token with each request. Address: %1$s</string>
+    <string name="translation_packs_title">Translation packs</string>
+    <string name="translation_packs_installed">Installed packs</string>
+    <string name="translation_packs_none">No pack installed. Translation works without one — a pack only makes it consistent.</string>
+    <string name="translation_packs_footer">A pack is a small JSON file with terminology and style rules for one language. It is applied to every translation into that language; %1$d KB on disk.</string>
+    <string name="translation_packs_remove">Remove this pack</string>
+    <string name="translation_packs_removed">%1$s removed.</string>
+    <string name="translation_packs_installed_toast">%1$s installed.</string>
+    <string name="translation_packs_catalog">Available packs</string>
+    <string name="translation_packs_catalog_footer">Fetched from this project\'s repository. Nothing is installed until you pick one.</string>
+    <string name="translation_packs_refresh">Check the catalogue</string>
+    <string name="translation_packs_loading">Working…</string>
+    <string name="translation_packs_empty_catalog">The catalogue is empty.</string>
+    <string name="translation_packs_catalog_failed">Could not read the catalogue: %1$s</string>
+    <string name="translation_packs_installed_ok">%1$s installed.</string>
+    <string name="translation_packs_import">Install from a URL</string>
+    <string name="translation_packs_import_footer">Any JSON file in the pack format works — yours, a colleague\'s, or a copy of one from the catalogue. Nothing is uploaded.</string>
+    <string name="translation_packs_install">Install</string>
+    <string name="translation_packs_active">Active for this language: %1$s</string>
+    <string name="translation_packs_none_active">none — translation still works, it is just less consistent</string>
+    <string name="translation_packs_active_subtitle">Terminology and style rules applied to every translation</string>
 </resources>

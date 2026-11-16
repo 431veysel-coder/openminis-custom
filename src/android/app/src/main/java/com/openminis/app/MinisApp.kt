@@ -1067,16 +1067,17 @@ class MinisApp : Application(), ImageLoaderFactory {
             },
         )
 
-        // Debug server: only when the build ships it AND the user asked for it.
-        // [MINIS-OZEL] The switch is the security boundary now, not the build
-        // type: this APK always has DEV_TOOLS, so "is it a release build?" was
-        // never the right question to ask.
-        if (BuildConfig.DEV_TOOLS && com.openminis.app.data.OzelFeatures.devServerEnabled(this)) {
-            try {
-                com.openminis.app.debug.DebugServer(this).start()
-            } catch (e: Exception) {
-                Log.w("MinisApp", "Failed to start debug server: ${e.message}")
-            }
+        // Local API server: only when the build ships it AND the user asked for
+        // it. [MINIS-OZEL] Ownership lives in DevServerController, not here —
+        // the switch has to be able to start and stop the socket while the app
+        // runs, and a call from onCreate can only ever start it once.
+        if (BuildConfig.DEV_TOOLS) {
+            runCatching {
+                com.openminis.app.debug.DevServerController.applySwitch(
+                    this,
+                    com.openminis.app.data.OzelFeatures.devServerEnabled(this),
+                )
+            }.onFailure { Log.w("MinisApp", "Dev server start failed: ${it.message}") }
         }
 
         // T268: one-shot migration of pre-T266 internal alarms into the

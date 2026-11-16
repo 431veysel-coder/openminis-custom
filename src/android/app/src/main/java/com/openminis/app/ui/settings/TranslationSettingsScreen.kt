@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openminis.app.MinisApp
 import com.openminis.app.R
+import com.openminis.app.data.TranslationPacks
 import com.openminis.app.data.TranslationPrefs
 import com.openminis.app.data.model.ModelEntry
 import com.openminis.app.ui.components.RowLabel
@@ -40,7 +41,11 @@ import com.openminis.app.ui.chat.ThinkingTranslator
  * decision, and a spending decision deserves to be visible as one.
  */
 @Composable
-fun TranslationSettingsScreen(onBack: () -> Unit) {
+fun TranslationSettingsScreen(
+    onBack: () -> Unit,
+    // [MINIS-OZEL] Settings › Translation › Packs.
+    onOpenPacks: () -> Unit = {},
+) {
     val context = LocalContext.current
     val app = context.applicationContext as MinisApp
     val config by app.providerRepository.config.collectAsState()
@@ -101,6 +106,27 @@ fun TranslationSettingsScreen(onBack: () -> Unit) {
                     autoTranslate = it
                     TranslationPrefs.setAutoTranslate(context, it)
                 },
+                showDivider = false,
+            )
+        }
+
+        // [MINIS-OZEL] Terminology packs: what makes consecutive translations
+        // agree with each other instead of each request inventing its own
+        // translation for the same term.
+        SettingsSection(
+            header = stringResource(R.string.translation_packs_title),
+            footer = stringResource(
+                R.string.translation_packs_active,
+                TranslationPacks.forLanguage(context, TranslationPrefs.resolvedTargetLanguage(context))?.name
+                    ?: stringResource(R.string.translation_packs_none_active),
+            ),
+        ) {
+            SettingsItem(
+                icon = Icons.Outlined.Language,
+                iconColor = Color(0xFF30B0C7),
+                title = stringResource(R.string.translation_packs_title),
+                subtitle = stringResource(R.string.translation_packs_active_subtitle),
+                onClick = onOpenPacks,
                 showDivider = false,
             )
         }
