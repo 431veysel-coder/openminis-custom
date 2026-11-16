@@ -44,9 +44,26 @@ class RootfsManager private constructor(private val context: Context) {
 
     private val archFile: File get() = File(rootfsDir, ".arch")
 
+    /**
+     * [MINIS-OZEL] Which rootfs image the extraction produced, so an update
+     * that ships a NEWER Alpine can reach existing installs.
+     *
+     * The `.arch` marker only ever proved "this is aarch64" — a constant. An
+     * install made from Alpine 3.21.3 therefore looked installed forever, even
+     * after a build shipped 3.22, and the only way to get the new base was to
+     * uninstall the app (which also deletes 1.4 GB of installed toolchains).
+     */
+    private val imageFile: File get() = File(rootfsDir, ".image")
+
+    /** The image id of the asset this build ships. Bump with the Alpine version. */
+    private val expectedImage: String get() = ROOTFS_IMAGE_ID
+
     val isInstalled: Boolean
         get() = rootfsDir.exists() && archFile.exists() &&
-                archFile.readText().trim() == ARCH
+                archFile.readText().trim() == ARCH &&
+                // A rootfs from an older image counts as NOT installed: the
+                // caller re-extracts. See installIfNeeded for what is preserved.
+                imageFile.exists() && imageFile.readText().trim() == expectedImage
 
     /**
      * Observable install progress. UI layers (OnboardingScreen,
@@ -76,9 +93,33 @@ class RootfsManager private constructor(private val context: Context) {
             _installState.value = RootfsInstallState.Preparing
             Log.i(TAG, "Installing Alpine rootfs...")
 
-            // Clean up any partial install
+            // [MINIS-OZEL] A rootfs may be here because it is PARTIAL, or
+            // because it is complete but from an older image. The difference
+            // matters: the second one holds everything the user installed from
+            // the Toolchains screen — up to ~1.4 GB — and deleting it outright
+            // was a silent data loss the moment an update changed the Alpine
+            // base.
+            //
+            // So: move it aside (a rename, not a copy — instant even at 1.4 GB),
+            // extract the new image, then carry the user's own trees across.
+            var previous: File? = null
+            var carryOver: List<String> = emptyList()
             if (rootfsDir.exists()) {
-                rootfsDir.deleteRecursively()
+                val complete = archFile.exists() && File(rootfsDir, "etc/apk/world").exists()
+                if (complete) {
+                    previous = File(rootfsDir.parentFile, "alpine-rootfs.prev")
+                    previous.deleteRecursively()
+                    if (rootfsDir.renameTo(previous)) {
+                        carryOver = USER_TREES.filter { File(previous, it).exists() }
+                        Log.i(TAG, "Keeping the old rootfs at ${previous.name}; carrying over $carryOver")
+                    } else {
+                        Log.w(TAG, "Could not move the old rootfs aside; extracting in place")
+                        previous = null
+                    }
+                } else {
+                    Log.i(TAG, "Removing a partial rootfs")
+                    rootfsDir.deleteRecursively()
+                }
             }
             rootfsDir.mkdirs()
 
@@ -119,8 +160,29 @@ class RootfsManager private constructor(private val context: Context) {
 
             _installState.value = RootfsInstallState.Finalizing
 
-            // Write arch marker
+            // Write arch marker and the image id it was extracted from
             archFile.writeText(ARCH)
+            imageFile.writeText(expectedImage)
+
+            // Carry the user's own content into the fresh image. Only these
+            // paths: system trees come from the new image on purpose.
+            // `previous` is a var captured by the lambdas below, so it cannot
+            // be smart-cast: take a local copy first.
+            val carrySource = previous
+            if (carrySource != null && carryOver.isNotEmpty()) {
+                var restored = 0
+                for (rel in carryOver) {
+                    val src = File(carrySource, rel)
+                    val dst = File(rootfsDir, rel)
+                    runCatching {
+                        dst.parentFile?.mkdirs()
+                        src.copyRecursively(dst, overwrite = true)
+                        restored++
+                    }.onFailure { Log.w(TAG, "carry-over failed for $rel: ${it.message}") }
+                }
+                Log.i(TAG, "Carried over $restored/${carryOver.size} tree(s) from the old rootfs")
+            }
+            carrySource?.deleteRecursively()
 
             // Pre-create /var/minis directories. Mirrors iOS
             // RootfsManager.swift:76-80 (attachments/offloads/workspace/skills/
@@ -749,6 +811,24 @@ class RootfsManager private constructor(private val context: Context) {
             return sb.toString().trim()
         }
         private const val ARCH = "aarch64"
+
+        /**
+         * The Alpine image id this build ships. MUST be bumped when
+         * `scripts/prepare_android_sandbox.sh` changes ALPINE_RELEASE, or
+         * existing installs keep the old base forever.
+         */
+        private const val ROOTFS_IMAGE_ID = "alpine-3.21.3"
+
+        /**
+         * Paths that belong to the user rather than to the image: installed
+         * runtimes (`/usr/local` is where `apk`-installed `uv`/`clang` wrappers
+         * land, `/opt` where several toolchains root themselves), their home
+         * directories, and the `apk` world file so `apk del` still knows what is
+         * installed.
+         */
+        private val USER_TREES = listOf(
+            "root", "home", "opt", "usr/local", "etc/apk/world", "var/lib/apk",
+        )
         private const val ROOTFS_ASSET = "alpine-minirootfs.tar.gz"
         private const val ROOTFS_ASSET_TAR = "alpine-minirootfs.tar"
         private const val PROOT_ASSET = "proot-aarch64"

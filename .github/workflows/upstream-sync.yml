@@ -1,174 +1,214 @@
-name: Upstream sync check
+name: Upstream sync
 
-# Weekly look at what upstream has done since our base, so the fork never
-# silently drifts. Two failure modes this exists to catch:
+# Two repositories, one APK: upstream ships the app, this fork ships identity,
+# features and the release pipeline. FORK.md §1 principle 2 is "stay
+# mergesable", and the way that breaks is silently — a merge deferred long
+# enough stops being a merge and becomes a rewrite.
 #
-#   1. Upstream ships a release and we never notice. The app then looks
-#      "older than the official one" for reasons that are ours, not theirs.
-#   2. We fall so far behind that a merge stops being a merge and becomes a
-#      rewrite. FORK.md §1 principle 2 is "stay mergesable" — this is the
-#      alarm when that stops being true.
+# What this workflow does, in order:
+#   1. fetch OpenMinis/OpenMinis
+#   2. nothing new? stop. (Most weeks.)
+#   3. merge into a dated sync branch
+#   4. re-apply the fork identity (upstream's build.gradle.kts says
+#      com.openminis.app / versionCode 37 / RELEASE_REPO=upstream, and its
+#      locale files say app_name=Minis — a merge that keeps those produces an
+#      APK nobody can install over ours)
+#   5. run the identity guard as proof
+#   6. open or update ONE pull request
 #
-# It never pushes to main and never merges anything. It produces a branch and
-# an issue; a human decides.
+# It does not resolve content conflicts and does not merge into main: a
+# conflict in upstream's own code is a decision about which side wins, and that
+# is not a robot's call. The previous version of this workflow only REPORTED
+# and never produced the branch its comments promised — this one does what it
+# says.
 
 on:
   schedule:
-    # Mondays 06:00 UTC — before the week starts, so the report is waiting.
+    # Mondays 06:00 UTC — before the week starts, so the PR is waiting.
     - cron: '0 6 * * 1'
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "report (issue only) or merge (branch + PR)"
+        type: choice
+        options: [merge, report]
+        default: merge
 
 permissions:
   contents: write
   issues: write
   pull-requests: write
 
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+
 jobs:
-  check:
+  sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
-      - name: Checkout our main
+      - name: Checkout main with history
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # The report branch is pushed with the default token.
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Fetch upstream
         id: fetch
         run: |
           set -e
-          git remote add upstream https://github.com/OpenMinis/OpenMinis.git || true
-          git fetch upstream main --depth 200
-
+          git remote add upstream https://github.com/OpenMinis/OpenMinis.git 2>/dev/null || true
+          git fetch upstream main --depth 400
           AHEAD=$(git rev-list --count upstream/main..HEAD)
           BEHIND=$(git rev-list --count HEAD..upstream/main)
-          UPSTREAM_SHA=$(git rev-parse --short upstream/main)
+          SHA=$(git rev-parse --short upstream/main)
+          echo "ahead=$AHEAD"   >> "$GITHUB_OUTPUT"
+          echo "behind=$BEHIND" >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA"       >> "$GITHUB_OUTPUT"
+          echo "upstream=$SHA behind=$BEHIND ahead=$AHEAD"
 
-          echo "ahead=$AHEAD"     >> "$GITHUB_OUTPUT"
-          echo "behind=$BEHIND"   >> "$GITHUB_OUTPUT"
-          echo "sha=$UPSTREAM_SHA" >> "$GITHUB_OUTPUT"
-          echo "Our commits not in upstream: $AHEAD"
-          echo "Upstream commits not here:   $BEHIND"
-
-      - name: Try a merge and record what conflicts
-        id: merge
-        run: |
-          set +e
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          git checkout -b "upstream-sync/$(date +%Y-%m-%d)" 2>/dev/null || \
-            git checkout -B "upstream-sync/$(date +%Y-%m-%d)"
-
-          OUT=$(git merge --no-commit --no-ff upstream/main 2>&1)
-          CODE=$?
-
-          if [ $CODE -eq 0 ]; then
-            echo "clean=true" >> "$GITHUB_OUTPUT"
-            echo "Merge applied without conflicts."
-            git merge --abort 2>/dev/null || true
-          else
-            echo "clean=false" >> "$GITHUB_OUTPUT"
-            CONFLICTS=$(git diff --name-only --diff-filter=U | tr '\n' ' ')
-            COUNT=$(git diff --name-only --diff-filter=U | wc -l)
-            echo "count=$COUNT" >> "$GITHUB_OUTPUT"
-            printf 'conflicts<<EOF\n%s\nEOF\n' "$CONFLICTS" >> "$GITHUB_OUTPUT"
-            echo "Merge has $COUNT conflicting file(s): $CONFLICTS"
-            git merge --abort 2>/dev/null || true
-          fi
-
-          git checkout main
-
-      - name: What upstream changed
+      - name: Report what upstream changed
         id: changes
+        if: steps.fetch.outputs.behind != '0'
         run: |
           set -e
-          if [ "${{ steps.fetch.outputs.behind }}" = "0" ]; then
-            echo "body<<EOF" >> "$GITHUB_OUTPUT"
-            echo "Upstream has nothing new since our base. Nothing to do." >> "$GITHUB_OUTPUT"
-            echo "EOF" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           {
-            echo "body<<EOF"
-            echo "### Commits upstream added (${{ steps.fetch.outputs.behind }})"
+            echo "body<<__EOF__"
+            echo "Upstream is at \`${{ steps.fetch.outputs.sha }}\` and we are ${{ steps.fetch.outputs.behind }} commit(s) behind."
             echo ""
+            echo "### Commits upstream added"
             echo '```'
             git log --oneline --no-decorate HEAD..upstream/main | head -40
             echo '```'
-            if [ "$(git rev-list --count HEAD..upstream/main)" -gt 40 ]; then
-              echo "_…and more; this is the first 40._"
-            fi
             echo ""
-            echo "### Files they touched that we also touched"
-            echo ""
+            echo "### Files both sides touched (the risky list)"
             echo '```'
-            # Our fork's own commits, intersected with upstream's changes.
             git diff --name-only upstream/main...HEAD 2>/dev/null | sort > /tmp/ours.txt || true
             git diff --name-only HEAD...upstream/main 2>/dev/null | sort > /tmp/theirs.txt || true
             comm -12 /tmp/ours.txt /tmp/theirs.txt | head -30 || echo "(none)"
             echo '```'
-            echo "EOF"
+            echo "__EOF__"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Ensure the label exists
-        if: steps.fetch.outputs.behind != '0'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh label create upstream-sync --color FBCA04 --description "Upstream drift report" 2>/dev/null || true
+      - name: Nothing to do
+        if: steps.fetch.outputs.behind == '0'
+        run: echo "main already contains upstream/main — nothing to merge."
 
-      - name: Open or update the tracking issue
-        if: steps.fetch.outputs.behind != '0'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BEHIND: ${{ steps.fetch.outputs.behind }}
-          SHA: ${{ steps.fetch.outputs.sha }}
-          CLEAN: ${{ steps.merge.outputs.clean }}
-          CCOUNT: ${{ steps.merge.outputs.count }}
-          CFILES: ${{ steps.merge.outputs.conflicts }}
-          CHANGES: ${{ steps.changes.outputs.body }}
+      - name: Merge into a sync branch
+        id: merge
+        if: steps.fetch.outputs.behind != '0' && (inputs.mode || 'merge') == 'merge'
         run: |
+          set +e
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          BRANCH="sync/upstream-$(date +%Y-%m-%d)"
+          git checkout -B "$BRANCH"
+          git merge --no-ff upstream/main \
+            -m "merge: upstream ${{ steps.fetch.outputs.sha }}" > /tmp/merge.log 2>&1
+          CODE=$?
           set -e
-          TITLE="Upstream sync: $BEHIND new commit(s) in OpenMinis/OpenMinis"
-
-          # One rolling issue rather than a new one every week.
-          EXISTING=$(gh issue list --label upstream-sync --state open --json number --jq '.[0].number' || true)
-
-          if [ "$CLEAN" = "true" ]; then
-            STATUS="✅ **Trial merge is clean.** No conflicting files — this should be a routine cherry-pick."
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          if [ $CODE -ne 0 ]; then
+            git diff --name-only --diff-filter=U > /tmp/conflicts.txt || true
+            {
+              echo "clean=false"
+              echo "conflicts<<__EOF__"
+              cat /tmp/conflicts.txt
+              echo "__EOF__"
+            } >> "$GITHUB_OUTPUT"
+            git merge --abort 2>/dev/null || true
+            git checkout -B "$BRANCH" origin/main
+            echo "conflicts:"; cat /tmp/conflicts.txt
           else
-            STATUS="⚠️ **Trial merge conflicts in $CCOUNT file(s).** See the list below before starting."
+            echo "clean=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Re-apply the fork identity
+        id: identity
+        if: steps.merge.outputs.clean == 'true'
+        run: |
+          set -e
+          # 0 = patched, 2 = patched but versionCode/versionName need a human.
+          # Either way the merge stands; 3 or worse is a real failure.
+          python3 scripts/apply_identity.py || [ $? -eq 2 ]
+
+      - name: Identity guard (proof the merge did not break installation)
+        if: steps.merge.outputs.clean == 'true'
+        run: bash scripts/check_identity.sh
+
+      - name: Commit and push the sync branch
+        if: steps.merge.outputs.clean == 'true'
+        run: |
+          set -e
+          if ! git diff --quiet || ! git diff --cached --quiet; then
+            git add -A
+            git commit -q -m "chore(sync): re-apply identity after upstream ${{ steps.fetch.outputs.sha }}"
+          fi
+          git push origin "HEAD:${{ steps.merge.outputs.branch }}" --force
+
+      - name: Open or update the pull request
+        if: steps.merge.outputs.clean == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BODY: ${{ steps.changes.outputs.body }}
+          BRANCH: ${{ steps.merge.outputs.branch }}
+          BEHIND: ${{ steps.fetch.outputs.behind }}
+        run: |
+          set -e
+          TITLE="Upstream sync: $BEHIND commit(s) from OpenMinis/OpenMinis"
           {
-            echo "Upstream is at \`$SHA\` and we are $BEHIND commit(s) behind."
-            echo ""
-            echo "$STATUS"
-            echo ""
-            if [ "$CLEAN" != "true" ]; then
-              echo "<details><summary>Conflicting files</summary>"
-              echo ""
-              echo '```'
-              echo "$CFILES" | tr ' ' '\n' | sed '/^$/d'
-              echo '```'
-              echo "</details>"
-              echo ""
-            fi
-            echo "$CHANGES"
+            echo "$BODY"
             echo ""
             echo "---"
             echo ""
-            echo "Procedure: [FORK.md §7](https://github.com/${{ github.repository }}/blob/main/FORK.md)."
-            echo "Feature commits are independent, so they can be cherry-picked one at a time."
+            echo "**Automated:** the identity patch (\`scripts/apply_identity.py\`) was"
+            echo "re-applied and \`scripts/check_identity.sh\` passed on this branch."
             echo ""
-            echo "_Updated automatically on every run; this issue is reused._"
-          } > /tmp/body.md
-
+            echo "**Watch for:**"
+            echo "- \`versionCode\` / \`versionName\` if the merge brought upstream's — the"
+            echo "  guard fails rather than guessing, because a number at or below 37013"
+            echo "  can never update an installed build."
+            echo "- Fork files upstream has started to touch (the list above). Where both"
+            echo "  sides changed the same function, the fork's behaviour is the one to"
+            echo "  keep, but the upstream change usually encodes a bug fix worth reading."
+            echo ""
+            echo "Reviewing this is meant to be 10 minutes, not an afternoon. If it is"
+            echo "not, that is the signal the fork has drifted too far."
+          } > /tmp/pr-body.md
+          EXISTING=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number' || true)
           if [ -n "$EXISTING" ]; then
-            gh issue edit "$EXISTING" --title "$TITLE" --body-file /tmp/body.md
-            echo "Updated issue #$EXISTING"
+            gh pr edit "$EXISTING" --title "$TITLE" --body-file /tmp/pr-body.md
+            echo "updated PR #$EXISTING"
           else
-            gh issue create --title "$TITLE" --label upstream-sync --body-file /tmp/body.md
+            gh pr create --title "$TITLE" --body-file /tmp/pr-body.md --base main --head "$BRANCH"
+          fi
+
+      - name: Report conflicts as an issue
+        if: steps.merge.outputs.clean == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CONFLICTS: ${{ steps.merge.outputs.conflicts }}
+          BODY: ${{ steps.changes.outputs.body }}
+        run: |
+          set -e
+          {
+            echo "$BODY"
+            echo ""
+            echo "### ⚠️ Trial merge conflicts"
+            echo '```'
+            printf '%s\n' "$CONFLICTS"
+            echo '```'
+            echo "Nothing was pushed. Resolve locally on a sync branch:"
+            echo '```sh'
+            echo "scripts/sync_upstream.sh"
+            echo '```'
+          } > /tmp/issue-body.md
+          TITLE="Upstream sync conflicts (${{ steps.fetch.outputs.sha }})"
+          EXISTING=$(gh issue list --label upstream-sync --state open --json number --jq '.[0].number' || true)
+          gh label create upstream-sync --color FBCA04 --description "Upstream drift" 2>/dev/null || true
+          if [ -n "$EXISTING" ]; then
+            gh issue edit "$EXISTING" --title "$TITLE" --body-file /tmp/issue-body.md
+          else
+            gh issue create --title "$TITLE" --label upstream-sync --body-file /tmp/issue-body.md
           fi

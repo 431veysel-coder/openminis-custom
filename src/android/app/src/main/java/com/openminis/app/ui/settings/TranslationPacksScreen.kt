@@ -28,7 +28,6 @@ import com.openminis.app.R
 import com.openminis.app.data.TranslationPacks
 import com.openminis.app.data.TranslationPacks.Pack
 import com.openminis.app.ui.components.SectionTextField
-import com.openminis.app.ui.components.SettingsRow
 import kotlinx.coroutines.launch
 
 /**

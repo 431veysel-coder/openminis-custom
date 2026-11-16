@@ -121,7 +121,7 @@ fun TranslationSettingsScreen(
                     ?: stringResource(R.string.translation_packs_none_active),
             ),
         ) {
-            SettingsItem(
+            SettingsRow(
                 icon = Icons.Outlined.Language,
                 iconColor = Color(0xFF30B0C7),
                 title = stringResource(R.string.translation_packs_title),
