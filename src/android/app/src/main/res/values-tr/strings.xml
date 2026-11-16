@@ -2101,7 +2101,7 @@
     <string name="versions_confirm_back_title">Eski sürüme dön</string>
     <string name="versions_confirm_back_message">Android, %1$s sürümünü doğrudan kurmaz — sürüm numarası eski olduğu için. Bu bir ayar değil, sistem kuralı. Geri dönüşün yolu kurtarma derlemesi: aynı kod, daha yüksek bir numarayla yeniden yayınlanır. Açılan sayfada akışı çalıştır; derleme birkaç dakika içinde burada görünür ve sıradan bir güncelleme gibi kurulur.</string>
     <string name="versions_recovery_open_short">Sayfayı aç</string>
-    <string name="versions_need_install_permission">Açılan ayar ekranında uygulama kurmaya izin ver, sonra yeniden Güncelle'ye dokun.</string>
+    <string name="versions_need_install_permission">Açılan ayar ekranında uygulama kurmaya izin ver, sonra yeniden Güncelle\'ye dokun.</string>
     <string name="versions_open_failed">%1$s açılamadı — tarayıcıda aç.</string>
     <string name="versions_recovery_header">Kurtarma derlemesi</string>
     <string name="versions_recovery_footer">Bir sürüm arızalıysa ve düzeltmeyi beklemeden öncekine dönmek istiyorsan bunu kullan. Hiçbir şey kaldırılmaz, hiçbir veriye dokunulmaz.</string>
