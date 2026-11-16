@@ -1236,6 +1236,19 @@
     <string name="provider_detail_azure_openai">Azure OpenAI</string>
     <string name="provider_detail_azure_openai_footer">Use Azure OpenAI authentication (api-key header). Paste your full Azure endpoint into Custom API Base above, including the ?api-version=… query. Works with both API formats.</string>
     <string name="provider_detail_status">Status</string>
+    <string name="provider_detail_connection_header">Connection test</string>
+    <string name="provider_detail_connection_footer">One request to this provider\'s model list. Nothing is created, cached or billed.</string>
+    <string name="provider_detail_connection_test">Test connection</string>
+    <string name="provider_detail_connection_running">Testing…</string>
+    <string name="provider_detail_connection_never">Not tested yet — tap to check the key and the address.</string>
+    <string name="provider_detail_connection_ok">Connected in %1$s s.</string>
+    <string name="provider_detail_connection_ok_count">Connected — %1$d models listed (%2$s s).</string>
+    <string name="provider_detail_connection_bad_key">The key was rejected (HTTP %1$d, %2$s s). Check it, or that it belongs to this provider.</string>
+    <string name="provider_detail_connection_forbidden">The key is valid but not allowed here (HTTP %1$d, %2$s s). Usually a plan, region or permission limit.</string>
+    <string name="provider_detail_connection_not_found">No model list at this address (HTTP %1$d, %2$s s). The base URL is almost always wrong — check the /v1 suffix.</string>
+    <string name="provider_detail_connection_rate_limited">Rate limited (HTTP %1$d, %2$s s). The key works; try again later.</string>
+    <string name="provider_detail_connection_unreachable">Could not reach the host: %1$s (%2$s s). Check the address, this network, or the route in Settings › Network.</string>
+    <string name="provider_detail_connection_http_error">HTTP %1$d — %2$s (%3$s s).</string>
     <string name="provider_detail_enabled">Enabled</string>
     <string name="provider_detail_refresh_models">Refresh Models</string>
     <string name="provider_refresh_model_list">Refresh model list</string>

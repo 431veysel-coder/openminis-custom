@@ -189,6 +189,10 @@ object TranslationPacks {
     fun hiddenIds(context: Context): Set<String> =
         prefs(context).getStringSet(KEY_HIDDEN, emptySet())?.toSet() ?: emptySet()
 
+    /** One SharedPreferences handle; the file is shared with [TranslationPrefs]. */
+    private fun prefs(context: Context) =
+        context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
     private fun setHidden(context: Context, id: String, hidden: Boolean) {
         val next = hiddenIds(context).toMutableSet()
         if (hidden) next.add(id) else next.remove(id)

@@ -68,6 +68,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.openminis.app.data.model.ProviderType
 import com.openminis.app.data.repository.ProviderRepository
+import com.openminis.app.provider.ProviderConnectionTest
 import com.openminis.app.logging.AppLogger
 import com.openminis.app.ui.components.MinisAlertDialog
 import com.openminis.app.ui.util.bringIntoViewOnFocus
@@ -160,6 +161,14 @@ fun ProviderDetailScreen(
     var keyVisible by remember { mutableStateOf(false) }
 
     var isEnabled by remember { mutableStateOf(instance.isEnabled) }
+    // [MINIS-OZEL 11.1] Result of the last "test connection" probe. Null =
+    // never run. Held here rather than in the tested object so the screen can
+    // re-run it and still show the previous answer while the new one is in
+    // flight (`busy` only swaps the row's trailing label).
+    var connectionTest by remember(instanceId) {
+        mutableStateOf<ProviderConnectionTest.Outcome?>(null)
+    }
+    var connectionBusy by remember(instanceId) { mutableStateOf(false) }
     var customBaseURL by remember { mutableStateOf(instance.customBaseURL ?: "") }
     var appendV1Suffix by remember { mutableStateOf(instance.appendV1Suffix) }
     // [T-provider-custom-user-agent] Per-provider UA override input. Only the
@@ -562,6 +571,56 @@ fun ProviderDetailScreen(
                 },
                 showDivider = false,
             )
+        }
+
+        // ─── Connection test [MINIS-OZEL 11.1] ──────────────────────
+        // Before this, adding a provider was a silent gamble: the model list
+        // stayed empty and nothing distinguished a wrong key from a wrong base
+        // URL from an unreachable host — three different fixes that looked the
+        // same. One GET against the models endpoint separates them, and the
+        // row says which one it is.
+        if (com.openminis.app.data.OzelFeatures.isEnabled(detailContext, com.openminis.app.data.OzelFeatures.Feature.PROVIDER_TEST)) {
+            val outcome = connectionTest
+            SettingsSection(
+                header = stringResource(R.string.provider_detail_connection_header),
+                footer = stringResource(R.string.provider_detail_connection_footer),
+            ) {
+                SettingsRow(
+                    title = stringResource(
+                        if (connectionBusy) {
+                            R.string.provider_detail_connection_running
+                        } else {
+                            R.string.provider_detail_connection_test
+                        },
+                    ),
+                    subtitle = outcome?.let { describeConnectionTest(it) }
+                        ?: stringResource(R.string.provider_detail_connection_never),
+                    icon = Icons.Outlined.CheckCircle,
+                    iconColor = when {
+                        outcome == null -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                        outcome.ok -> Color(0xFF34C759)
+                        else -> Color(0xFFFF9F0A)
+                    },
+                    onClick = if (connectionBusy) {
+                        null
+                    } else {
+                        {
+                            connectionBusy = true
+                            scope.launch {
+                                // Use the credential that is actually stored,
+                                // not the OAuth placeholder: an OAuth instance
+                                // whose token lives elsewhere must test as
+                                // "no key here" rather than as a fake bearer.
+                                val key = providerRepository.loadApiKey(instanceId).orEmpty()
+                                connectionTest = ProviderConnectionTest
+                                    .run(instance, key)
+                                connectionBusy = false
+                            }
+                        }
+                    },
+                    showDivider = false,
+                )
+            }
         }
 
         // ─── Quota [T-provider-quota] ───────────────────────────────
@@ -1535,5 +1594,53 @@ private fun ResponseIdleTimeoutSection(instanceId: String) {
                 }
             },
         )
+    }
+}
+
+/**
+ * [MINIS-OZEL 11.1] One sentence for a connection-test result.
+ *
+ * The status code alone is not an answer: 404 and an unreachable host both mean
+ * "no models appeared" to the user, and they need opposite fixes (correct the
+ * base URL vs. change the network route). Every branch therefore names the
+ * CAUSE, and keeps the raw code at the end so a bug report is still actionable.
+ */
+@Composable
+private fun describeConnectionTest(
+    outcome: ProviderConnectionTest.Outcome,
+): String {
+    val seconds = String.format(java.util.Locale.US, "%.1f", outcome.elapsedMs / 1000.0)
+    val code = outcome.code
+    val detail = outcome.detail?.takeIf { it.isNotBlank() }
+    return when (outcome.kind) {
+        ProviderConnectionTest.Kind.OK -> {
+            val count = outcome.modelCount
+            if (count != null && count > 0) {
+                stringResource(R.string.provider_detail_connection_ok_count, count, seconds)
+            } else {
+                stringResource(R.string.provider_detail_connection_ok, seconds)
+            }
+        }
+        ProviderConnectionTest.Kind.BAD_KEY ->
+            stringResource(R.string.provider_detail_connection_bad_key, code, seconds)
+        ProviderConnectionTest.Kind.FORBIDDEN ->
+            stringResource(R.string.provider_detail_connection_forbidden, code, seconds)
+        ProviderConnectionTest.Kind.NOT_FOUND ->
+            stringResource(R.string.provider_detail_connection_not_found, code, seconds)
+        ProviderConnectionTest.Kind.RATE_LIMITED ->
+            stringResource(R.string.provider_detail_connection_rate_limited, code, seconds)
+        ProviderConnectionTest.Kind.HTTP_ERROR -> {
+            val transport = outcome.transportError
+            if (transport != null) {
+                stringResource(R.string.provider_detail_connection_unreachable, transport, seconds)
+            } else {
+                stringResource(
+                    R.string.provider_detail_connection_http_error,
+                    code,
+                    detail ?: "—",
+                    seconds,
+                )
+            }
+        }
     }
 }

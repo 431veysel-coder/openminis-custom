@@ -74,6 +74,42 @@ object OzelFeatures {
          * Only meaningful in builds that ship it (DEV_TOOLS).
          */
         DEV_SERVER("dev_server", false),
+
+        /**
+         * [MINIS-OZEL 11.1] "Test connection" on a provider's detail screen.
+         * One GET against the vendor's models endpoint, with the reason a
+         * failure happened instead of an empty model list.
+         */
+        PROVIDER_TEST("provider_test", true),
+
+        /**
+         * [MINIS-OZEL 11.1] The notes module: the agent's scratchpad and the
+         * user's vault, behind one Settings entry. Off hides the entry and
+         * unregisters the agent tool; stored notes stay on disk (same rule as
+         * every other flag here).
+         */
+        NOTES("notes", true),
+
+        /**
+         * [MINIS-OZEL 11.1] The vault inside Notes — entries only the user can
+         * write. Its own flag because it is the one part of Notes that holds
+         * secrets: someone may want the agent's notepad and not a keystore.
+         */
+        VAULT("vault", true),
+
+        /**
+         * [MINIS-OZEL 11.1] The Station: several providers/models working the
+         * same task side by side, each with its own terminal and browser tabs.
+         */
+        STATION("station", true),
+
+        /**
+         * [MINIS-OZEL 11.1] Edit mode: a floating pen that lets the user pin a
+         * note onto whatever is on screen; the note lands in Notes for the
+         * agent to act on. Default OFF — a persistent overlay on top of every
+         * screen is intrusive unless the user asks for it.
+         */
+        EDIT_MODE("edit_mode", false),
         ;
 
         companion object {

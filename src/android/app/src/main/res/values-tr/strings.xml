@@ -1095,6 +1095,19 @@
     <string name="provider_detail_azure_openai">Azure OpenAI</string>
     <string name="provider_detail_azure_openai_footer">Azure OpenAI kimlik doğrulamasını (api-key başlığı) kullanın. Tam Azure uç noktanızı, ?api-version=… sorgusu dahil olmak üzere yukarıdaki Özel API Adresi alanına yapıştırın. Her iki API biçimiyle de çalışır.</string>
     <string name="provider_detail_status">Durum</string>
+    <string name="provider_detail_connection_header">Bağlantı testi</string>
+    <string name="provider_detail_connection_footer">Bu sağlayıcının model listesine tek bir istek. Hiçbir şey oluşturulmaz, önbelleğe alınmaz, ücretlendirilmez.</string>
+    <string name="provider_detail_connection_test">Bağlantıyı test et</string>
+    <string name="provider_detail_connection_running">Test ediliyor…</string>
+    <string name="provider_detail_connection_never">Henüz test edilmedi — anahtarı ve adresi denetlemek için dokun.</string>
+    <string name="provider_detail_connection_ok">Bağlandı (%1$s sn).</string>
+    <string name="provider_detail_connection_ok_count">Bağlandı — %1$d model listelendi (%2$s sn).</string>
+    <string name="provider_detail_connection_bad_key">Anahtar reddedildi (HTTP %1$d, %2$s sn). Anahtarı ya da bu sağlayıcıya ait olup olmadığını denetle.</string>
+    <string name="provider_detail_connection_forbidden">Anahtar geçerli ama burada izinli değil (HTTP %1$d, %2$s sn). Genelde plan, bölge ya da yetki sınırı.</string>
+    <string name="provider_detail_connection_not_found">Bu adreste model listesi yok (HTTP %1$d, %2$s sn). Temel adres neredeyse her zaman hatalı — /v1 ekini denetle.</string>
+    <string name="provider_detail_connection_rate_limited">Hız sınırı (HTTP %1$d, %2$s sn). Anahtar çalışıyor; sonra tekrar dene.</string>
+    <string name="provider_detail_connection_unreachable">Sunucuya ulaşılamadı: %1$s (%2$s sn). Adresi, bu ağı ya da Ayarlar › Ağ içindeki rotayı denetle.</string>
+    <string name="provider_detail_connection_http_error">HTTP %1$d — %2$s (%3$s sn).</string>
     <string name="provider_detail_enabled">Etkin</string>
     <string name="provider_detail_refresh_models">Modelleri Yenile</string>
     <string name="provider_detail_add_custom_model">Özel Model Ekle</string>
