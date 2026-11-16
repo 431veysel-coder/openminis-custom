@@ -282,18 +282,18 @@ class NoteRepository(private val context: Context) {
 
     private class NoteDbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_VERSION) {
         override fun onCreate(db: SQLiteDatabase) {
-            db.execSQL(
-                "CREATE TABLE notes (" +
-                "id TEXT PRIMARY KEY," +
-                "session_id TEXT NOT NULL," +
-                "title TEXT NOT NULL DEFAULT ''," +
-                "content TEXT NOT NULL DEFAULT ''," +
-                "tags TEXT NOT NULL DEFAULT ''," +
-                "version INTEGER NOT NULL DEFAULT 1," +
-                "created_at INTEGER NOT NULL," +
-                "updated_at INTEGER NOT NULL" +
-                ")"
-            )
+            db.execSQL("""
+                CREATE TABLE notes (
+                    id TEXT PRIMARY KEY,
+                    session_id TEXT NOT NULL,
+                    title TEXT NOT NULL DEFAULT '',
+                    content TEXT NOT NULL DEFAULT '',
+                    tags TEXT NOT NULL DEFAULT '',
+                    version INTEGER NOT NULL DEFAULT 1,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL
+                )
+            """.trimIndent())
             db.execSQL("CREATE INDEX idx_notes_session ON notes(session_id)")
             db.execSQL("CREATE INDEX idx_notes_updated ON notes(updated_at DESC)")
         }
