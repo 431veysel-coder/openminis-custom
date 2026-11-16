@@ -34,6 +34,10 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.VisibilityOff
+// [MINIS-OZEL 11.1] Connection-test row icon. The Outlined receiver alone does
+// not pull the member in — each icon needs its own import, which is exactly the
+// "Unresolved reference" the first 11.1 build died on.
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
