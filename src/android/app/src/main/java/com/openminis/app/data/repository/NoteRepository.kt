@@ -71,7 +71,7 @@ class NoteRepository(private val context: Context) {
         val sessionId: String,
         val title: String = "",
         val content: String = "",
-        val tags: String = "",           -- comma-separated, normalized lowercase
+        val tags: String = "",           // comma-separated, normalized lowercase
         val version: Int = 1,
         val createdAt: Long = System.currentTimeMillis(),
         val updatedAt: Long = System.currentTimeMillis(),

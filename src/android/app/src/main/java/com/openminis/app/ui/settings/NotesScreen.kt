@@ -107,6 +107,9 @@ import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
+import com.openminis.app.tools.NoteTool
 
 /**
  * Settings › Minis Özel › Notlar
@@ -221,9 +224,6 @@ fun NotesScreen(
             createdAt = it.createdAt,
             updatedAt = it.updatedAt,
         ) })
-        import kotlinx.serialization.json.Json
-        import kotlinx.serialization.encodeToString
-        import com.openminis.app.tools.NoteTool
         val jsonString = Json.encodeToString(json)
         exportJson = jsonString
         showExportDialog = true
