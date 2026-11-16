@@ -71,10 +71,18 @@ jobs:
           fetch-depth: 1
 
       - name: Restore the native layer
+        # [MINIS-OZEL] `path: .` was wrong. upload-artifact v4 does NOT keep
+        # workspace-relative paths; it stores every file relative to the COMMON
+        # ANCESTOR of the uploaded paths, which here is `src/android/app`. The
+        # artifact therefore contains `libs/rclone.aar`, `src/main/assets/...`
+        # and nothing else — so unpacking at the repo root produced
+        # `./libs/rclone.aar` and the check below failed on a good build.
+        # Extracting into `src/android/app` puts each file exactly where the
+        # upload found it.
         uses: actions/download-artifact@v4
         with:
           name: native-deps
-          path: .
+          path: src/android/app
 
       - name: Check rclone.aar arrived
         run: |
@@ -237,32 +245,35 @@ jobs:
           fetch-depth: 1
 
       - name: Restore the native layer
-        # `path: .` and not a subdirectory: upload-artifact stores each file
-        # under its workspace-relative path, so unpacking elsewhere would put
-        # rclone.aar at .native-layer/src/android/app/libs/rclone.aar and the
-        # copy step below would look in the wrong place.
+        # [MINIS-OZEL] `path: src/android/app`, not `.`. The old comment here
+        # claimed upload-artifact keeps workspace-relative paths; v4 strips the
+        # common ancestor instead, so the artifact holds `libs/rclone.aar`,
+        # `src/main/assets/...`, `src/main/jniLibs/...` — relative to
+        # `src/android/app`. Unpacking at the root scattered them one level too
+        # high and the step below died on rclone.aar. Since the artifact now
+        # lands exactly where it was uploaded from, the "Place" step no longer
+        # moves anything; it only verifies.
         uses: actions/download-artifact@v4
         with:
           name: native-deps
-          path: .
+          path: src/android/app
 
-      - name: Place the native layer where Gradle expects it
+      - name: Verify the native layer
+        # Nothing is moved any more — the download lands in src/android/app,
+        # which is where these files lived when they were uploaded. This step
+        # exists only to fail loudly on an incomplete layer: Gradle would
+        # otherwise finish and produce an APK whose every shell command returns
+        # exit -1, because the proot loaders are what the installer puts in
+        # nativeLibraryDir.
         run: |
           set -e
-          mkdir -p src/android/app/libs \
-                   src/android/app/src/main/assets \
-                   src/android/app/src/main/jniLibs/arm64-v8a
-
-          # A layer that arrived incomplete would still let Gradle finish — and
-          # produce an APK whose every shell command returns exit -1, because
-          # the proot loaders are what the installer places in
-          # nativeLibraryDir. Check the four that matter, by name.
           for f in src/android/app/libs/rclone.aar \
                    src/android/app/src/main/assets/proot-aarch64 \
                    src/android/app/src/main/assets/alpine-minirootfs.tar.gz \
                    src/android/app/src/main/jniLibs/arm64-v8a/libproot.so \
-                   src/android/app/src/main/jniLibs/arm64-v8a/libproot-loader.so; do
-            test -f "$f" || { echo "FAIL: native layer missing $f"; exit 1; }
+                   src/android/app/src/main/jniLibs/arm64-v8a/libproot-loader.so \
+                   src/android/app/src/main/jniLibs/arm64-v8a/libproot-loader32.so; do
+            test -s "$f" || { echo "FAIL: native layer missing $f"; exit 1; }
           done
           ls -la src/android/app/libs/ src/android/app/src/main/assets/
 

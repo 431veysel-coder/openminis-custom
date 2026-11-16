@@ -69,6 +69,16 @@ class DebugServer(
             }
             return diff == 0
         }
+
+        /**
+         * [MINIS-OZEL] The per-install token file. The server writes it, the
+         * in-app CLI client reads it (they share the app's uid, so no
+         * permission is involved), and a developer can read it from a host
+         * with:
+         *   adb shell run-as com.veysel.minis cat files/debug_server_token
+         */
+        fun tokenFile(context: android.content.Context): java.io.File =
+            java.io.File(context.filesDir, "debug_server_token")
     }
 
     private var serverSocket: ServerSocket? = null
@@ -83,10 +93,6 @@ class DebugServer(
      *   adb shell run-as com.veysel.minis cat files/debug_server_token
      * Also logged at startup (logcat is adb-only — not readable remotely).
      */
-    /** The per-install token file. Readable by the app (and its sandbox shell). */
-    fun tokenFile(context: android.content.Context): java.io.File =
-        java.io.File(context.filesDir, "debug_server_token")
-
     private val authToken: String by lazy {
         val f = tokenFile(context)
         if (f.exists()) {

@@ -38,6 +38,7 @@ import com.openminis.app.agent.jobs.AgentJob
 import com.openminis.app.agent.jobs.AgentJobOrigin
 import com.openminis.app.agent.jobs.AgentJobRegistry
 import com.openminis.app.agent.jobs.AgentJobState
+import com.openminis.app.diagnostics.BackgroundGate
 import com.openminis.app.diagnostics.BackgroundGates
 import com.openminis.app.diagnostics.MemorySnapshot
 import com.openminis.app.service.SessionConcurrencyManager
@@ -109,7 +110,7 @@ fun LiveTasksScreen(
     // in system Settings and comes straight back.
     var gates by remember {
         mutableStateOf(
-            if (gatesEnabled) BackgroundGates.collect(context) else emptyList(),
+            if (gatesEnabled) BackgroundGates.collect(context) else emptyList<BackgroundGate>(),
         )
     }
     val lifecycleOwner = LocalLifecycleOwner.current
