@@ -802,10 +802,17 @@ class MinisApp : Application(), ImageLoaderFactory {
         com.openminis.app.offload.ShizukuManager.init(this)
 
         // T-android-minis-debug-cli: shell-side CLI wrapper around the in-app
-        // DebugServer (127.0.0.1:5321) JSON-RPC. DEBUG-only — Release builds
-        // ship neither the DebugServer nor this handler, so the
-        // `/usr/local/bin/minis-debug` stub is also absent (PRootKernel.
-        // installHandlerStubs enumerates currently-registered handlers).
+        // DebugServer (127.0.0.1:5321) JSON-RPC.
+        //
+        // [MINIS-OZEL] CORRECTION of the comment that used to sit here. It said
+        // release builds ship neither the server nor this handler; they do.
+        // build.gradle.kts sets DEV_TOOLS=true for `release` so an installed
+        // APK can be inspected, which is a deliberate fork decision — but the
+        // server used to bind 0.0.0.0, i.e. the LAN, and exempt loopback from
+        // the token, i.e. every other app on the device. Both are now fixed:
+        // the socket binds 127.0.0.1 only and requires the token even there
+        // (DebugServer), and the whole surface is off unless the user turns it
+        // on in Settings › Minis Özel (off by default).
         if (BuildConfig.DEV_TOOLS) {
             NativeOffloadServer.register(
                 "minis-debug",
@@ -1060,8 +1067,11 @@ class MinisApp : Application(), ImageLoaderFactory {
             },
         )
 
-        // Debug server: only start in debug builds (NEVER in release)
-        if (BuildConfig.DEV_TOOLS) {
+        // Debug server: only when the build ships it AND the user asked for it.
+        // [MINIS-OZEL] The switch is the security boundary now, not the build
+        // type: this APK always has DEV_TOOLS, so "is it a release build?" was
+        // never the right question to ask.
+        if (BuildConfig.DEV_TOOLS && com.openminis.app.data.OzelFeatures.devServerEnabled(this)) {
             try {
                 com.openminis.app.debug.DebugServer(this).start()
             } catch (e: Exception) {

@@ -13,8 +13,14 @@ on:
   push:
     branches:
       - main
-    tags:
-      - 'v*'
+    # [MINIS-OZEL] `tags: 'v*'` used to be here too, and every publish made it
+    # fire again: action-gh-release creates the tag, the tag push starts a
+    # second run for the same commit, and both try to write the same release.
+    # `concurrency: apk-${{ github.ref }}` did not help — refs/tags/x and
+    # refs/heads/main are different groups. Tags in this repo are an OUTPUT of
+    # a release build, never an input, so the trigger is gone rather than
+    # guarded. A manual tag now does nothing, which is the honest behaviour.
+    # (The release gate below is the second line of defence.)
     # Code-only changes skip the 10-minute build; the docs are not shipped.
     paths-ignore:
       - '**.md'
@@ -282,13 +288,42 @@ jobs:
           ls "$SDK/ndk"
 
       - name: Prepare signing key
+        # [MINIS-OZEL] This USED TO WARN AND CONTINUE, and that was the worst
+        # failure mode in the release path. Without the secret the build fell
+        # back to the debug key and then published to the SAME tag as the real
+        # release, replacing it. Every installed copy then refused the update
+        # (UpdateSignatureGuard, and the OS itself: a different signer cannot
+        # install over an existing package), and the good APK was gone from
+        # under that tag — so there was no way back except a new versionCode.
+        #
+        # A release that cannot be signed with our key must not exist at all.
+        # `debug` builds are the exception: they are never published.
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
+          set -e
+          BUILD_TYPE="${{ inputs.build_type || 'release' }}"
           if [ -z "$KEYSTORE_B64" ]; then
-            echo "::warning::No keystore secret — release will be signed with the debug key"
-            exit 0
+            if [ "$BUILD_TYPE" = "debug" ]; then
+              echo "::warning::No keystore secret — debug build will use the debug key"
+              exit 0
+            fi
+            echo "::error::ANDROID_KEYSTORE_BASE64 is not set. A release cannot be"
+            echo "::error::signed with the fork key, and a debug-signed APK published"
+            echo "::error::under our tag would be uninstallable for every existing user."
+            echo "::error::Set the four signing secrets (see FORK.md §4) and re-run."
+            exit 1
           fi
+          for v in ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!v:-}" ]; then
+              echo "::error::$v is empty — an incomplete signing config produces an"
+              echo "::error::APK that installs nowhere. Set all four secrets."
+              exit 1
+            fi
+          done
           echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/minis-release.p12"
           echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/minis-release.p12" >> $GITHUB_ENV
           echo "ANDROID_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
@@ -420,6 +455,7 @@ jobs:
           sha256sum "$OUT"
           echo "MINIS_APK_NAME=$(basename "$OUT")" >> "$GITHUB_ENV"
           echo "MINIS_VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
+          echo "MINIS_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -490,6 +526,49 @@ jobs:
             echo "_Derleme: \`${{ github.sha }}\`_"
             echo "__NOTES_EOF__"
           } >> "$GITHUB_OUTPUT"
+
+      - name: Release gate — never reuse a published versionCode
+        # [MINIS-OZEL] The tag is derived from versionName, and the release
+        # action UPSERTS: a second build of the same version replaces the
+        # first one's APK under the same tag. Two consequences, both silent:
+        #
+        #   - nobody updates, because the versionCode in the file name did not
+        #     change, so UpdatePolicy.isNewer says "up to date";
+        #   - the APK that WAS there is gone, so anyone who had not installed
+        #     it yet can no longer get it.
+        #
+        # So: if a release already exists for this tag, the versionCode must be
+        # strictly greater than the one it published. Bumping the version is
+        # the only way to publish again, which is the rule the version scheme
+        # in FORK.md §6 already implied.
+        if: ${{ (inputs.build_type || 'release') == 'release' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          TAG="v${MINIS_VERSION_NAME}"
+          CODE="${{ env.MINIS_VERSION_CODE }}"
+          echo "gate: tag=$TAG versionCode=$CODE"
+          # --json on a missing release exits non-zero; treat that as "none".
+          EXISTING=$(gh release view "$TAG" --repo "${{ github.repository }}" \
+              --json assets --jq '.assets[].name' 2>/dev/null || true)
+          if [ -z "$EXISTING" ]; then
+            echo "gate: no release for $TAG yet — publishing"
+            exit 0
+          fi
+          echo "gate: existing assets:"; echo "$EXISTING"
+          OLD=$(echo "$EXISTING" | sed -n 's/.*-build\([0-9]*\)-.*/\1/p' | head -1)
+          if [ -z "$OLD" ]; then
+            echo "gate: existing release has no build number in its asset name — refusing to replace it"
+            exit 1
+          fi
+          if [ "$CODE" -le "$OLD" ]; then
+            echo "::error::$TAG already published build $OLD; this build is $CODE."
+            echo "::error::Publishing would replace the existing APK without giving anyone"
+            echo "::error::an update. Bump versionCode/versionName and re-run."
+            exit 1
+          fi
+          echo "gate: $OLD -> $CODE, allowed"
 
       - name: Publish release (this is what the in-app updater reads)
         # Runs for every release build, not just tags. The updater polls

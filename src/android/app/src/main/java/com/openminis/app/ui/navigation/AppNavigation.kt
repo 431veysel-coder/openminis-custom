@@ -185,6 +185,8 @@ object Routes {
     const val TRANSLATION_SETTINGS = "translation_settings"
     /** [MINIS-OZEL] Settings > Agent Runtime > Thinking (block behaviour). */
     const val THINKING_SETTINGS = "thinking_settings"
+    /** [MINIS-OZEL] Settings > Appearance > Minis Özel: one switch per fork feature. */
+    const val OZEL_FEATURES = "ozel_features"
     /** [T-tools-granular-switches] Settings > Agent Runtime > Tools. */
     const val AGENT_TOOLS = "agent_tools"
     /** [T-mcp-integration-android] MCP Integrations management screen. */
@@ -673,6 +675,7 @@ fun AppNavigation(
                 onToolchainsClick = { navController.safeNavigate(Routes.TOOLCHAINS) },
                 onTranslationClick = { navController.safeNavigate(Routes.TRANSLATION_SETTINGS) },
                 onThinkingClick = { navController.safeNavigate(Routes.THINKING_SETTINGS) },
+                onOzelFeaturesClick = { navController.safeNavigate(Routes.OZEL_FEATURES) },
                 onAgentToolsClick = { navController.safeNavigate(Routes.AGENT_TOOLS) },
                 onMcpClick = { navController.safeNavigate(Routes.MCP) },
                 onSoulClick = { navController.safeNavigate(Routes.SOUL) },
@@ -1561,6 +1564,11 @@ fun AppNavigation(
         composable(Routes.TRANSLATION_SETTINGS) {
             com.openminis.app.ui.settings.TranslationSettingsScreen(
                 onBack = { navController.popBackStack() },
+            )
+        }
+        composable(Routes.OZEL_FEATURES) {
+            com.openminis.app.ui.settings.OzelFeaturesScreen(
+                onBack = { navController.safePopBackStack() },
             )
         }
         composable(Routes.THINKING_SETTINGS) {

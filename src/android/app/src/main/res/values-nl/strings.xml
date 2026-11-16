@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Nederlands (nl). Generated from the English base; keep keys in base order. -->
 <resources>
-    <string name="app_name">Minis</string>
+    <string name="app_name">Minis Özel</string>
     <string name="new_chat">Nieuwe chat</string>
     <string name="settings">Instellingen</string>
     <string name="providers">Providers</string>

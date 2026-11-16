@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Minis</string>
+    <string name="app_name">Minis Özel</string>
     <string name="new_chat">Yeni Sohbet</string>
     <string name="settings">Ayarlar</string>
     <string name="providers">Sağlayıcılar</string>
@@ -2056,4 +2056,34 @@
     <string name="mcp_signin_not_signed_in">Oturum açılmadı</string>
     <string name="mcp_signin_sign_in">Oturum Aç</string>
     <string name="mcp_signin_reset_confirm">Sıfırla</string>
+    <!-- [MINIS-OZEL] Ayarlar › Görünüm › Minis Özel: bu çatalın eklediği her
+         özellik için bir anahtar. Kapatmak giriş noktasını gizler; veri silmez. -->
+    <string name="ozel_features_title">Minis Özel Özellikleri</string>
+    <string name="ozel_features_subtitle">Bu çatalın eklediği özellikleri aç veya kapat</string>
+    <string name="ozel_features_section_interface">Arayüz</string>
+    <string name="ozel_features_interface_footer">Bir özelliği kapatmak yalnız giriş noktasını gizler. Kurduğun, kaydettiğin veya oluşturduğun hiçbir şey silinmez; yeniden açtığında olduğu gibi geri gelir.</string>
+    <string name="ozel_feature_live_tasks">Canlı Görevler</string>
+    <string name="ozel_feature_live_tasks_subtitle">Canlı Görevler satırını gösterir: hangi turlar çalışıyor, hangi araçları çağırdı</string>
+    <string name="ozel_feature_toolchains">Araç zincirleri</string>
+    <string name="ozel_feature_toolchains_subtitle">Araç zincirleri ekranını gösterir. Daha önce kurduğun paketler diskte kalır.</string>
+    <string name="ozel_feature_translation">Düşünme çevirisi</string>
+    <string name="ozel_feature_translation_subtitle">Uygulama geneli anahtar. Çeviri ekranının da kendi anahtarı var; ikisi birden açık olmalı.</string>
+    <string name="ozel_feature_background_gates">Arka plan izin denetimi</string>
+    <string name="ozel_feature_background_gates_subtitle">Ekran kapalıyken görevin neden öldüğünü açıklayan kontrol listesini gösterir</string>
+    <string name="ozel_feature_qs_tile">Hızlı Ayarlar karosu</string>
+    <string name="ozel_feature_qs_tile_subtitle">Yeni sohbet açan bildirim paneli karosunu soluklaştırır. Android karoyu panelden senin adına kaldıramaz.</string>
+    <string name="ozel_features_section_providers">Sağlayıcılar</string>
+    <string name="ozel_features_provider_footer">Ön ayar yalnız sağlayıcı eklerken Base URL ve etiketi doldurur. Kapatmak onu listeden kaldırır; daha önce oluşturduğun sağlayıcı çalışmaya devam eder.</string>
+    <string name="ozel_feature_evren">Evren API ön ayarı</string>
+    <string name="ozel_feature_evren_subtitle">Üçüncü taraf ağ geçidi; bu uygulama tarafından işletilmez veya denetlenmez</string>
+    <string name="ozel_features_section_developer">Geliştirici</string>
+    <string name="ozel_feature_dev_server">Cihaz içi geliştirici sunucusu</string>
+    <string name="ozel_feature_dev_server_subtitle">Yerel araçlar için 127.0.0.1:5321 adresini açar. Varsayılan olarak kapalı.</string>
+    <string name="ozel_feature_dev_server_footer">Sunucu kayıtlı sağlayıcı anahtarlarını okuyabilir, ekran görüntüsü alabilir ve arayüzü sürebilir; bu yüzden sen açmadıkça kapalıdır. Yalnız yerel adresi dinler ve her istek kuruluma özel jeton taşımak zorundadır; yine de bu cihazdaki başka bir uygulama açtığın porta ulaşabilir. Sadece kullanırken aç.</string>
+    <string name="ozel_features_reset">Hepsini varsayılana döndür</string>
+    <string name="ozel_features_reset_footer">Bütün anahtarları bu derlemenin çıktığı hâle döndürür. Sağlayıcılarına, oturumlarına veya kurulu paketlerine dokunmaz.</string>
+    <string name="add_provider_subtitle_deepseek">OpenAI uyumlu — deepseek-chat ve deepseek-reasoner, birinci taraf API\'lerden daha ucuz</string>
+    <string name="add_provider_subtitle_together">OpenAI uyumlu barındırılan katalog — Llama, Qwen, DeepSeek, Mistral ve daha fazlası</string>
+    <string name="add_provider_subtitle_fireworks">OpenAI uyumlu hızlı çıkarım — Llama, Qwen, Mixtral ve ince ayarlı modeller</string>
+    <string name="add_provider_subtitle_huggingface">OpenAI uyumlu çıkarım yönlendiricisi — binlerce topluluk modeli</string>
 </resources>

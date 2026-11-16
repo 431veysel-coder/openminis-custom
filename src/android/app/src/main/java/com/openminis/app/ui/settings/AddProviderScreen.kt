@@ -211,17 +211,32 @@ private sealed interface ProviderChoice {
     data class Preset(val preset: com.openminis.app.data.model.ChatProviderPreset) : ProviderChoice
 }
 
-/** Display order matching iOS. */
-private val providerDisplayOrder = listOf(
+/** Display order matching iOS; presets are appended after the protocols. */
+private val protocolChoices = listOf(
     ProviderChoice.Type(ProviderType.openAI),
     ProviderChoice.Type(ProviderType.anthropic),
     ProviderChoice.Type(ProviderType.gemini),
     ProviderChoice.Type(ProviderType.xAI),
     ProviderChoice.Type(ProviderType.kimiCode),
     ProviderChoice.Type(ProviderType.openRouter),
-    // [MINIS-OZEL] Preconfigured vendors, appended after the protocols they
-    // build on so the upstream ordering above stays recognisable.
-) + com.openminis.app.data.model.ChatProviderPreset.all.map { ProviderChoice.Preset(it) }
+)
+
+/**
+ * [MINIS-OZEL] The offered rows: the protocols above, then the preconfigured
+ * vendors. Presets sit after the protocols they build on so the upstream
+ * ordering stays recognisable.
+ *
+ * A preset the user switched off in Settings › Minis Özel disappears from this
+ * list only. An instance created before the switch was flipped keeps decoding,
+ * rendering and running — it is an ordinary provider of its protocol by then,
+ * with its own copied base URL. That is the same rule [CopilotFeatureFlag]
+ * documents, and it is what makes a switch safe to hand to a user.
+ */
+private fun providerDisplayOrder(showEvren: Boolean): List<ProviderChoice> {
+    val presets = com.openminis.app.data.model.ChatProviderPreset.all
+        .filter { it.id != "evren" || showEvren }
+    return protocolChoices + presets.map { ProviderChoice.Preset(it) }
+}
 
 // [T-copilot-provider] Copilot is appended to `providerDisplayOrder` at the
 // call site, gated on CopilotFeatureFlag. Gating the LIST rather than the enum
@@ -309,7 +324,14 @@ private fun ChooseProviderScreen(
         // actually matters, since it stands between the user and the first
         // request.
         val context = LocalContext.current
-        val offeredTypes = providerDisplayOrder + ProviderChoice.Type(ProviderType.githubCopilot)
+        val showEvren = remember(context) {
+            com.openminis.app.data.OzelFeatures.isEnabled(
+                context,
+                com.openminis.app.data.OzelFeatures.Feature.EVREN_PRESET,
+            )
+        }
+        val offeredTypes = providerDisplayOrder(showEvren) +
+            ProviderChoice.Type(ProviderType.githubCopilot)
         SettingsSection(
             header = stringResource(R.string.add_provider_choose_provider),
             footer = stringResource(R.string.add_provider_you_can_add_multiple_instances_of_the_sa),

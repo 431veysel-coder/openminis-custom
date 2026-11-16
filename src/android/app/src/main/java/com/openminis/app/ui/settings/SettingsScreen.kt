@@ -49,6 +49,7 @@ import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Translate
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shield
@@ -78,6 +79,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.openminis.app.BuildConfig
 import com.openminis.app.R
+import com.openminis.app.data.OzelFeatures
 import com.openminis.app.ui.components.openExternalUrl
 import com.openminis.app.i18n.uppercaseForDisplay
 
@@ -112,6 +114,9 @@ fun SettingsScreen(
     onToolchainsClick: () -> Unit = {},
     onTranslationClick: () -> Unit = {},
     onThinkingClick: () -> Unit = {},
+    // [MINIS-OZEL] Settings › Minis Özel › Features: one switch per feature
+    // this fork added, so a feature in the way can be put away.
+    onOzelFeaturesClick: () -> Unit = {},
     // [T-mcp-integration-android] MCP Integrations page, listed directly below
     // Memory. Default no-op for callers that haven't wired the route yet.
     onMcpClick: () -> Unit = {},
@@ -140,6 +145,15 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     var showFeedbackSheet by remember { mutableStateOf(false) }
+
+    // [MINIS-OZEL] Feature switches, read once per composition of this screen.
+    // Rows a user has switched off are skipped rather than greyed out: the
+    // point of the switch is a shorter Settings list, not a reminder.
+    val features = remember(context) {
+        OzelFeatures.snapshot(context).toMap()
+    }
+    fun on(feature: OzelFeatures.Feature): Boolean = features[feature] != false
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -198,6 +212,17 @@ fun SettingsScreen(
                     title = stringResource(R.string.settings_section_appearance),
                     subtitle = stringResource(R.string.settings_appearance_subtitle),
                     onClick = onAppearanceClick,
+                )
+                // [MINIS-OZEL] One switch per fork feature. Placed here rather
+                // than inside each feature's own screen: the question "how do
+                // I get rid of this?" is asked about the app, not about the
+                // feature, and it is asked from Settings.
+                SettingsItem(
+                    icon = Icons.Outlined.Tune,
+                    iconColor = Color(0xFF30B0C7),
+                    title = stringResource(R.string.ozel_features_title),
+                    subtitle = stringResource(R.string.ozel_features_subtitle),
+                    onClick = onOzelFeaturesClick,
                     showDivider = false,
                 )
             }
@@ -220,20 +245,24 @@ fun SettingsScreen(
                 // [MINIS-OZEL] Live tasks sits first: it is the answer to
                 // "is something still running", which is asked before any
                 // configuration change.
-                SettingsItem(
-                    icon = Icons.Outlined.Schedule,
-                    iconColor = Color(0xFF34C759),
-                    title = stringResource(R.string.live_tasks_title),
-                    subtitle = stringResource(R.string.live_tasks_running_footer),
-                    onClick = onLiveTasksClick,
-                )
-                SettingsItem(
-                    icon = Icons.Outlined.Translate,
-                    iconColor = Color(0xFF30B0C7),
-                    title = stringResource(R.string.settings_translation),
-                    subtitle = stringResource(R.string.translation_enabled_subtitle),
-                    onClick = onTranslationClick,
-                )
+                if (on(OzelFeatures.Feature.LIVE_TASKS)) {
+                    SettingsItem(
+                        icon = Icons.Outlined.Schedule,
+                        iconColor = Color(0xFF34C759),
+                        title = stringResource(R.string.live_tasks_title),
+                        subtitle = stringResource(R.string.live_tasks_running_footer),
+                        onClick = onLiveTasksClick,
+                    )
+                }
+                if (on(OzelFeatures.Feature.TRANSLATION)) {
+                    SettingsItem(
+                        icon = Icons.Outlined.Translate,
+                        iconColor = Color(0xFF30B0C7),
+                        title = stringResource(R.string.settings_translation),
+                        subtitle = stringResource(R.string.translation_enabled_subtitle),
+                        onClick = onTranslationClick,
+                    )
+                }
                 SettingsItem(
                     icon = Icons.Outlined.Lightbulb,
                     iconColor = Color(0xFFFFB300),
@@ -308,13 +337,15 @@ fun SettingsScreen(
                     subtitle = stringResource(R.string.settings_storage_subtitle),
                     onClick = onRootfsClick,
                 )
-                SettingsItem(
-                    icon = Icons.Outlined.DeveloperMode,
-                    iconColor = Color(0xFF5E5CE6),
-                    title = stringResource(R.string.toolchain_title),
-                    subtitle = stringResource(R.string.toolchain_summary_subtitle),
-                    onClick = onToolchainsClick,
-                )
+                if (on(OzelFeatures.Feature.TOOLCHAINS)) {
+                    SettingsItem(
+                        icon = Icons.Outlined.DeveloperMode,
+                        iconColor = Color(0xFF5E5CE6),
+                        title = stringResource(R.string.toolchain_title),
+                        subtitle = stringResource(R.string.toolchain_summary_subtitle),
+                        onClick = onToolchainsClick,
+                    )
+                }
                 SettingsItem(
                     icon = Icons.Outlined.Folder,
                     iconColor = Color(0xFF34C759),

@@ -95,13 +95,29 @@ fun LiveTasksScreen(
         }
     }
 
+    // [MINIS-OZEL] Settings › Minis Özel can switch the gate list off. The
+    // panel itself stays useful without it; the checklist is the part some
+    // users read once and never want again.
+    val gatesEnabled = remember(context) {
+        com.openminis.app.data.OzelFeatures.isEnabled(
+            context,
+            com.openminis.app.data.OzelFeatures.Feature.BACKGROUND_GATES,
+        )
+    }
+
     // Gates are OS state: re-read on resume, because the user leaves to fix one
     // in system Settings and comes straight back.
-    var gates by remember { mutableStateOf(BackgroundGates.collect(context)) }
+    var gates by remember {
+        mutableStateOf(
+            if (gatesEnabled) BackgroundGates.collect(context) else emptyList(),
+        )
+    }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) gates = BackgroundGates.collect(context)
+            if (event == Lifecycle.Event.ON_RESUME && gatesEnabled) {
+                gates = BackgroundGates.collect(context)
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
@@ -252,23 +268,25 @@ fun LiveTasksScreen(
 
         // ── Background gates ──────────────────────────────────────────────
         // Last, but it is the answer whenever a task died with the screen off.
-        SettingsSection(
-            header = if (blockedGates == 0) {
-                stringResource(R.string.gate_section_ok)
-            } else {
-                stringResource(R.string.gate_section_blocked, blockedGates)
-            },
-            footer = stringResource(R.string.gate_section_footer),
-        ) {
-            gates.forEachIndexed { index, gate ->
-                SettingsRow(
-                    title = stringResource(gate.titleRes),
-                    subtitle = stringResource(gate.detailRes),
-                    icon = if (gate.granted) Icons.Outlined.CheckCircle else Icons.Outlined.ErrorOutline,
-                    iconColor = if (gate.granted) Color(0xFF34C759) else Color(0xFFFF9500),
-                    onClick = gate.fixIntent?.let { intent -> { runCatching { context.startActivity(intent) } } },
-                    showDivider = index < gates.size - 1,
-                )
+        if (gatesEnabled) {
+            SettingsSection(
+                header = if (blockedGates == 0) {
+                    stringResource(R.string.gate_section_ok)
+                } else {
+                    stringResource(R.string.gate_section_blocked, blockedGates)
+                },
+                footer = stringResource(R.string.gate_section_footer),
+            ) {
+                gates.forEachIndexed { index, gate ->
+                    SettingsRow(
+                        title = stringResource(gate.titleRes),
+                        subtitle = stringResource(gate.detailRes),
+                        icon = if (gate.granted) Icons.Outlined.CheckCircle else Icons.Outlined.ErrorOutline,
+                        iconColor = if (gate.granted) Color(0xFF34C759) else Color(0xFFFF9500),
+                        onClick = gate.fixIntent?.let { intent -> { runCatching { context.startActivity(intent) } } },
+                        showDivider = index < gates.size - 1,
+                    )
+                }
             }
         }
 

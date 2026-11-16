@@ -55,8 +55,15 @@ android {
         applicationId = "com.veysel.minis"
         minSdk = 26
         targetSdk = 35
-        versionCode = 37008
-        versionName = "1.15-ozel.8"
+        // [MINIS-OZEL] 37014, not 37009. Builds 37009-37013 were spent on the
+        // withdrawn 12/13 experimental versions; those numbers are burned
+        // because an APK carrying one of them may still be on a device, and a
+        // number must never mean two different binaries. Monotonic matters
+        // more than tidy: UpdatePolicy.isNewer compares the raw counter, so
+        // anything at or below 37013 would leave those installs unable to
+        // update, forever.
+        versionCode = 37014
+        versionName = "1.15-ozel.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

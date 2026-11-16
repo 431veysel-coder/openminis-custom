@@ -37,7 +37,21 @@ class MinisTileService : TileService() {
 
     override fun onStartListening() {
         super.onStartListening()
+        // [MINIS-OZEL] Settings › Minis Özel can switch the tile off. Android
+        // gives an app no way to remove its own tile from the panel, so the
+        // honest state is STATE_UNAVAILABLE: the tile stays where the user put
+        // it, greyed out, and does nothing — instead of launching a chat from
+        // a feature they switched off.
+        val enabled = com.openminis.app.data.OzelFeatures.isEnabled(
+            this,
+            com.openminis.app.data.OzelFeatures.Feature.QS_TILE,
+        )
         qsTile?.apply {
+            if (!enabled) {
+                state = Tile.STATE_UNAVAILABLE
+                updateTile()
+                return@apply
+            }
             state = Tile.STATE_INACTIVE
             label = getString(com.openminis.app.R.string.qs_tile_label)
             // Android 10+ lets a tile carry a subtitle; harmless on older APIs.
@@ -50,6 +64,13 @@ class MinisTileService : TileService() {
 
     override fun onClick() {
         super.onClick()
+        if (!com.openminis.app.data.OzelFeatures.isEnabled(
+                this,
+                com.openminis.app.data.OzelFeatures.Feature.QS_TILE,
+            )
+        ) {
+            return
+        }
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(DEEP_LINK))
             .setPackage(packageName)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

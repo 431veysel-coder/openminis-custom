@@ -27,8 +27,18 @@ object TranslationPrefs {
     private fun prefs(ctx: Context) =
         ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    /** Master switch: whether the translate button appears on thinking blocks. */
-    fun enabled(ctx: Context): Boolean = prefs(ctx).getBoolean(KEY_ENABLED, true)
+    /**
+     * Master switch: whether the translate button appears on thinking blocks.
+     *
+     * [MINIS-OZEL] Two switches feed this one answer. [OzelFeatures.Feature.TRANSLATION]
+     * is the app-wide switch on Settings › Minis Özel ("I do not want this
+     * feature at all"), this one is the per-screen switch ("I want it, just
+     * not right now"). Both have to be on; turning the app-wide one off wins,
+     * because the screen that owns the other switch is hidden in that case.
+     */
+    fun enabled(ctx: Context): Boolean =
+        OzelFeatures.isEnabled(ctx, OzelFeatures.Feature.TRANSLATION) &&
+            prefs(ctx).getBoolean(KEY_ENABLED, true)
 
     fun setEnabled(ctx: Context, value: Boolean) =
         prefs(ctx).edit().putBoolean(KEY_ENABLED, value).apply()

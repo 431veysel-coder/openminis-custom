@@ -2,6 +2,7 @@ package com.openminis.app.sandbox.offload
 
 import android.content.Context
 import android.util.Log
+import com.openminis.app.debug.DebugServer
 import com.openminis.app.sandbox.NativeOffloadHandler
 import com.openminis.app.sandbox.NativeOffloadRequest
 import com.openminis.app.sandbox.NativeOffloadResult
@@ -16,8 +17,9 @@ import java.net.Socket
 import java.net.SocketTimeoutException
 
 /**
- * minis-debug — DEBUG-ONLY CLI wrapper for the local DebugServer JSON-RPC
- * endpoint at 127.0.0.1:5321.
+ * minis-debug — CLI wrapper for the local DebugServer JSON-RPC endpoint at
+ * 127.0.0.1:5321. Present in every build this fork ships (DEV_TOOLS=true for
+ * release too); off unless the user enables it in Settings › Minis Özel.
  *
  * Lets a user (or agent) in the PRoot shell drive the in-app debug RPC
  * without hand-rolling curl + JSON. Each subcommand maps to one RPC
@@ -26,10 +28,12 @@ import java.net.SocketTimeoutException
  * `--compact` / `-q` / `--quiet` flags work the same way as every other
  * `android-*` / `minis-*` offload.
  *
- * Registration is guarded by `BuildConfig.DEBUG` in MinisApp.kt so the
- * Release APK contains no trace of this command.
+ * [MINIS-OZEL] Registration is guarded by `BuildConfig.DEV_TOOLS` in
+ * MinisApp.kt, not by `BuildConfig.DEBUG` — this fork sets DEV_TOOLS=true for
+ * release so an installed APK can be inspected. The socket is loopback-only
+ * and every request carries the per-install token (see DebugServer).
  */
-class DebugOffloadHandler(@Suppress("UNUSED_PARAMETER") context: Context) : NativeOffloadHandler {
+class DebugOffloadHandler(private val context: Context) : NativeOffloadHandler {
 
     override fun handle(request: NativeOffloadRequest): NativeOffloadResult {
         val args = OffloadArgs(request.argv.drop(1), booleanFlags = BOOLEAN_FLAGS)
@@ -215,6 +219,11 @@ class DebugOffloadHandler(@Suppress("UNUSED_PARAMETER") context: Context) : Nati
             val req = buildString {
                 append("POST / HTTP/1.1\r\n")
                 append("Host: 127.0.0.1:$DEBUG_SERVER_PORT\r\n")
+                // [MINIS-OZEL] The token is required on loopback too now, so
+                // this in-app client has to send it like any other caller. It
+                // reads the same file the server wrote; both run in this
+                // process's uid, so no permission is involved.
+                append("X-Minis-Token: ${DebugServer.tokenFile(context).takeIf { it.exists() }?.readText()?.trim().orEmpty()}\r\n")
                 append("Content-Type: application/json\r\n")
                 append("Content-Length: ${bodyBytes.size}\r\n")
                 append("Connection: close\r\n")

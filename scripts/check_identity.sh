@@ -1,16 +1,28 @@
 #!/usr/bin/env bash
-# Identity guard — catches the failure mode where a package-name literal is
-# swapped to the wrong identifier. Our fork changes the applicationId but keeps
-# the upstream namespace, so some literals must be the applicationId and others
-# must stay the namespace. Getting one wrong compiles fine and breaks at runtime
-# (it did: AppIconRepository builds activity-alias CLASS names from it).
+# Identity guard — catches the failure mode where a package-name literal or a
+# user-visible identity string is swapped to the wrong value.
+#
+# Our fork changes the applicationId but keeps the upstream namespace, so some
+# literals must be the applicationId and others must stay the namespace.
+# Getting one wrong compiles fine and breaks at runtime (it did:
+# AppIconRepository builds activity-alias CLASS names from it).
+#
+# It also checks the identity a USER sees, which the first version did not:
+# `app_name` overridden back to "Minis" in a locale file, or the versionName in
+# build.gradle.kts drifting away from the release the tag claims. Both shipped
+# once (22 locale files said "Minis"; main said 1.15-ozel.13 after that release
+# had been withdrawn), and both are exactly the kind of thing that is invisible
+# in a build log.
 #
 # Run from the repository root.
 set -uo pipefail
 
 APP_ID="com.veysel.minis"          # defaultConfig.applicationId
 NAMESPACE="com.openminis.app"      # android { namespace }
+RELEASE_REPO="431veysel-coder/openminis-custom"
+APP_LABEL="Minis Özel"             # values/strings.xml app_name
 M="src/android/app/src/main"
+RES="$M/res"
 G="src/android/app/build.gradle.kts"
 fail=0
 
@@ -46,11 +58,52 @@ chk "$M/res/xml/shortcuts.xml" "android:targetPackage=\"$APP_ID\"" \
 chk "$G" "applicationId = \"$APP_ID\"" "applicationId"
 chk "$G" "namespace = \"$NAMESPACE\"" "namespace"
 
-# self-update must not point upstream: that APK is signed with a different key
+# --- user-visible identity -------------------------------------------------
+# Every locale file that overrides app_name must say APP_LABEL. A locale file
+# that says "Minis" makes the fork indistinguishable from the official app on
+# the launcher, in the share sheet and in TalkBack — which is the one thing the
+# fork exists to avoid.
+default_name=$(sed -n 's/.*<string name="app_name">\([^<]*\)<\/string>.*/\1/p' "$RES/values/strings.xml" | head -1)
+if [ "$default_name" = "$APP_LABEL" ]; then
+  report ok "values/strings.xml app_name" "$APP_LABEL"
+else
+  report FAIL "values/strings.xml app_name" "expected '$APP_LABEL', found '$default_name'"
+fi
+
+while IFS= read -r f; do
+  [ -n "$f" ] || continue
+  name=$(sed -n 's/.*<string name="app_name">\([^<]*\)<\/string>.*/\1/p' "$f" | head -1)
+  [ -n "$name" ] || continue   # locale does not override it: inherits the default, fine
+  if [ "$name" = "$APP_LABEL" ]; then
+    : # silent: there are 20+ of these and a line each would bury the failures
+  else
+    report FAIL "$f app_name" "found '$name' — must be '$APP_LABEL' or absent"
+  fi
+done < <(ls "$RES"/values*/strings.xml 2>/dev/null | grep -v "^$RES/values/strings.xml$")
+if [ "$fail" -eq 0 ]; then report ok "locale app_name overrides" "all say $APP_LABEL"; fi
+
+# --- self-update -----------------------------------------------------------
+# Must point at OUR repo. The earlier check only proved it was not upstream,
+# which a typo satisfies.
+chk "$G" "RELEASE_REPO\", \"\\\"$RELEASE_REPO\\\"\"" "self-update repo"
 if grep -qF -- 'RELEASE_REPO", "OpenMinis/OpenMinis' "$G" 2>/dev/null; then
   report FAIL "$G" "RELEASE_REPO still upstream — cannot install over ours"
+fi
+
+# --- version --------------------------------------------------------------
+# versionName must carry the fork suffix, and versionCode must sit above the
+# withdrawn 37013 range: an APK at or below it can never be updated onto a
+# higher-numbered withdrawn build, and the number is burned.
+vname=$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' "$G" | head -1)
+vcode=$(sed -n 's/.*versionCode = \([0-9]*\).*/\1/p' "$G" | head -1)
+case "$vname" in
+  *-ozel.*) report ok "$G versionName" "$vname" ;;
+  *) report FAIL "$G versionName" "'$vname' does not carry the -ozel suffix" ;;
+esac
+if [ -n "$vcode" ] && [ "$vcode" -gt 37013 ]; then
+  report ok "$G versionCode" "$vcode (> 37013)"
 else
-  report ok "$G" "RELEASE_REPO points at our fork"
+  report FAIL "$G versionCode" "'$vcode' must be > 37013 (37009-37013 are withdrawn and burned)"
 fi
 
 # native loaders: absent means every shell command returns "[Shell not running] -1"

@@ -39,8 +39,26 @@ class DebugServer(
          * ported: with no distribution surface the token gate is the
          * proportionate hardening (evaluated in the A8 batch report).
          */
-        fun isAuthorized(isLoopback: Boolean, providedToken: String?, expectedToken: String): Boolean {
-            if (isLoopback) return true
+        /**
+         * [MINIS-OZEL] Loopback no longer means "trusted".
+         *
+         * The server could previously be reached by ANY app on the device
+         * through 127.0.0.1 without a token, and its surface includes
+         * `provider.export` (every stored API key), screenshots, taps and
+         * shell execution. Connecting to loopback needs no permission, so that
+         * was an open door for anything else installed on the phone. The token
+         * is now required on both paths; the in-app client reads it from
+         * [tokenFile] and sends it as a header.
+         *
+         * The [isLoopback] parameter is kept because the decision stays
+         * readable in the log line that names the refusal, not because it
+         * changes the answer.
+         */
+        fun isAuthorized(
+            @Suppress("UNUSED_PARAMETER") isLoopback: Boolean,
+            providedToken: String?,
+            expectedToken: String,
+        ): Boolean {
             if (expectedToken.isEmpty()) return false
             val provided = providedToken ?: return false
             if (provided.length != expectedToken.length) return false
@@ -62,11 +80,15 @@ class DebugServer(
      * [T-android-debugserver-auth] Per-install token required from
      * non-loopback clients. Generated once, persisted in filesDir so the
      * developer can read it with:
-     *   adb shell run-as com.openminis.app cat files/debug_server_token
+     *   adb shell run-as com.veysel.minis cat files/debug_server_token
      * Also logged at startup (logcat is adb-only — not readable remotely).
      */
+    /** The per-install token file. Readable by the app (and its sandbox shell). */
+    fun tokenFile(context: android.content.Context): java.io.File =
+        java.io.File(context.filesDir, "debug_server_token")
+
     private val authToken: String by lazy {
-        val f = java.io.File(context.filesDir, "debug_server_token")
+        val f = tokenFile(context)
         if (f.exists()) {
             f.readText().trim().ifEmpty { generateToken(f) }
         } else {
@@ -91,11 +113,17 @@ class DebugServer(
 
         acceptJob = scope.launch {
             try {
-                // Listen on all interfaces (0.0.0.0) for network access
-                val ss = ServerSocket(port, 10)
+                // [MINIS-OZEL] Loopback ONLY. This used to be
+                // ServerSocket(port, 10), i.e. 0.0.0.0, while the comment in
+                // build.gradle.kts claimed the socket "never binds a routable
+                // interface" — it did, on every Wi-Fi network the phone joined.
+                // Binding explicitly to 127.0.0.1 makes the claim true, and the
+                // token (required on loopback too) covers the remaining local
+                // caller: another app on the same device.
+                val ss = ServerSocket(port, 10, java.net.InetAddress.getByName("127.0.0.1"))
                 serverSocket = ss
-                Log.i(TAG, "Debug server listening on port $port (all interfaces)")
-                Log.i(TAG, "Remote (non-loopback) clients must send X-Minis-Token: $authToken")
+                Log.i(TAG, "Debug server listening on 127.0.0.1:$port (loopback only)")
+                Log.i(TAG, "Clients must send X-Minis-Token (files/debug_server_token): $authToken")
 
                 while (!stopped) {
                     try {
@@ -180,7 +208,7 @@ class DebugServer(
                 val isLoopback = s.inetAddress?.isLoopbackAddress == true
                 if (!isAuthorized(isLoopback, providedToken, authToken)) {
                     Log.w(TAG, "401 unauthorized ${if (isLoopback) "loopback" else s.inetAddress?.hostAddress ?: "?"} (missing/wrong token)")
-                    sendResponse(writer, 401, rpcHandler.errorJSON(-32000, "Unauthorized — send X-Minis-Token (see `adb shell run-as com.openminis.app cat files/debug_server_token`)"))
+                    sendResponse(writer, 401, rpcHandler.errorJSON(-32000, "Unauthorized — send X-Minis-Token (see `adb shell run-as com.veysel.minis cat files/debug_server_token`)"))
                     return
                 }
 

@@ -2821,4 +2821,34 @@
     <string name="mcp_dcr_registration_unreadable">The registration response could not be read.</string>
     <string name="mcp_dcr_http_status">%1$s returned HTTP %2$d.</string>
     <string name="mcp_dcr_unreadable">%1$s returned data that could not be read.</string>
+    <!-- [MINIS-OZEL] Settings › Appearance › Minis Özel: one switch per feature
+         this fork added. Off hides the entry point; it never deletes data. -->
+    <string name="ozel_features_title">Minis Özel Features</string>
+    <string name="ozel_features_subtitle">Turn the features this fork added on or off</string>
+    <string name="ozel_features_section_interface">Interface</string>
+    <string name="ozel_features_interface_footer">Switching a feature off hides its entry point. Nothing you already installed, saved or created is deleted — turn it back on and it returns as it was.</string>
+    <string name="ozel_feature_live_tasks">Live Tasks</string>
+    <string name="ozel_feature_live_tasks_subtitle">Shows the Live Tasks row: which turns are running, and what tools they called</string>
+    <string name="ozel_feature_toolchains">Toolchains</string>
+    <string name="ozel_feature_toolchains_subtitle">Shows the Toolchains screen. Packages you already installed stay on disk.</string>
+    <string name="ozel_feature_translation">Thinking translation</string>
+    <string name="ozel_feature_translation_subtitle">The app-wide switch. The Translation screen has its own switch for the same feature; both must be on.</string>
+    <string name="ozel_feature_background_gates">Background permission checks</string>
+    <string name="ozel_feature_background_gates_subtitle">Shows the checklist that explains why a task died with the screen off</string>
+    <string name="ozel_feature_qs_tile">Quick Settings tile</string>
+    <string name="ozel_feature_qs_tile_subtitle">Greys out the notification-panel tile that opens a new chat. Android cannot remove a tile from the panel for you.</string>
+    <string name="ozel_features_section_providers">Providers</string>
+    <string name="ozel_features_provider_footer">A preset only prefills the Base URL and label when you add a provider. Switching it off removes it from the list; a provider you already created keeps working.</string>
+    <string name="ozel_feature_evren">Evren API preset</string>
+    <string name="ozel_feature_evren_subtitle">Third-party gateway, not run or audited by this app</string>
+    <string name="ozel_features_section_developer">Developer</string>
+    <string name="ozel_feature_dev_server">On-device developer server</string>
+    <string name="ozel_feature_dev_server_subtitle">Opens 127.0.0.1:5321 for local tooling. Off by default.</string>
+    <string name="ozel_feature_dev_server_footer">The server can read your stored provider keys, take screenshots and drive the interface, so it is off unless you turn it on. It listens on the loopback address only and every request must carry the per-install token, but another app on this device can still reach a port you have opened. Turn it on only while you are using it.</string>
+    <string name="ozel_features_reset">Reset all to defaults</string>
+    <string name="ozel_features_reset_footer">Puts every switch back to how this build shipped. It does not touch your providers, sessions or installed packages.</string>
+    <string name="add_provider_subtitle_deepseek">OpenAI-compatible — deepseek-chat and deepseek-reasoner, cheaper than the first-party APIs</string>
+    <string name="add_provider_subtitle_together">OpenAI-compatible hosted catalogue — Llama, Qwen, DeepSeek, Mistral and more</string>
+    <string name="add_provider_subtitle_fireworks">OpenAI-compatible fast inference — Llama, Qwen, Mixtral and fine-tunes</string>
+    <string name="add_provider_subtitle_huggingface">OpenAI-compatible inference router — thousands of community models</string>
 </resources>
