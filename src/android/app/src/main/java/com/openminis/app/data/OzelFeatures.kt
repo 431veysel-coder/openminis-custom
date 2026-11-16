@@ -10,9 +10,8 @@ import android.content.Context
  * Each fork feature already had its own switch somewhere, or none at all. That
  * is fine while every feature is new and wanted, and wrong the moment one of
  * them gets in the way: a user who does not want a Live Tasks row in Settings
- * had no way to remove it, and a user who does not trust the Evren preset had
- * no way to stop it appearing in Add Provider. "We added it" is not a reason
- * for it to be permanent in someone else's app.
+ * had no way to remove it. "We added it" is not a reason for it to be
+ * permanent in someone else's app.
  *
  * ## What a flag may and may not do
  *
@@ -22,9 +21,9 @@ import android.content.Context
  *  - turning Live Tasks off hides the row; a task already running keeps
  *    running, and turning it back on shows it again;
  *  - turning Toolchains off hides the screen; installed packages stay on disk;
- *  - turning the Evren preset off removes it from Add Provider; an instance
- *    the user already created keeps working, because it is an ordinary OpenAI
- *    provider by then (same rule as [com.openminis.app.util.CopilotFeatureFlag]);
+ *  - turning a preset off removes it from Add Provider; an instance the user
+ *    already created keeps working, because it is an ordinary OpenAI provider
+ *    by then (same rule as [com.openminis.app.util.CopilotFeatureFlag]);
  *  - turning the developer server off closes the socket; nothing else depends
  *    on it.
  *
@@ -59,9 +58,6 @@ object OzelFeatures {
 
         /** Thinking-block translation (mirrors, but does not replace, TranslationPrefs.enabled). */
         TRANSLATION("translation", true),
-
-        /** The Evren API entry in Add Provider. */
-        EVREN_PRESET("evren_preset", true),
 
         /** The Quick Settings tile that opens a new chat. */
         QS_TILE("qs_tile", true),

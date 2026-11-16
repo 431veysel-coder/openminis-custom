@@ -29,23 +29,6 @@ data class ChatProviderPreset(
 ) {
     companion object {
         /**
-         * Evren — an OpenAI-compatible gateway serving 15 models
-         * (glm-5.3, deepseek-v4.1-flash, qwen3.8-flash-next, gemma-4-31b,
-         * auto, qwen3-vl-30b, plus OCR/ASR/embedding models).
-         *
-         * `appendV1 = true` because the host serves `/v1/models` and
-         * `/v1/chat/completions` — the base is the host root, not `/v1`.
-         */
-        val EVREN = ChatProviderPreset(
-            id = "evren",
-            displayName = "Evren API",
-            providerType = ProviderType.openAI,
-            baseURL = "https://evren-llmapi.ssyz.org.tr",
-            appendV1 = true,
-            subtitleRes = com.openminis.app.R.string.add_provider_subtitle_evren,
-        )
-
-        /**
          * NVIDIA NIM — OpenAI-compatible inference for the hosted catalogue
          * (Llama, Nemotron, DeepSeek, Mistral, Qwen and more). Key prefix `nvapi-`.
          */
@@ -141,7 +124,7 @@ data class ChatProviderPreset(
 
         /** Every preset the picker offers, in display order. */
         val all: List<ChatProviderPreset> = listOf(
-            EVREN, NVIDIA, MISTRAL, DEEPSEEK, TOGETHER, FIREWORKS, HUGGING_FACE,
+            NVIDIA, MISTRAL, DEEPSEEK, TOGETHER, FIREWORKS, HUGGING_FACE,
         )
 
         fun byId(id: String?): ChatProviderPreset? =

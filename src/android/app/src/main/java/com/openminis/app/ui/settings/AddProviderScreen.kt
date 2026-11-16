@@ -103,7 +103,7 @@ fun AddProviderScreen(
         mutableStateOf<com.openminis.app.data.model.VoiceProviderTemplate?>(null)
     }
     // [MINIS-OZEL] Non-null when the flow was entered from a chat-provider
-    // PRESET row (e.g. Evren API). Same idea as the voice template above, but
+    // PRESET row (e.g. DeepSeek). Same idea as the voice template above, but
     // for the chat protocols: it prefills the base URL and the /v1 policy and
     // skips the credential picker, since a preset always implies an API key.
     var selectedPreset by remember {
@@ -232,9 +232,11 @@ private val protocolChoices = listOf(
  * with its own copied base URL. That is the same rule [CopilotFeatureFlag]
  * documents, and it is what makes a switch safe to hand to a user.
  */
-private fun providerDisplayOrder(showEvren: Boolean): List<ProviderChoice> {
+private fun providerDisplayOrder(): List<ProviderChoice> {
+    // [MINIS-OZEL 11.1] No per-provider filter any more. The Evren preset is
+    // gone: it duplicated the ordinary provider mechanism in a second place and
+    // the user asked for one place. Every remaining preset is simply offered.
     val presets = com.openminis.app.data.model.ChatProviderPreset.all
-        .filter { it.id != "evren" || showEvren }
     return protocolChoices + presets.map { ProviderChoice.Preset(it) }
 }
 
@@ -323,14 +325,7 @@ private fun ChooseProviderScreen(
         // unofficial status, and the disclaimer dialog is the gate that
         // actually matters, since it stands between the user and the first
         // request.
-        val context = LocalContext.current
-        val showEvren = remember(context) {
-            com.openminis.app.data.OzelFeatures.isEnabled(
-                context,
-                com.openminis.app.data.OzelFeatures.Feature.EVREN_PRESET,
-            )
-        }
-        val offeredTypes = providerDisplayOrder(showEvren) +
+        val offeredTypes = providerDisplayOrder() +
             ProviderChoice.Type(ProviderType.githubCopilot)
         SettingsSection(
             header = stringResource(R.string.add_provider_choose_provider),
@@ -511,7 +506,7 @@ private fun ConfigureProviderScreen(
     credentialType: ProviderCredential,
     providerRepository: ProviderRepository,
     voiceTemplate: com.openminis.app.data.model.VoiceProviderTemplate? = null,
-    // [MINIS-OZEL] Chat-provider preset (e.g. Evren API). Same role as
+    // [MINIS-OZEL] Chat-provider preset (e.g. DeepSeek). Same role as
     // `voiceTemplate` for the chat protocols: prefills the base URL, the /v1
     // policy and the suggested label.
     preset: com.openminis.app.data.model.ChatProviderPreset? = null,

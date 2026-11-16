@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -42,7 +43,12 @@ import com.openminis.app.ui.components.RowLabel
  * carries its own warning line and defaults to off.
  */
 @Composable
-fun OzelFeaturesScreen(onBack: () -> Unit) {
+fun OzelFeaturesScreen(
+    onBack: () -> Unit,
+    // [MINIS-OZEL 11.1] The hub opens child screens rather than adding a route
+    // per feature: one Settings entry, one destination, new features are rows.
+    onOpenNotes: () -> Unit = {},
+) {
     val context = LocalContext.current
 
     // A snapshot map rather than a value per feature: one source of truth, and
@@ -111,11 +117,69 @@ fun OzelFeaturesScreen(onBack: () -> Unit) {
             header = stringResource(R.string.ozel_features_section_providers),
             footer = stringResource(R.string.ozel_features_provider_footer),
         ) {
+            // [MINIS-OZEL 11.1] The Evren preset was removed: it was a second
+            // place to configure the same thing, in addition to the ordinary
+            // provider mechanism, and the user asked for one place. A provider
+            // instance created from it earlier is an ordinary OpenAI-compatible
+            // instance by now and keeps working.
             SettingsSwitchRow(
-                title = stringResource(R.string.ozel_feature_evren),
-                subtitle = stringResource(R.string.ozel_feature_evren_subtitle),
-                checked = values[Feature.EVREN_PRESET] == true,
-                onCheckedChange = { set(Feature.EVREN_PRESET, it) },
+                title = stringResource(R.string.ozel_feature_provider_test),
+                subtitle = stringResource(R.string.ozel_feature_provider_test_subtitle),
+                checked = values[Feature.PROVIDER_TEST] == true,
+                onCheckedChange = { set(Feature.PROVIDER_TEST, it) },
+                showDivider = false,
+            )
+        }
+
+        // ── Notes and vault [MINIS-OZEL 11.1] ────────────────────────────
+        SettingsSection(
+            header = stringResource(R.string.ozel_features_section_notes),
+            footer = stringResource(R.string.ozel_features_notes_footer),
+        ) {
+            SettingsSwitchRow(
+                title = stringResource(R.string.ozel_feature_notes),
+                subtitle = stringResource(R.string.ozel_feature_notes_subtitle),
+                checked = values[Feature.NOTES] == true,
+                onCheckedChange = { set(Feature.NOTES, it) },
+            )
+            SettingsSwitchRow(
+                title = stringResource(R.string.ozel_feature_vault),
+                subtitle = stringResource(R.string.ozel_feature_vault_subtitle),
+                checked = values[Feature.VAULT] == true,
+                onCheckedChange = { set(Feature.VAULT, it) },
+            )
+            SettingsSwitchRow(
+                title = stringResource(R.string.ozel_feature_vault_read),
+                subtitle = stringResource(R.string.ozel_feature_vault_read_subtitle),
+                checked = values[Feature.VAULT_AGENT_READ] == true,
+                onCheckedChange = { set(Feature.VAULT_AGENT_READ, it) },
+            )
+            SettingsRow(
+                title = stringResource(R.string.ozel_notes_open),
+                subtitle = stringResource(R.string.ozel_notes_open_subtitle),
+                icon = Icons.Outlined.Description,
+                iconColor = Color(0xFF30B0C7),
+                onClick = if (values[Feature.NOTES] == true) onOpenNotes else null,
+                showDivider = false,
+            )
+        }
+
+        // ── Station and edit mode [MINIS-OZEL 11.1] ──────────────────────
+        SettingsSection(
+            header = stringResource(R.string.ozel_features_section_station),
+            footer = stringResource(R.string.ozel_features_station_footer),
+        ) {
+            SettingsSwitchRow(
+                title = stringResource(R.string.ozel_feature_station),
+                subtitle = stringResource(R.string.ozel_feature_station_subtitle),
+                checked = values[Feature.STATION] == true,
+                onCheckedChange = { set(Feature.STATION, it) },
+            )
+            SettingsSwitchRow(
+                title = stringResource(R.string.ozel_feature_edit_mode),
+                subtitle = stringResource(R.string.ozel_feature_edit_mode_subtitle),
+                checked = values[Feature.EDIT_MODE] == true,
+                onCheckedChange = { set(Feature.EDIT_MODE, it) },
                 showDivider = false,
             )
         }

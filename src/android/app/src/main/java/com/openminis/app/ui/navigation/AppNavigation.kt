@@ -189,6 +189,9 @@ object Routes {
     const val OZEL_FEATURES = "ozel_features"
     /** [MINIS-OZEL] Settings > Translation > Packs. */
     const val TRANSLATION_PACKS = "translation_packs"
+
+    /** [MINIS-OZEL 11.1] Notes + vault. Global scope — not tied to a chat. */
+    const val NOTES_PAGE = "notes_page"
     /** [T-tools-granular-switches] Settings > Agent Runtime > Tools. */
     const val AGENT_TOOLS = "agent_tools"
     /** [T-mcp-integration-android] MCP Integrations management screen. */
@@ -1576,6 +1579,12 @@ fun AppNavigation(
         }
         composable(Routes.OZEL_FEATURES) {
             com.openminis.app.ui.settings.OzelFeaturesScreen(
+                onBack = { navController.safePopBackStack() },
+                onOpenNotes = { navController.safeNavigate(Routes.NOTES_PAGE) },
+            )
+        }
+        composable(Routes.NOTES_PAGE) {
+            com.openminis.app.ui.settings.NotesScreen(
                 onBack = { navController.safePopBackStack() },
             )
         }
