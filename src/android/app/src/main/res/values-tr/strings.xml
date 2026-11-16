@@ -2129,7 +2129,7 @@
     <string name="ozel_feature_station">İstasyon</string>
     <string name="ozel_feature_station_subtitle">Tek görevde iki ile dört ajan, birbirinden yalıtılmış</string>
     <string name="ozel_feature_edit_mode">Düzenleme modu</string>
-    <string name="ozel_feature_edit_mode_subtitle">Her ekranın ortasında bir kalem: dokun, düzeltilmesi gerekeni işaretle, not Notlar'a düşsün — yardımcı oradan alır</string>
+    <string name="ozel_feature_edit_mode_subtitle">Her ekranın ortasında bir kalem: dokun, düzeltilmesi gerekeni işaretle, not Notlar\'a düşsün — yardımcı oradan alır</string>
     <string name="ozel_feature_provider_test_subtitle">Her sağlayıcıda "Bağlantıyı test et" satırı: sorun anahtarda mı, adreste mi, ağda mı söyler</string>
     <string name="ozel_features_section_developer">Geliştirici</string>
     <string name="ozel_feature_dev_server">Cihaz içi geliştirici sunucusu</string>
