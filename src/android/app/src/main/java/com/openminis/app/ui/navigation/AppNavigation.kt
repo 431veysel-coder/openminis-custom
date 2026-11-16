@@ -195,6 +195,9 @@ object Routes {
 
     /** [MINIS-OZEL 11.3.1] Settings › Minis Özel › Action journal. */
     const val ACTION_JOURNAL = "action_journal"
+
+    /** [MINIS-OZEL 11.3.1] Settings › Minis Özel › Agent scope. */
+    const val AGENT_SCOPE = "agent_scope"
     /** [T-tools-granular-switches] Settings > Agent Runtime > Tools. */
     const val AGENT_TOOLS = "agent_tools"
     /** [T-mcp-integration-android] MCP Integrations management screen. */
@@ -1585,6 +1588,12 @@ fun AppNavigation(
                 onBack = { navController.safePopBackStack() },
                 onOpenNotes = { navController.safeNavigate(Routes.NOTES_PAGE) },
                 onOpenJournal = { navController.safeNavigate(Routes.ACTION_JOURNAL) },
+                onOpenScope = { navController.safeNavigate(Routes.AGENT_SCOPE) },
+            )
+        }
+        composable(Routes.AGENT_SCOPE) {
+            com.openminis.app.ui.settings.AgentScopeScreen(
+                onBack = { navController.safePopBackStack() },
             )
         }
         composable(Routes.ACTION_JOURNAL) {

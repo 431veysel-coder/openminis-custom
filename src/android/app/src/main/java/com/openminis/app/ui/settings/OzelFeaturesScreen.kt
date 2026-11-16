@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Restore
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -50,6 +51,8 @@ fun OzelFeaturesScreen(
     onOpenNotes: () -> Unit = {},
     // [MINIS-OZEL 11.3.1] The journal: what changed and how to take it back.
     onOpenJournal: () -> Unit = {},
+    // [MINIS-OZEL 11.3.1] How much the agent may do without asking.
+    onOpenScope: () -> Unit = {},
 ) {
     val context = LocalContext.current
 
@@ -168,6 +171,14 @@ fun OzelFeaturesScreen(
                 icon = Icons.Outlined.Description,
                 iconColor = Color(0xFF30B0C7),
                 onClick = if (values[Feature.NOTES] == true) onOpenNotes else null,
+                showDivider = true,
+            )
+            SettingsRow(
+                title = stringResource(R.string.ozel_scope_open_row),
+                subtitle = stringResource(R.string.ozel_scope_open_row_subtitle),
+                icon = Icons.Outlined.Shield,
+                iconColor = Color(0xFF34C759),
+                onClick = onOpenScope,
                 showDivider = true,
             )
             SettingsRow(

@@ -2201,4 +2201,15 @@
     <string name="ozel_journal_clear_footer">Defteri silmek geri alma yüklerini de siler: dosyalar olduğu gibi kalır ama sonrasında hiçbir şey geri alınamaz.</string>
     <string name="ozel_feature_journal">Eylem defteri</string>
     <string name="ozel_feature_journal_subtitle">Her dosya değişikliğini geri alma yoluyla kaydet ve ajanın kendi geçmişini okumasına izin ver. Varsayılan açık — diğer her şeyin altındaki güvenlik ağı budur.</string>
+    <!-- [MINIS-OZEL 11.3.1] Ajan yetki kapsamı -->
+    <string name="ozel_scope_title">Ajan yetki kapsamı</string>
+    <string name="ozel_scope_open">Açık</string>
+    <string name="ozel_scope_open_desc">Kısıt yok: her yol, her komut. Bu ayar yokken uygulamanın yaptığı şey.</string>
+    <string name="ozel_scope_read_only">Sadece okuma</string>
+    <string name="ozel_scope_read_only_desc">Hiç yazma yok; kabuk yalnızca okuma olduğu kanıtlanabilen komutları çalıştırır.</string>
+    <string name="ozel_scope_workspace">Çalışma alanı</string>
+    <string name="ozel_scope_workspace_desc">Yazma yalnızca /var/minis/workspace altında (/tmp dahil). Bağlı klasörler kapsam dışında kalır.</string>
+    <string name="ozel_scope_footer">Kapsam ancak her değişiklik deftere yazıldığı için savunulabilir: kaçan bir şey Ayarlar › Minis Özel › Eylem defteri üzerinden geri alınabilir. Reddedilen çağrılar ajana gerekçesiyle hata olarak döner, böylece ısrar etmek yerine uyum sağlar.</string>
+    <string name="ozel_scope_open_row">Ajan yetki kapsamı</string>
+    <string name="ozel_scope_open_row_subtitle">Ajanın bu cihaz üzerinde ne kadar serbest olduğu</string>
 </resources>

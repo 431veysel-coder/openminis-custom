@@ -15489,6 +15489,19 @@ class ChatViewModel(
                 return ToolExecutionResult("Error: 'command' is required", false, toolTitle = toolTitle)
             }
 
+            // [MINIS-OZEL 11.3.1] Capability scope for the shell. The check is an
+            // allowlist of read-only verbs, so an unfamiliar command is refused
+            // with a reason the model can act on — not executed hopefully.
+            run {
+                val scopeMode = com.openminis.app.data.scope.AgentScope.mode(context)
+                if (!com.openminis.app.data.scope.AgentScope.mayRunShell(scopeMode, command)) {
+                    return ToolExecutionResult(
+                        com.openminis.app.data.scope.AgentScope.shellRefusal(scopeMode, command),
+                        false, toolTitle = toolTitle,
+                    )
+                }
+            }
+
             // [T-android-overlay-finalize item 1] Removed the
             // shell-specific status hack ("shell: $toolTitle"). Since the
             // dispatch loop (~5003) now surfaces `tool_title` in the overlay

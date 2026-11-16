@@ -4,6 +4,7 @@ import android.content.Context
 import com.openminis.app.data.ContextOffload
 import com.openminis.app.data.OzelFeatures
 import com.openminis.app.data.journal.ActionJournal
+import com.openminis.app.data.scope.AgentScope
 import com.openminis.app.data.model.AgentToolDefinition
 import com.openminis.app.data.model.AgentToolParam
 import com.openminis.app.logging.AppLogger
@@ -65,6 +66,17 @@ object FileEditTool {
                         "Toggle writability in Settings → Mount External Folders if this is a mistake.",
                     false, toolTitle = toolTitle,
                 )
+            }
+
+            // [MINIS-OZEL 11.3.1] Capability scope — see FileWriteTool.
+            run {
+                val scopeMode = AgentScope.mode(context)
+                if (!AgentScope.mayWrite(scopeMode, path)) {
+                    return ToolExecutionResult(
+                        AgentScope.writeRefusal(scopeMode, path),
+                        false, toolTitle = toolTitle,
+                    )
+                }
             }
 
             // T123: per-session resolver — see FileWriteTool for rationale.

@@ -2966,4 +2966,15 @@
     <string name="ozel_journal_clear_footer">Deleting the journal removes the undo payloads with it: the files stay as they are, but nothing can be taken back afterwards.</string>
     <string name="ozel_feature_journal">Action journal</string>
     <string name="ozel_feature_journal_subtitle">Record each file change with a way to undo it, and let the agent read its own history. On by default — it is the safety net under everything else.</string>
+    <!-- [MINIS-OZEL 11.3.1] Agent scope -->
+    <string name="ozel_scope_title">Agent scope</string>
+    <string name="ozel_scope_open">Open</string>
+    <string name="ozel_scope_open_desc">No restrictions: any path, any command. What the app did before this setting existed.</string>
+    <string name="ozel_scope_read_only">Read only</string>
+    <string name="ozel_scope_read_only_desc">No writes at all; the shell runs only commands that are provably reads.</string>
+    <string name="ozel_scope_workspace">Workspace</string>
+    <string name="ozel_scope_workspace_desc">Writes only under /var/minis/workspace (plus /tmp). Mounted folders stay outside.</string>
+    <string name="ozel_scope_footer">A scope is only defensible because every change is journalled: whatever slips through can be taken back from Settings › Minis Özel › Action journal. Refusals come back to the agent as errors with a reason, so it adapts instead of retrying.</string>
+    <string name="ozel_scope_open_row">Agent scope</string>
+    <string name="ozel_scope_open_row_subtitle">How much freedom the agent has over this device</string>
 </resources>
