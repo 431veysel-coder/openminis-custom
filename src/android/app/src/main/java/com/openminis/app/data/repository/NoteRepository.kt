@@ -42,18 +42,17 @@ class NoteRepository(private val context: Context) {
         private const val DB_VERSION = 1
         private const val MAX_NOTES_IN_PROMPT = 20
         private const val MAX_NOTE_PREVIEW_CHARS = 500
-        private const val CREATE_NOTES_TABLE = """
-            CREATE TABLE notes (
-                id TEXT PRIMARY KEY,
-                session_id TEXT NOT NULL,
-                title TEXT NOT NULL DEFAULT '',
-                content TEXT NOT NULL DEFAULT '',
-                tags TEXT NOT NULL DEFAULT '',
-                version INTEGER NOT NULL DEFAULT 1,
-                created_at INTEGER NOT NULL,
-                updated_at INTEGER NOT NULL
-            )
-        """.trimIndent()
+        private const val CREATE_NOTES_TABLE =
+        "CREATE TABLE notes (" +
+        "id TEXT PRIMARY KEY," +
+        "session_id TEXT NOT NULL," +
+        "title TEXT NOT NULL DEFAULT ''," +
+        "content TEXT NOT NULL DEFAULT ''," +
+        "tags TEXT NOT NULL DEFAULT ''," +
+        "version INTEGER NOT NULL DEFAULT 1," +
+        "created_at INTEGER NOT NULL," +
+        "updated_at INTEGER NOT NULL" +
+        ")"
     }
 
     // Background scope for writes that must survive config changes
