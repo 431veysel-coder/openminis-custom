@@ -32,7 +32,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
-import androidx.compose.material.icons.filedownload
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.ImportExport
 import androidx.compose.material.icons.filled.Search
@@ -157,7 +157,9 @@ fun NotesScreen(
     }
 
     // Import file picker
-    val importLauncher = safeLaunchPicker("application/json") { uri ->
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument("application/json")
+    ) { uri ->
         if (uri != null) {
             scope.launch {
                 importFromUri(context, uri, currentSessionId, noteRepository)
