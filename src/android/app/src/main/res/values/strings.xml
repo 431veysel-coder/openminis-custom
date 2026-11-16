@@ -1423,6 +1423,7 @@
     <string name="add_custom_model_id_footer">Model ID is the API identifier sent to %1$s. Display Name is the friendlier label shown in the picker; defaults to Model ID when left blank.</string>
     <string name="add_custom_model_eg_id_placeholder">e.g. gpt-4o-custom</string>
     <string name="add_provider_built_in_models_count">%1$d built-in models</string>
+    <string name="add_provider_subtitle_cloudflare">Workers AI — one key, many open models. The account id is found from the key. Third-party service; not run or audited by this app.</string>
     <string name="add_provider_subtitle_vercel">One API for many vendors, with a monthly credit. Third-party service; not run or audited by this app.</string>
     <string name="add_provider_subtitle_nvidia">NVIDIA NIM — Llama, Nemotron, DeepSeek, Qwen and more</string>
     <string name="add_provider_subtitle_mistral">Mistral Large, Codestral, Pixtral and more</string>
@@ -2848,6 +2849,36 @@
          this fork added. Off hides the entry point; it never deletes data. -->
     <string name="model_tag_free">free</string>
     <string name="model_tag_limited">limit tracked</string>
+    <string name="versions_title">Versions</string>
+    <string name="versions_installed_header">Installed now</string>
+    <string name="versions_installed_footer">The version this device is running.</string>
+    <string name="versions_all_header">Published versions</string>
+    <string name="versions_all_footer">Newer versions install with one tap. An older one can be returned to as a recovery build — the same code, re-published under a higher number, which Android accepts as an ordinary update and which leaves your data alone.</string>
+    <string name="versions_loading">Loading the version list…</string>
+    <string name="versions_load_failed">Could not read the version list: %1$s</string>
+    <string name="versions_badge_installed">installed</string>
+    <string name="versions_current">This is the installed version</string>
+    <string name="versions_install">Update to this</string>
+    <string name="versions_downloading">Downloading…</string>
+    <string name="versions_return_to">Return to this</string>
+    <string name="versions_confirm_title">Install this version?</string>
+    <string name="versions_confirm_message">%1$s will be downloaded and installed over the current version. Your chats and settings stay.</string>
+    <string name="versions_confirm_back_title">Return to an older version</string>
+    <string name="versions_confirm_back_message">Android will not install %1$s directly, because it is an older version number — that is a system rule, not a setting. A recovery build is the way back: the same code, published again under a higher number. Open the workflow page and run it; the build appears here in a few minutes and installs like any update.</string>
+    <string name="versions_recovery_open_short">Open the page</string>
+    <string name="versions_need_install_permission">Allow installing apps in the settings screen that just opened, then tap Update again.</string>
+    <string name="versions_open_failed">Could not open %1$s — open it in your browser.</string>
+    <string name="versions_recovery_header">Recovery build</string>
+    <string name="versions_recovery_footer">Use this when a version is broken and you want the previous one back without waiting for a fix. Nothing is uninstalled and no data is touched.</string>
+    <string name="versions_recovery_open">Create a recovery build</string>
+    <string name="versions_recovery_open_subtitle">Republish an earlier version under a higher number</string>
+    <string name="about_versions_header">Versions</string>
+    <string name="about_versions_row">Version history</string>
+    <string name="about_versions_row_subtitle">Running %1$s (%2$d) — see every published version and switch</string>
+    <string name="translation_engine_header">What translates</string>
+    <string name="translation_engine_footer">Both options are a model call — a language pack is a glossary and style rule added to that call, not an offline translator. Turning the pack off is faster and cheaper but terms drift between blocks.</string>
+    <string name="translation_engine_pack">Use the language pack</string>
+    <string name="translation_engine_pack_subtitle">Terms stay consistent. Off = model only, fewer prompt tokens</string>
     <string name="notes_title">Notes</string>
     <string name="notes_tab_notes">Notes</string>
     <string name="notes_tab_vault">Vault</string>

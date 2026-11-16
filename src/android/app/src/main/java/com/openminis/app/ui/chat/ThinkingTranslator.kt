@@ -111,7 +111,15 @@ internal object ThinkingTranslator {
             return null
         }
 
-        val pack = TranslationPacks.forLanguage(context, targetLanguage)
+        // [MINIS-OZEL 11.1] The engine choice decides whether the pack takes
+        // part at all. MODEL_ONLY is a real option, not a hidden one: someone
+        // translating a message in a hurry wants the tokens spent on the text,
+        // not on 120 glossary entries that will not come up.
+        val pack = if (TranslationPrefs.engine(context) == TranslationPrefs.Engine.MODEL_WITH_PACK) {
+            TranslationPacks.forLanguage(context, targetLanguage)
+        } else {
+            null
+        }
         // The pack is part of the cache key: installing one must not return
         // translations produced before it existed, or the feature looks broken
         // until every cached block is translated again by hand.

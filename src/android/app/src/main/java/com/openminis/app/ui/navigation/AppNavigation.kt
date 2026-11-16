@@ -192,6 +192,9 @@ object Routes {
 
     /** [MINIS-OZEL 11.1] Notes + vault. Global scope — not tied to a chat. */
     const val NOTES_PAGE = "notes_page"
+
+    /** [MINIS-OZEL 11.1] Every published build, with upgrade/return. */
+    const val VERSIONS = "versions"
     /** [T-tools-granular-switches] Settings > Agent Runtime > Tools. */
     const val AGENT_TOOLS = "agent_tools"
     /** [T-mcp-integration-android] MCP Integrations management screen. */
@@ -1583,6 +1586,11 @@ fun AppNavigation(
                 onOpenNotes = { navController.safeNavigate(Routes.NOTES_PAGE) },
             )
         }
+        composable(Routes.VERSIONS) {
+            com.openminis.app.ui.settings.VersionsScreen(
+                onBack = { navController.safePopBackStack() },
+            )
+        }
         composable(Routes.NOTES_PAGE) {
             com.openminis.app.ui.settings.NotesScreen(
                 onBack = { navController.safePopBackStack() },
@@ -1611,7 +1619,10 @@ fun AppNavigation(
         }
 
         composable(Routes.ABOUT) {
-            AboutScreen(onBack = { navController.safePopBackStack() })
+            AboutScreen(
+                onBack = { navController.safePopBackStack() },
+                onOpenVersions = { navController.safeNavigate(Routes.VERSIONS) },
+            )
         }
 
         composable(Routes.LOGS) {

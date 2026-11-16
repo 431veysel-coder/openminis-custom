@@ -23,6 +23,7 @@ object TranslationPrefs {
     private const val KEY_TARGET_LANG = "target_language"
     private const val KEY_MODEL_ENTRY = "model_entry_id"
     private const val KEY_AUTO = "auto_translate"
+    private const val KEY_ENGINE = "engine"
 
     private fun prefs(ctx: Context) =
         ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -42,6 +43,39 @@ object TranslationPrefs {
 
     fun setEnabled(ctx: Context, value: Boolean) =
         prefs(ctx).edit().putBoolean(KEY_ENABLED, value).apply()
+
+    /**
+     * [MINIS-OZEL 11.1] What actually does the translating.
+     *
+     * A pack is not an engine: it is a glossary, a style rule and a few
+     * few-shot pairs, all of which are pasted into the prompt of a model call.
+     * There is no offline NMT model in this app (that is 30–100 MB plus a
+     * SentencePiece tokenizer — see [TranslationPacks]), so the honest choice
+     * is between "model + pack" and "model alone", not between "offline" and
+     * "online". Presenting it as an engine choice is still right, because the
+     * user's real question is "is the pack involved or not", and the answer
+     * changes the output, the cost (a pack adds prompt tokens) and the cache
+     * key.
+     */
+    enum class Engine(val id: String) {
+        /** Model call with the language pack's rules injected. Consistent terms. */
+        MODEL_WITH_PACK("model_with_pack"),
+
+        /** Model call with no pack: faster, cheaper, terminology drifts. */
+        MODEL_ONLY("model_only"),
+        ;
+
+        companion object {
+            fun parse(raw: String?): Engine =
+                entries.firstOrNull { it.id == raw?.trim() } ?: MODEL_WITH_PACK
+        }
+    }
+
+    fun engine(ctx: Context): Engine =
+        Engine.parse(prefs(ctx).getString(KEY_ENGINE, null))
+
+    fun setEngine(ctx: Context, engine: Engine) =
+        prefs(ctx).edit().putString(KEY_ENGINE, engine.id).apply()
 
     /**
      * Target language for the translation, as a display name ("Turkish").
