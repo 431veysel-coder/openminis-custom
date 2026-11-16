@@ -62,9 +62,6 @@ class OzelFeaturesTest {
             OzelFeatures.Feature.DEV_SERVER,
             OzelFeatures.Feature.VAULT_AGENT_READ,
             OzelFeatures.Feature.EDIT_MODE,
-            // Adding a tab cap is a restriction, not a feature: it can only
-            // take away tabs the user already had open.
-            OzelFeatures.Feature.BROWSER_TAB_LIMIT,
         )
         val userFacing = OzelFeatures.Feature.entries - deliberateOff
         userFacing.forEach { f ->
