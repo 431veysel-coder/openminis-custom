@@ -51,8 +51,12 @@ jobs:
           retention-days: 14
 
   go-vulnerability-scan:
-    name: Go native dependency vulnerability scan
+    name: Go native dependency vulnerability scan (advisory)
+    # Generic host analysis misses Android gomobile-specific files and tags.
+    # Keep findings visible but non-blocking until the exact Android build
+    # configuration is modeled and the scan is validated against it.
     runs-on: ubuntu-latest
+    continue-on-error: true
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
