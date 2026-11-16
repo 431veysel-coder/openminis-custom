@@ -49,11 +49,29 @@ class OzelFeaturesTest {
 
     @Test
     fun `every user-facing feature is on by default`() {
-        // An update must not silently remove something the user was using. The
-        // developer server above is the only deliberate exception.
-        val userFacing = OzelFeatures.Feature.entries - OzelFeatures.Feature.DEV_SERVER
+        // An update must not silently remove something the user was using.
+        //
+        // [MINIS-OZEL 11.1] Three deliberate exceptions, each one a switch whose
+        // ON state costs something the user did not ask for:
+        //  - DEV_SERVER opens a local socket that can read provider keys;
+        //  - VAULT_AGENT_READ sends a stored secret to the model provider;
+        //  - EDIT_MODE draws an overlay on top of every screen.
+        // A new flag that defaults to OFF belongs in this set WITH a reason;
+        // anything else defaulting to off is the regression this test exists for.
+        val deliberateOff = setOf(
+            OzelFeatures.Feature.DEV_SERVER,
+            OzelFeatures.Feature.VAULT_AGENT_READ,
+            OzelFeatures.Feature.EDIT_MODE,
+            // Adding a tab cap is a restriction, not a feature: it can only
+            // take away tabs the user already had open.
+            OzelFeatures.Feature.BROWSER_TAB_LIMIT,
+        )
+        val userFacing = OzelFeatures.Feature.entries - deliberateOff
         userFacing.forEach { f ->
             assertTrue("${f.name} defaults to off — an update would hide it", f.defaultEnabled)
+        }
+        deliberateOff.forEach { f ->
+            assertFalse("${f.name} defaults to on — that is a cost the user did not ask for", f.defaultEnabled)
         }
     }
 

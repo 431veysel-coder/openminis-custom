@@ -414,6 +414,8 @@ jobs:
 
       - name: Verify APK contents
         working-directory: src/android
+        env:
+          BTYPE: ${{ inputs.build_type || 'release' }}
         run: |
           set -e
           APK=$(find app/build/outputs/apk -name 'app-github-*.apk' | head -1)
@@ -424,9 +426,21 @@ jobs:
           "$BT/aapt2" dump badging "$APK" | grep -q "package: name='com.veysel.minis'" \
             || { echo "FAIL: applicationId not applied"; exit 1; }
           # 2. signature is ours and verifies
+          #
+          # DEBUG BUILDS ARE NOT SIGNED WITH THE RELEASE KEY, by design (they
+          # are throwaway verification builds). Asserting the release
+          # certificate unconditionally made every debug dispatch on a branch
+          # fail AFTER a green compile, which reads as "the branch is broken"
+          # while the only thing that happened is that the debug keystore did
+          # what it is for. The release identity is still checked below, in the
+          # release path only, where publishing actually happens.
           "$BT/apksigner" verify --print-certs "$APK"
-          "$BT/apksigner" verify --print-certs "$APK" | grep -q "3e62d262631a8182167bfb22df64ae413286257fc6e6a77a08c6ced0bc0bb6c9" \
-            || { echo "FAIL: not signed with the Minis Ozel key"; exit 1; }
+          if [ "${BTYPE:-release}" = "debug" ]; then
+            echo "debug build — signing identity not asserted (only release is)"
+          else
+            "$BT/apksigner" verify --print-certs "$APK" | grep -q "3e62d262631a8182167bfb22df64ae413286257fc6e6a77a08c6ced0bc0bb6c9" \
+              || { echo "FAIL: not signed with the Minis Ozel key"; exit 1; }
+          fi
           # 3. the proot loaders must be inside or every shell command returns exit -1
           for so in libproot.so libproot-loader.so libproot-loader32.so; do
             unzip -l "$APK" | grep -q "lib/arm64-v8a/$so" \
