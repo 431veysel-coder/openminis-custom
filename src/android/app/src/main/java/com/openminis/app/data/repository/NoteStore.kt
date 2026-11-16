@@ -314,6 +314,12 @@ class NoteStore(private val context: Context) {
      * auto-injected secrets would make the split decorative.
      */
     fun promptNotes(scope: String): String {
+        // The caller builds a system prompt, possibly before the notes screen
+        // was ever opened, so the in-memory list may still be empty. Reading it
+        // once here is what makes the difference between "the agent has notes"
+        // and "the agent has notes only after the user visited a screen".
+        // Guarded and one-shot: `everLoaded` makes this a no-op afterwards.
+        if (!everLoaded) runCatching { loadBlocking() }
         val rows = visibleTo(scope).take(MAX_PROMPT_NOTES)
         if (rows.isEmpty()) return ""
         return buildString {
@@ -336,12 +342,16 @@ class NoteStore(private val context: Context) {
         runCatching { loadBlocking() }.onFailure { Log.e(TAG, "reload failed: ${it.message}", it) }
     }
 
+    @Volatile
+    private var everLoaded = false
+
     private fun loadBlocking() {
         val out = ArrayList<Note>()
         db.query("notes", null, null, null, null, null, "updated_at DESC").use { c ->
             while (c.moveToNext()) out.add(readRow(c))
         }
         _notes.value = out
+        everLoaded = true
     }
 
     private fun upsert(row: Note, searchBlob: String) {

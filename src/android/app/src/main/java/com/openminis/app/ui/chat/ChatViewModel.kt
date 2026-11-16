@@ -16400,6 +16400,38 @@ Memory system (currently DISABLED):
 - If the user asks why earlier memories aren't visible, or asks you to save something, tell them memory is currently disabled and point them at the /memory slash command or [Settings → Memory](minis://settings/memory) to re-enable it.
 - SOUL.md (personality / identity) is unaffected by this toggle; the persona section above still applies."""
         }
+        // [MINIS-OZEL 11.1] The agent's own notebook, injected as a section
+        // rather than left to the tool.
+        //
+        // Why inject at all when note(action=list) exists: a model does not
+        // call a tool to find out whether it has notes. Whatever it decided
+        // last turn is forgotten by the next one, so without this it re-derives
+        // the same conclusions and re-asks the same questions. The section is
+        // capped by NoteStore.promptNotes (12 notes, 400 chars each) so it
+        // cannot crowd out the conversation.
+        //
+        // The VAULT is deliberately absent: a secret riding along in every
+        // prompt is exactly what the note/vault split exists to prevent.
+        val notesSection = if (
+            com.openminis.app.data.OzelFeatures.isEnabled(
+                context,
+                com.openminis.app.data.OzelFeatures.Feature.NOTES,
+            ) && com.openminis.app.tools.AgentToolSwitch.NOTES.isEnabled(context)
+        ) {
+            val fragment = runCatching {
+                com.openminis.app.data.repository.NoteStore.get(context)
+                    .promptNotes(com.openminis.app.data.repository.NoteStore.Scope.session(fsSessionId).wire)
+            }.getOrDefault("")
+            if (fragment.isBlank()) {
+                ""
+            } else {
+                "\n\n" + fragment +
+                    "These are yours. Use the `note` tool (action=write/append) to change them; " +
+                    "never repeat their contents back to the user unprompted."
+            }
+        } else {
+            ""
+        }
         // [T-tools-granular-switches] The prompt must not advertise a tool the
         // schema does not carry. With browser_use switched off, the model would
         // otherwise be told it has a browser, find none in the schema, and
@@ -16530,7 +16562,7 @@ Environment variables:
 - Shell environment variables may contain sensitive API keys, tokens, or passwords. NEVER echo, print, cat, or otherwise output their values to stdout/stderr. Always reference them by variable name (e.g. ${'$'}API_KEY) inside scripts or commands — never inline the literal value.
 - When a skill or task requires an environment variable that is not set, tell the user which variable is missing and provide a tappable deep link to create it: [Set ENV_NAME](minis://settings/environments?create_key=ENV_NAME&create_value=) — the user can tap it to open the Environment Variables page with the key pre-filled.
 - Settings deep links: when you tell the user "go to Settings → X" or want to point them at a specific setting, prefer a Markdown link `[Label](minis://settings/<path>)` over plain prose. Available paths: providers (list), providers/<instanceId> (one provider), model-groups (incl. Agent Loop), model-groups/<groupId>, usage (token usage), skills, memory, storage, shared-folders (Shared Folders: /var/minis/{shared,skills,memory}), mount-external (Mount External Folders), logs, appearance, background, about, permissions, environments[?create_key=K&create_value=V[&create_note=N]], rootfs (also reachable as mirrors), network (Network Routing: Restore Direct Connections, Diagnose Network, default route, per-feature and per-provider routes), tailscale, proxy (upstream proxies), dns (Shell Container DNS). Unknown paths fall back to Settings home, but prefer the exact path so users land where they want. These settings/action links are app deep links — render them as Markdown links in chat (same action-vs-resource rule as the minis:// section above: only /var/minis resource URLs may go to browser_use).
-- To check if a variable is set, use `[ -n "${'$'}VAR" ] && echo 'set' || echo 'not set'`. NEVER use echo ${'$'}VAR, printenv VAR, or any command that would output the actual value into the conversation context.${memorySystemSection}
+- To check if a variable is set, use `[ -n "${'$'}VAR" ] && echo 'set' || echo 'not set'`. NEVER use echo ${'$'}VAR, printenv VAR, or any command that would output the actual value into the conversation context.${memorySystemSection}${notesSection}
 
 Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended, so in-app scheduled scripts may not run as expected. For follow-ups and recurring prompts, run `minis-scheduled create …` via shell_execute: it fires through a system alarm, so it runs a new turn even when Minis is in the background or closed (a force-stop cancels pending tasks until the app is next opened). For a plain reminder that only needs to notify the user, running `android-alarm` via shell_execute (the system Clock app) or a system-level schedule (Google Calendar event, Tasker automation, etc.) also works. (Waiting or polling WITHIN the current turn is different — that is what shell_execute `delay` chains are for, per the shell_execute notes above.)"""
 
