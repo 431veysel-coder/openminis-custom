@@ -49,6 +49,7 @@ jobs:
         run: echo "key=$(sh scripts/ci/native_cache_key.sh)" >> "$GITHUB_OUTPUT"
 
       - name: Restore rclone.aar
+        id: rclone-cache
         uses: actions/cache@v4
         with:
           path: src/android/app/libs/rclone.aar

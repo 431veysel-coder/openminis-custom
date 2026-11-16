@@ -1,0 +1,71 @@
+name: Android quality and security checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '23 5 * * 1' # Weekly dependency/security refresh, Monday 05:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mobsf-sast:
+    name: MobSF Android source security scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Run MobSF source scan
+        uses: MobSF/mobsfscan@e48f780d04c4fdd38ec07c1de3d2210513f48ecd # pinned commit
+        with:
+          args: 'src/android/app --sarif --output mobsfscan.sarif --type android --no-fail'
+
+      - name: Upload MobSF SARIF to GitHub code scanning
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          sarif_file: mobsfscan.sarif
+          category: mobsfscan-android
+
+      - name: Upload MobSF SARIF as workflow artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: mobsfscan-sarif
+          path: mobsfscan.sarif
+          if-no-files-found: ignore
+          retention-days: 14
+
+  go-vulnerability-scan:
+    name: Go native dependency vulnerability scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        with:
+          submodules: false
+          fetch-depth: 1
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: deps/rclone-mobile/go.sum
+      - name: Check Go native dependency vulnerabilities
+        working-directory: deps/rclone-mobile
+        shell: bash
+        run: |
+          set -euo pipefail
+          go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
