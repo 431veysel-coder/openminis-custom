@@ -2486,6 +2486,38 @@ class ChatViewModel(
         )
     }
 
+    /**
+     * [MINIS-OZEL 11.1] Records one completed request against the instance's
+     * free-tier counter.
+     *
+     * Deliberately silent: no counter state on failure, no UI, no throw. A
+     * budget display that can break a model call would be worse than a budget
+     * display that is occasionally one request behind.
+     *
+     * The reset zone comes from the vendor profile, because a day ends at a
+     * different moment for Gemini (Pacific) than for Groq (UTC) — and a budget
+     * that resets at the wrong hour is wrong for the whole hour.
+     */
+    private fun recordFreeTierUsage(usage: com.openminis.app.data.model.LLMUsage?) {
+        if (usage == null) return
+        runCatching {
+            val instanceId = currentModelSnapshot()?.providerInstanceId ?: return
+            val instance = providerRepository.instance(instanceId) ?: return
+            val profile = com.openminis.app.provider.FreeTierLimits
+                .profileFor(context, instance.effectiveBaseURL)
+            val tokens = usage.inputTokens.toLong() +
+                usage.outputTokens.toLong() +
+                (usage.cacheReadInputTokens?.toLong() ?: 0L) +
+                (usage.cacheCreationInputTokens?.toLong() ?: 0L)
+            com.openminis.app.provider.FreeTierLimits.UsageCounter.record(
+                context = context,
+                instanceId = instanceId,
+                tokens = tokens,
+                resetTz = profile?.resetTz ?: "UTC",
+            )
+        }
+    }
+
     /** Structured agent history for the agent loop (contentParts-based). */
     private val agentHistory = mutableListOf<LLMMessage>()
 
@@ -16172,6 +16204,11 @@ class ChatViewModel(
         val tokenJson = usage?.let {
             """{"inputTokens":${it.inputTokens},"outputTokens":${it.outputTokens},"cacheCreationTokens":${it.cacheCreationInputTokens ?: 0},"cacheReadTokens":${it.cacheReadInputTokens ?: 0},"latestContextTokens":${it.latestContextTokens},"streamMs":$streamMs${com.openminis.app.usage.StoredUsageJson.extraFields(it)}${calibrationJsonFields()}}"""
         }
+        // [MINIS-OZEL 11.1] Count this request against the provider instance's
+        // daily budget. Placed here because this is the one point every finished
+        // request passes through with its usage attached — the streaming path,
+        // the retry path and the tool-loop path all end up writing a turn.
+        recordFreeTierUsage(usage)
         val entity = chatRepository.appendMessage(
             realSessionId.ifEmpty { sessionId }, "assistant", partsJson, tokenJson,
             reasoningContent = reasoningContent,

@@ -1440,7 +1440,20 @@ private fun ProviderEntryRowText(
 ) {
     val badges = com.openminis.app.ui.components.modalityBadges(entry.model)
     Column(modifier = modifier) {
-        ModelNameWithActiveBadge(entry.model.displayName, showActiveBadge = showActiveBadge)
+        // [MINIS-OZEL 11.1] Free / limit-tracked chip beside the name, before
+        // anything else on the row: "can I use this without paying?" is the
+        // question a model list is scanned for, and it should not be answered
+        // by scrolling to a trailing column.
+        ModelNameWithActiveBadge(
+            name = entry.model.displayName,
+            showActiveBadge = showActiveBadge,
+            quotaPill = {
+                com.openminis.app.ui.components.FreeModelTag(
+                    instanceId = entry.providerInstanceId,
+                    modelId = entry.model.id,
+                )
+            },
+        )
         FitOrWrapLine(
             separator = if (badges.isNotEmpty()) {
                 { com.openminis.app.ui.components.ModelRowSeparatorDot() }

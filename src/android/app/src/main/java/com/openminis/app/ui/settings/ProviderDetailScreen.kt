@@ -53,6 +53,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -69,6 +70,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.openminis.app.data.model.ProviderType
 import com.openminis.app.data.repository.ProviderRepository
@@ -173,6 +175,27 @@ fun ProviderDetailScreen(
         mutableStateOf<ProviderConnectionTest.Outcome?>(null)
     }
     var connectionBusy by remember(instanceId) { mutableStateOf(false) }
+    // [MINIS-OZEL 11.1] Free-model scan + the user's own free-tier numbers.
+    var scanning by remember(instanceId) { mutableStateOf(false) }
+    var scanNote by remember(instanceId) { mutableStateOf<String?>(null) }
+    var freeCount by remember(instanceId) {
+        mutableStateOf(com.openminis.app.provider.FreeModelCatalog.freeIds(detailContext, instanceId).size)
+    }
+    var limitRpd by remember(instanceId) {
+        mutableStateOf(
+            com.openminis.app.provider.FreeTierLimits.limitsFor(detailContext, instanceId)
+                .requestsPerDay?.toString().orEmpty(),
+        )
+    }
+    var limitTpd by remember(instanceId) {
+        mutableStateOf(
+            com.openminis.app.provider.FreeTierLimits.limitsFor(detailContext, instanceId)
+                .tokensPerDay?.toString().orEmpty(),
+        )
+    }
+    var usageToday by remember(instanceId) {
+        mutableStateOf(com.openminis.app.provider.FreeTierLimits.UsageCounter.Today(0, 0L))
+    }
     var customBaseURL by remember { mutableStateOf(instance.customBaseURL ?: "") }
     var appendV1Suffix by remember { mutableStateOf(instance.appendV1Suffix) }
     // [T-provider-custom-user-agent] Per-provider UA override input. Only the
@@ -623,6 +646,98 @@ fun ProviderDetailScreen(
                         }
                     },
                     showDivider = false,
+                )
+            }
+        }
+
+        // ─── Free models + free-tier budget [MINIS-OZEL 11.1] ───────
+        //
+        // Two different facts, deliberately in one section because they answer
+        // one question — "what can I use here without paying?":
+        //  - which models the provider prices at zero (a scanned fact), and
+        //  - how much of an included allowance is left today (counted here).
+        // The app does not guess either: the model list is scanned on demand,
+        // and the limit is typed in from the vendor's own dashboard.
+        val freeProfile = remember(instanceId) {
+            com.openminis.app.provider.FreeTierLimits.profileFor(detailContext, instance.effectiveBaseURL)
+        }
+        val usageResetTz = freeProfile?.resetTz ?: "UTC"
+        LaunchedEffect(instanceId) {
+            usageToday = com.openminis.app.provider.FreeTierLimits.UsageCounter
+                .today(detailContext, instanceId, usageResetTz)
+        }
+        SettingsSection(
+            header = stringResource(R.string.provider_free_models_header),
+            footer = freeProfile?.note?.takeIf { it.isNotBlank() }
+                ?: stringResource(R.string.provider_free_models_footer),
+        ) {
+            SettingsRow(
+                title = stringResource(
+                    if (scanning) R.string.provider_free_scanning else R.string.provider_free_scan,
+                ),
+                subtitle = scanNote ?: stringResource(R.string.provider_free_scan_subtitle, freeCount),
+                icon = Icons.Outlined.CheckCircle,
+                iconColor = if (freeCount > 0) Color(0xFF34C759) else Color(0xFF30B0C7),
+                onClick = if (scanning) {
+                    null
+                } else {
+                    {
+                        scanning = true
+                        scanNote = null
+                        scope.launch {
+                            val r = com.openminis.app.provider.FreeModelScanner.scan(
+                                context = detailContext,
+                                instance = instance,
+                                apiKey = providerRepository.loadApiKey(instanceId).orEmpty(),
+                            )
+                            scanning = false
+                            freeCount = r.freeIds.size
+                            scanNote = if (r.ok) {
+                                detailContext.getString(
+                                    R.string.provider_free_scan_ok, r.freeIds.size, r.total,
+                                )
+                            } else {
+                                detailContext.getString(R.string.provider_free_scan_failed, r.error ?: "—")
+                            }
+                        }
+                    }
+                },
+                showDivider = true,
+            )
+            // The counter, shown against whatever the user configured. No
+            // number is invented: an unset limit renders as an em dash.
+            SettingsCardBlock {
+                val rpdLimit = limitRpd.trim().toIntOrNull()
+                val tpdLimit = limitTpd.trim().toLongOrNull()
+                Text(
+                    text = progressLine(usageToday, rpdLimit, tpdLimit, usageResetTz),
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                )
+            }
+            SettingsCardBlock {
+                SectionTextField(
+                    value = limitRpd,
+                    onValueChange = {
+                        limitRpd = it.filter(Char::isDigit)
+                        saveLimits(providerRepository, detailContext, instanceId, limitRpd, limitTpd)
+                    },
+                    placeholder = stringResource(R.string.provider_free_limit_rpd),
+                )
+                Spacer(Modifier.height(8.dp))
+                SectionTextField(
+                    value = limitTpd,
+                    onValueChange = {
+                        limitTpd = it.filter(Char::isDigit)
+                        saveLimits(providerRepository, detailContext, instanceId, limitRpd, limitTpd)
+                    },
+                    placeholder = stringResource(R.string.provider_free_limit_tpd),
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(R.string.provider_free_limit_hint),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
                 )
             }
         }
@@ -1647,4 +1762,55 @@ private fun describeConnectionTest(
             }
         }
     }
+}
+
+/**
+ * [MINIS-OZEL 11.1] "312 / 1000 requests today · resets 00:00 UTC", or the
+ * honest dashes when the user has not entered a limit.
+ *
+ * Written as a plain function so the arithmetic is not buried in composition:
+ * the number shown has to be requests USED out of the limit, and getting that
+ * backwards would read as a full budget when it is empty.
+ */
+private fun progressLine(
+    today: com.openminis.app.provider.FreeTierLimits.UsageCounter.Today,
+    rpd: Int?,
+    tpd: Long?,
+    resetTz: String,
+): String {
+    val requests = if (rpd != null && rpd > 0) {
+        "${today.requests} / $rpd"
+    } else {
+        "${today.requests} / —"
+    }
+    val tokens = if (tpd != null && tpd > 0) {
+        "${formatTokens(today.tokens)} / ${formatTokens(tpd)}"
+    } else {
+        formatTokens(today.tokens)
+    }
+    return "Today: $requests requests · $tokens tokens · resets at 00:00 $resetTz"
+}
+
+private fun formatTokens(n: Long): String = when {
+    n >= 1_000_000 -> "%.1fM".format(java.util.Locale.US, n / 1_000_000.0)
+    n >= 1_000 -> "%.1fK".format(java.util.Locale.US, n / 1_000.0)
+    else -> n.toString()
+}
+
+/** Persists the two limit fields; blank clears that dimension. */
+private fun saveLimits(
+    repository: ProviderRepository,
+    context: android.content.Context,
+    instanceId: String,
+    rpd: String,
+    tpd: String,
+) {
+    com.openminis.app.provider.FreeTierLimits.setLimits(
+        context,
+        instanceId,
+        com.openminis.app.provider.FreeTierLimits.UsageLimits(
+            requestsPerDay = rpd.trim().toIntOrNull(),
+            tokensPerDay = tpd.trim().toLongOrNull(),
+        ),
+    )
 }

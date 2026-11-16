@@ -1235,6 +1235,16 @@
     <string name="provider_detail_responses_api">Responses API</string>
     <string name="provider_detail_azure_openai">Azure OpenAI</string>
     <string name="provider_detail_azure_openai_footer">Use Azure OpenAI authentication (api-key header). Paste your full Azure endpoint into Custom API Base above, including the ?api-version=… query. Works with both API formats.</string>
+    <string name="provider_free_models_header">Free models and daily budget</string>
+    <string name="provider_free_models_footer">A scan asks this provider which models it prices at zero. Nothing is inferred: a model the provider does not describe stays unmarked.</string>
+    <string name="provider_free_scan">Scan for free models</string>
+    <string name="provider_free_scanning">Scanning…</string>
+    <string name="provider_free_scan_subtitle">%1$d known free — tap to scan again</string>
+    <string name="provider_free_scan_ok">%1$d of %2$d models are free</string>
+    <string name="provider_free_scan_failed">Scan failed: %1$s</string>
+    <string name="provider_free_limit_rpd">Daily request limit (from your dashboard; blank = unknown)</string>
+    <string name="provider_free_limit_tpd">Daily token limit (optional)</string>
+    <string name="provider_free_limit_hint">These numbers are yours to enter: providers publish them per account, so the app cannot know them. Counting only covers requests this device sent.</string>
     <string name="provider_detail_status">Status</string>
     <string name="provider_detail_connection_header">Connection test</string>
     <string name="provider_detail_connection_footer">One request to this provider\'s model list. Nothing is created, cached or billed.</string>
@@ -2836,6 +2846,8 @@
     <string name="mcp_dcr_unreadable">%1$s returned data that could not be read.</string>
     <!-- [MINIS-OZEL] Settings › Appearance › Minis Özel: one switch per feature
          this fork added. Off hides the entry point; it never deletes data. -->
+    <string name="model_tag_free">free</string>
+    <string name="model_tag_limited">limit tracked</string>
     <string name="notes_title">Notes</string>
     <string name="notes_tab_notes">Notes</string>
     <string name="notes_tab_vault">Vault</string>

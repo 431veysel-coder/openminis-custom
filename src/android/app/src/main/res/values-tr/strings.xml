@@ -1094,6 +1094,16 @@
     <string name="provider_detail_responses_api">Responses API</string>
     <string name="provider_detail_azure_openai">Azure OpenAI</string>
     <string name="provider_detail_azure_openai_footer">Azure OpenAI kimlik doğrulamasını (api-key başlığı) kullanın. Tam Azure uç noktanızı, ?api-version=… sorgusu dahil olmak üzere yukarıdaki Özel API Adresi alanına yapıştırın. Her iki API biçimiyle de çalışır.</string>
+    <string name="provider_free_models_header">Ücretsiz modeller ve günlük bütçe</string>
+    <string name="provider_free_models_footer">Tarama, sağlayıcıya hangi modelleri sıfır fiyatlı saydığını sorar. Hiçbir şey tahmin edilmez: sağlayıcının tanımlamadığı model işaretsiz kalır.</string>
+    <string name="provider_free_scan">Ücretsiz modelleri tara</string>
+    <string name="provider_free_scanning">Taranıyor…</string>
+    <string name="provider_free_scan_subtitle">%1$d ücretsiz biliniyor — yeniden taramak için dokun</string>
+    <string name="provider_free_scan_ok">%2$d modelin %1$d tanesi ücretsiz</string>
+    <string name="provider_free_scan_failed">Tarama başarısız: %1$s</string>
+    <string name="provider_free_limit_rpd">Günlük istek limiti (panondan; boş = bilinmiyor)</string>
+    <string name="provider_free_limit_tpd">Günlük token limiti (isteğe bağlı)</string>
+    <string name="provider_free_limit_hint">Bu sayıları sen girersin: sağlayıcılar bunları hesap başına yayınlar, uygulama bilemez. Sayaç yalnız bu cihazdan giden istekleri kapsar.</string>
     <string name="provider_detail_status">Durum</string>
     <string name="provider_detail_connection_header">Bağlantı testi</string>
     <string name="provider_detail_connection_footer">Bu sağlayıcının model listesine tek bir istek. Hiçbir şey oluşturulmaz, önbelleğe alınmaz, ücretlendirilmez.</string>
@@ -2071,6 +2081,8 @@
     <string name="mcp_signin_reset_confirm">Sıfırla</string>
     <!-- [MINIS-OZEL] Ayarlar › Görünüm › Minis Özel: bu çatalın eklediği her
          özellik için bir anahtar. Kapatmak giriş noktasını gizler; veri silmez. -->
+    <string name="model_tag_free">ücretsiz</string>
+    <string name="model_tag_limited">limit takipli</string>
     <string name="notes_title">Notlar</string>
     <string name="notes_tab_notes">Notlar</string>
     <string name="notes_tab_vault">Kasa</string>
