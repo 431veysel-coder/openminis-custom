@@ -109,6 +109,7 @@ import java.util.Date
 import java.util.Locale
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.Serializable
 import com.openminis.app.tools.NoteTool
 
 /**
@@ -614,8 +615,6 @@ private fun NoteCard(
 }
 
 // Export data class
-import kotlinx.serialization.Serializable
-
 @Serializable
 private data class NoteExport(
     val notes: List<NoteExport.NoteExportItem>
