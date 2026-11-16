@@ -27,6 +27,14 @@ enum class AgentToolSwitch(val key: String, val defaultValue: Boolean) {
 
     /** [T-port-user-ask] user_ask - on by default, as on iOS (UserAskSettings.defaultEnabled). */
     USER_ASK(com.openminis.app.agent.userask.UserAskSettingsSpec.ENABLED_KEY, com.openminis.app.agent.userask.UserAskSettingsSpec.DEFAULT_ENABLED),
+
+    /**
+     * [MINIS-OZEL 11.1] note — the agent's notebook. Its own switch as well as
+     * the app-wide Notes flag: someone may want the Notes screen for themselves
+     * and still not want the model writing to it, which is a different decision
+     * from turning the whole module off.
+     */
+    NOTES("agent.tools.notes.enabled", true),
     ;
 
     fun isEnabled(context: Context): Boolean =
@@ -50,6 +58,7 @@ enum class AgentToolSwitch(val key: String, val defaultValue: Boolean) {
             // replayed call from an older transcript.
             "subagent_task", "delegate_task", "agent_status" -> AGENTS
             com.openminis.app.agent.userask.UserAskPromptText.TOOL_NAME -> USER_ASK
+            "note" -> NOTES
             else -> null
         }
 

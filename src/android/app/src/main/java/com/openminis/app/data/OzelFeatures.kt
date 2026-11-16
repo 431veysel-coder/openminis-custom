@@ -98,6 +98,16 @@ object OzelFeatures {
         VAULT("vault", true),
 
         /**
+         * [MINIS-OZEL 11.1] Whether an agent may READ a vault value.
+         *
+         * Off by default, and deliberately separate from [VAULT]: the vault
+         * existing and the agent being allowed to see inside it are different
+         * decisions. Turning this on means the secret is sent to the model
+         * provider as part of the conversation — the settings row says so.
+         */
+        VAULT_AGENT_READ("vault_agent_read", false),
+
+        /**
          * [MINIS-OZEL 11.1] The Station: several providers/models working the
          * same task side by side, each with its own terminal and browser tabs.
          */

@@ -50,6 +50,11 @@ object AgentTools {
         // not a sub agent, an interactive run). Not in the list = does not
         // exist: no schema, no prompt line, no retries on it. Last, as on iOS.
         userAskExposed: Boolean = false,
+        // [MINIS-OZEL 11.1] Settings › Minis Özel › Notes, and the Agent Tools
+        // switch beside it. Absent = the model never learns the tool exists,
+        // which is the only way to make "off" mean off rather than "still
+        // offered, then refused".
+        notesEnabled: Boolean = true,
     ): List<AgentToolDefinition> = buildList {
         add(shellExecuteDefinition())
         add(FileReadTool.definition())
@@ -67,6 +72,9 @@ object AgentTools {
             add(subAgentTaskDefinition(rosterNames))
         }
         if (userAskExposed && !isHelper) add(com.openminis.app.agent.userask.UserAskPromptText.definition())
+        // [MINIS-OZEL 11.1] Available to helpers too: a sub agent that cannot
+        // keep a note is a sub agent that re-explores the same thing next time.
+        if (notesEnabled) add(com.openminis.app.tools.NoteTool.definition())
     }
 
     /**

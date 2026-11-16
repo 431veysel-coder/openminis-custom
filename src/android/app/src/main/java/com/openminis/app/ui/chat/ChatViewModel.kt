@@ -2520,6 +2520,14 @@ class ChatViewModel(
             // would reject.
             rosterNames = providerRepository.subAgents.map { it.name },
             userAskExposed = userAskExposedThisRun,
+            // [MINIS-OZEL 11.1] Two switches, both must be on: the app-wide
+            // Notes flag (Settings › Minis Özel) and the per-tool switch
+            // (Settings › Agent Tools). The app-wide one wins when off, because
+            // the screen that owns the other switch is hidden in that case.
+            notesEnabled = com.openminis.app.data.OzelFeatures.isEnabled(
+                context,
+                com.openminis.app.data.OzelFeatures.Feature.NOTES,
+            ) && com.openminis.app.tools.AgentToolSwitch.NOTES.isEnabled(context),
         )
 
     /**
@@ -14174,6 +14182,34 @@ class ChatViewModel(
                     toolDisabledResult("browser_use")
                 }
             "memory_write" -> executeMemoryWriteTool(argsJson)
+            // [MINIS-OZEL 11.1] The notebook. Gated at the dispatcher as well as
+            // the schema, for the same replay reason as browser_use above.
+            com.openminis.app.tools.NoteTool.NAME ->
+                if (com.openminis.app.tools.AgentToolSwitch.NOTES.isEnabled(context) &&
+                    com.openminis.app.data.OzelFeatures.isEnabled(
+                        context,
+                        com.openminis.app.data.OzelFeatures.Feature.NOTES,
+                    )
+                ) {
+                    val r = com.openminis.app.tools.NoteTool.execute(
+                        argsJson = argsJson,
+                        context = context,
+                        scopeFor = { global ->
+                            if (global) {
+                                com.openminis.app.data.repository.NoteStore.Scope.GLOBAL.wire
+                            } else {
+                                // The scope a note belongs to IS the caller's
+                                // own id: a chat session here, a Station space
+                                // inside a panel. That is the whole isolation
+                                // mechanism for notes — no filtering later.
+                                com.openminis.app.data.repository.NoteStore.Scope.session(fsSessionId).wire
+                            }
+                        },
+                    )
+                    ToolExecutionResult(output = r.output, success = r.success)
+                } else {
+                    toolDisabledResult("note")
+                }
             // [T-sub-agents-v1] One tool, five actions. The legacy names are
             // accepted so a replayed call from a transcript written before the
             // rename still dispatches instead of hitting "Unknown tool".
@@ -18566,6 +18602,9 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
         "read_image" -> "Read Image"
         "memory_write" -> "Write Memory"
         "memory_get" -> "Read Memory"
+        // [MINIS-OZEL 11.1] The tool bar label. "Note" would read as an action
+        // the USER took; the row is the agent's notebook.
+        com.openminis.app.tools.NoteTool.NAME -> "Notes"
         com.openminis.app.agent.userask.UserAskPromptText.TOOL_NAME -> "Question for you"
         "web_search" -> "Search Web"
         else -> toolName
