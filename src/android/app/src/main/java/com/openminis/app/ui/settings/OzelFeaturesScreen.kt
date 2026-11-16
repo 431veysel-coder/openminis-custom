@@ -48,6 +48,8 @@ fun OzelFeaturesScreen(
     // [MINIS-OZEL 11.1] The hub opens child screens rather than adding a route
     // per feature: one Settings entry, one destination, new features are rows.
     onOpenNotes: () -> Unit = {},
+    // [MINIS-OZEL 11.3.1] The journal: what changed and how to take it back.
+    onOpenJournal: () -> Unit = {},
 ) {
     val context = LocalContext.current
 
@@ -149,6 +151,12 @@ fun OzelFeaturesScreen(
                 onCheckedChange = { set(Feature.VAULT, it) },
             )
             SettingsSwitchRow(
+                title = stringResource(R.string.ozel_feature_journal),
+                subtitle = stringResource(R.string.ozel_feature_journal_subtitle),
+                checked = values[Feature.JOURNAL] == true,
+                onCheckedChange = { set(Feature.JOURNAL, it) },
+            )
+            SettingsSwitchRow(
                 title = stringResource(R.string.ozel_feature_vault_read),
                 subtitle = stringResource(R.string.ozel_feature_vault_read_subtitle),
                 checked = values[Feature.VAULT_AGENT_READ] == true,
@@ -160,6 +168,14 @@ fun OzelFeaturesScreen(
                 icon = Icons.Outlined.Description,
                 iconColor = Color(0xFF30B0C7),
                 onClick = if (values[Feature.NOTES] == true) onOpenNotes else null,
+                showDivider = true,
+            )
+            SettingsRow(
+                title = stringResource(R.string.ozel_journal_open),
+                subtitle = stringResource(R.string.ozel_journal_open_subtitle),
+                icon = Icons.Outlined.Restore,
+                iconColor = Color(0xFF8E8E93),
+                onClick = onOpenJournal,
                 showDivider = false,
             )
         }

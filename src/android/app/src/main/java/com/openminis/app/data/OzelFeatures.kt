@@ -116,6 +116,19 @@ object OzelFeatures {
          * screen is intrusive unless the user asks for it.
          */
         EDIT_MODE("edit_mode", false),
+
+        /**
+         * [MINIS-OZEL 11.3.1] The action journal: every file an agent changed,
+         * with the recipe to undo it, plus the `journal` tool that lets the
+         * agent see its own history.
+         *
+         * ON by default. It is the safety net under every other feature — an
+         * agent that can be undone is one the user can let run — so a default
+         * of off would only protect the installs that already asked for it.
+         * Turning it off stops new entries being written; the ones on disk
+         * stay readable until they age out.
+         */
+        JOURNAL("journal", true),
         ;
 
         companion object {

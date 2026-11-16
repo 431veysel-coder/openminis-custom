@@ -2186,4 +2186,19 @@
     <string name="translation_packs_bundled">uygulamada gömülü</string>
     <string name="translation_packs_installed_label">kurulu</string>
     <string name="translation_packs_active_subtitle">Her çeviriye uygulanan terim ve üslup kuralları</string>
+    <!-- [MINIS-OZEL 11.3.1] Eylem defteri -->
+    <string name="ozel_journal_title">Eylem defteri</string>
+    <string name="ozel_journal_subtitle">Ajanın yaptığı her değişiklik, geri alma yoluyla</string>
+    <string name="ozel_journal_open">Eylem defterini aç</string>
+    <string name="ozel_journal_open_subtitle">En yenisi üstte — tek dokunuşla geri al</string>
+    <string name="ozel_journal_footer">En yenisi üstte. Geri alma tarifi, değişikliği yapan araç tarafından o an yazılır; önceki içeriğin hâlâ var olduğu tek an odur. Kayıtlar 14 gün saklanır, sonra yükleriyle birlikte silinir.</string>
+    <string name="ozel_journal_storage">%1$d değişiklik · diskte %2$d KB</string>
+    <string name="ozel_journal_empty">Henüz hiçbir şey değiştirilmedi. Ajan bir dosya yazdığında ya da düzenlediğinde, geri dönüş yoluyla birlikte burada görünür.</string>
+    <string name="ozel_journal_undo">Geri al</string>
+    <string name="ozel_journal_undone">zaten geri alındı</string>
+    <string name="ozel_journal_no_undo">geri alınamaz</string>
+    <string name="ozel_journal_clear">Defterin tamamını sil</string>
+    <string name="ozel_journal_clear_footer">Defteri silmek geri alma yüklerini de siler: dosyalar olduğu gibi kalır ama sonrasında hiçbir şey geri alınamaz.</string>
+    <string name="ozel_feature_journal">Eylem defteri</string>
+    <string name="ozel_feature_journal_subtitle">Her dosya değişikliğini geri alma yoluyla kaydet ve ajanın kendi geçmişini okumasına izin ver. Varsayılan açık — diğer her şeyin altındaki güvenlik ağı budur.</string>
 </resources>

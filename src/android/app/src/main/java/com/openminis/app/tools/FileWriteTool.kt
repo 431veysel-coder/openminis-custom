@@ -2,6 +2,8 @@ package com.openminis.app.tools
 
 import android.content.Context
 import com.openminis.app.data.ContextOffload
+import com.openminis.app.data.OzelFeatures
+import com.openminis.app.data.journal.ActionJournal
 import com.openminis.app.data.model.AgentToolDefinition
 import com.openminis.app.data.model.AgentToolParam
 import com.openminis.app.logging.AppLogger
@@ -100,6 +102,20 @@ object FileWriteTool {
             // [T-port-filetool-size-guard] The write runs off the caller's
             // thread with a timeout, so a write to an unresponsive mounted
             // folder no longer holds the agent loop forever.
+            // [MINIS-OZEL 11.3.1] Capture what this write is about to destroy,
+            // BEFORE destroying it. The journal's whole value is that the undo
+            // recipe is produced by the writer at write time; reconstructing it
+            // afterwards is impossible for an overwrite, because the previous
+            // bytes are already gone.
+            val existedBefore = file.exists()
+            // Unreadable (binary, encoding, permissions) journals as
+            // "not reversible" rather than as a mangled copy.
+            val previousContent: String? = when {
+                !existedBefore -> null
+                file.length() > ActionJournal.MAX_BLOB_BYTES -> null
+                else -> try { file.readText() } catch (e: Exception) { null }
+            }
+
             try {
                 FileToolIO.run("Writing $path", writes = true) {
                     val parent = file.parentFile
@@ -138,7 +154,34 @@ object FileWriteTool {
                     )
                 }
             }
-            ToolExecutionResult("Wrote to $path ($bytes bytes)", true, toolTitle = toolTitle)
+            // [MINIS-OZEL 11.3.1] Journal the change and tell the model it can
+            // be undone. Reporting reversibility in the tool RESULT is what
+            // makes an agent willing to try a risky edit and fix it if wrong,
+            // instead of asking permission for every line.
+            val journalNote = if (OzelFeatures.isEnabled(context, OzelFeatures.Feature.JOURNAL)) {
+                val entry = ActionJournal.record(
+                    ctx = context,
+                    tool = NAME,
+                    title = toolTitle,
+                    target = path,
+                    previous = previousContent,
+                    afterBytes = bytes,
+                    sessionId = sessionId,
+                    appended = append && existedBefore,
+                )
+                when (entry.undoKind) {
+                    ActionJournal.UndoKind.NONE ->
+                        " Not reversible" + if (entry.note.isNotEmpty()) " (${entry.note})." else "."
+                    else -> " Undo id: ${entry.id.take(8)}."
+                }
+            } else {
+                ""
+            }
+            ToolExecutionResult(
+                "Wrote to $path ($bytes bytes).$journalNote",
+                true,
+                toolTitle = toolTitle,
+            )
         } catch (e: Exception) {
             ToolExecutionResult("Error writing file: ${e.message}", false)
         }

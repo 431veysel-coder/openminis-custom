@@ -2951,4 +2951,19 @@
     <string name="translation_packs_bundled">in the app</string>
     <string name="translation_packs_installed_label">installed</string>
     <string name="translation_packs_active_subtitle">Terminology and style rules applied to every translation</string>
+    <!-- [MINIS-OZEL 11.3.1] Action journal -->
+    <string name="ozel_journal_title">Action journal</string>
+    <string name="ozel_journal_subtitle">Every change an agent made, with undo</string>
+    <string name="ozel_journal_open">Open the journal</string>
+    <string name="ozel_journal_open_subtitle">Newest first — one tap to take a change back</string>
+    <string name="ozel_journal_footer">Newest first. The recipe to undo a change is written by the tool that made it, at the moment it made it — that is the only point where the previous content still exists. Entries are kept for 14 days, then deleted with their payloads.</string>
+    <string name="ozel_journal_storage">%1$d change(s) · %2$d KB on disk</string>
+    <string name="ozel_journal_empty">Nothing has been changed yet. When an agent writes or edits a file, it appears here with a way back.</string>
+    <string name="ozel_journal_undo">Undo</string>
+    <string name="ozel_journal_undone">already undone</string>
+    <string name="ozel_journal_no_undo">not reversible</string>
+    <string name="ozel_journal_clear">Delete the whole journal</string>
+    <string name="ozel_journal_clear_footer">Deleting the journal removes the undo payloads with it: the files stay as they are, but nothing can be taken back afterwards.</string>
+    <string name="ozel_feature_journal">Action journal</string>
+    <string name="ozel_feature_journal_subtitle">Record each file change with a way to undo it, and let the agent read its own history. On by default — it is the safety net under everything else.</string>
 </resources>

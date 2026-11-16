@@ -55,6 +55,9 @@ object AgentTools {
         // which is the only way to make "off" mean off rather than "still
         // offered, then refused".
         notesEnabled: Boolean = true,
+        // [MINIS-OZEL 11.3.1] Settings › Minis Özel › Action journal. Absent =
+        // the model never learns the tool exists, same rule as notesEnabled.
+        journalEnabled: Boolean = true,
     ): List<AgentToolDefinition> = buildList {
         add(shellExecuteDefinition())
         add(FileReadTool.definition())
@@ -75,6 +78,10 @@ object AgentTools {
         // [MINIS-OZEL 11.1] Available to helpers too: a sub agent that cannot
         // keep a note is a sub agent that re-explores the same thing next time.
         if (notesEnabled) add(com.openminis.app.tools.NoteTool.definition())
+        // [MINIS-OZEL 11.3.1] The journal is offered to helpers too: a sub agent
+        // that cannot see what the main run already changed is the one most
+        // likely to undo it by accident.
+        if (journalEnabled) add(com.openminis.app.tools.JournalTool.definition())
     }
 
     /**

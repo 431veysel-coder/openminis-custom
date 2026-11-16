@@ -2,6 +2,8 @@ package com.openminis.app.tools
 
 import android.content.Context
 import com.openminis.app.data.ContextOffload
+import com.openminis.app.data.OzelFeatures
+import com.openminis.app.data.journal.ActionJournal
 import com.openminis.app.data.model.AgentToolDefinition
 import com.openminis.app.data.model.AgentToolParam
 import com.openminis.app.logging.AppLogger
@@ -76,10 +78,42 @@ object FileEditTool {
             // [T-port-filetool-size-guard] Read, replace and write back off
             // the caller's thread with a timeout; an OutOfMemoryError becomes
             // a tool error instead of killing the app.
+            // [MINIS-OZEL 11.3.1] Keep the pre-edit bytes so the edit can be
+            // reversed, then journal it. The snapshot has to be taken here:
+            // FileEditTool.edit() writes the file, and after that the previous
+            // content exists nowhere.
+            val journaled = OzelFeatures.isEnabled(context, OzelFeatures.Feature.JOURNAL)
+            val snapshot: String? = if (journaled && file.length() <= ActionJournal.MAX_BLOB_BYTES) {
+                try { file.readText() } catch (e: Exception) { null }
+            } else {
+                null
+            }
             try {
-                FileToolIO.run("Editing $path", writes = true) {
+                val result = FileToolIO.run("Editing $path", writes = true) {
                     edit(file, path, oldString, newString, replaceAll, toolTitle)
                 }
+                if (journaled && result.success) {
+                    val entry = ActionJournal.record(
+                        ctx = context,
+                        tool = NAME,
+                        title = toolTitle,
+                        target = path,
+                        previous = snapshot,
+                        afterBytes = file.length(),
+                        sessionId = sessionId,
+                    )
+                    val suffix = if (entry.undoKind == ActionJournal.UndoKind.NONE) {
+                        " Not reversible."
+                    } else {
+                        " Undo id: ${entry.id.take(8)}."
+                    }
+                    return ToolExecutionResult(
+                        (result.output ?: "") + suffix,
+                        true,
+                        toolTitle = toolTitle,
+                    )
+                }
+                result
             } catch (e: FileToolIO.TimedOut) {
                 ToolExecutionResult("Error: ${e.message}", false, toolTitle = toolTitle, timedOut = true)
             } catch (e: FileToolIO.OutOfMemory) {

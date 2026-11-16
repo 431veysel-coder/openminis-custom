@@ -2560,6 +2560,13 @@ class ChatViewModel(
                 context,
                 com.openminis.app.data.OzelFeatures.Feature.NOTES,
             ) && com.openminis.app.tools.AgentToolSwitch.NOTES.isEnabled(context),
+            // [MINIS-OZEL 11.3.1] One switch: the journal has no per-tool toggle
+            // because turning it off would only hide the history from the model
+            // while the entries keep being written.
+            journalEnabled = com.openminis.app.data.OzelFeatures.isEnabled(
+                context,
+                com.openminis.app.data.OzelFeatures.Feature.JOURNAL,
+            ),
         )
 
     /**
@@ -14242,6 +14249,20 @@ class ChatViewModel(
                 } else {
                     toolDisabledResult("note")
                 }
+            // [MINIS-OZEL 11.3.1] The journal. Gated at the dispatcher as well
+            // as in the schema: a replayed call from an older transcript must
+            // not reach a feature the user switched off.
+            com.openminis.app.tools.JournalTool.NAME ->
+                if (com.openminis.app.tools.JournalTool.enabled(context)) {
+                    val r = com.openminis.app.tools.JournalTool.execute(
+                        argsJson = argsJson,
+                        context = context,
+                        sessionId = fsSessionId,
+                    )
+                    ToolExecutionResult(output = r.output, success = r.success)
+                } else {
+                    toolDisabledResult("journal")
+                }
             // [T-sub-agents-v1] One tool, five actions. The legacy names are
             // accepted so a replayed call from a transcript written before the
             // rename still dispatches instead of hitting "Unknown tool".
@@ -18674,6 +18695,7 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
         // [MINIS-OZEL 11.1] The tool bar label. "Note" would read as an action
         // the USER took; the row is the agent's notebook.
         com.openminis.app.tools.NoteTool.NAME -> "Notes"
+        com.openminis.app.tools.JournalTool.NAME -> "Action journal"
         com.openminis.app.agent.userask.UserAskPromptText.TOOL_NAME -> "Question for you"
         "web_search" -> "Search Web"
         else -> toolName

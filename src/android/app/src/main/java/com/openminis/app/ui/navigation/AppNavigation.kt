@@ -192,6 +192,9 @@ object Routes {
 
     /** [MINIS-OZEL 11.1] Notes + vault. Global scope — not tied to a chat. */
     const val NOTES_PAGE = "notes_page"
+
+    /** [MINIS-OZEL 11.3.1] Settings › Minis Özel › Action journal. */
+    const val ACTION_JOURNAL = "action_journal"
     /** [T-tools-granular-switches] Settings > Agent Runtime > Tools. */
     const val AGENT_TOOLS = "agent_tools"
     /** [T-mcp-integration-android] MCP Integrations management screen. */
@@ -1581,6 +1584,12 @@ fun AppNavigation(
             com.openminis.app.ui.settings.OzelFeaturesScreen(
                 onBack = { navController.safePopBackStack() },
                 onOpenNotes = { navController.safeNavigate(Routes.NOTES_PAGE) },
+                onOpenJournal = { navController.safeNavigate(Routes.ACTION_JOURNAL) },
+            )
+        }
+        composable(Routes.ACTION_JOURNAL) {
+            com.openminis.app.ui.settings.ActionJournalScreen(
+                onBack = { navController.safePopBackStack() },
             )
         }
         composable(Routes.NOTES_PAGE) {
