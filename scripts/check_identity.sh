@@ -100,10 +100,10 @@ case "$vname" in
   *-ozel.*) report ok "$G versionName" "$vname" ;;
   *) report FAIL "$G versionName" "'$vname' does not carry the -ozel suffix" ;;
 esac
-if [ -n "$vcode" ] && [ "$vcode" -gt 37013 ]; then
-  report ok "$G versionCode" "$vcode (> 37013)"
+if [ -n "$vcode" ] && [ "$vcode" -gt 37027 ]; then
+  report ok "$G versionCode" "$vcode (> 37027)"
 else
-  report FAIL "$G versionCode" "'$vcode' must be > 37013 (37009-37013 are withdrawn and burned)"
+  report FAIL "$G versionCode" "'$vcode' must be > 37027 (37009-37013 and 37017-37027 are burned)"
 fi
 
 # native loaders: absent means every shell command returns "[Shell not running] -1"

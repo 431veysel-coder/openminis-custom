@@ -2,6 +2,8 @@ package com.openminis.app.data
 
 import android.content.Context
 import com.openminis.app.logging.AppLogger
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -58,6 +60,23 @@ object TranslationPacks {
 
     private const val PREFS = "thinking_translation_prefs"
     private const val KEY_ACTIVE = "pack_id"
+    private const val KEY_HIDDEN = "hidden_pack_ids"
+
+    /**
+     * Packs shipped INSIDE the APK, under `assets/packs/`.
+     *
+     * [MINIS-OZEL 11.1] The catalogue used to be remote-only and reachable only
+     * through a "load catalogue" button, so on a network where
+     * `raw.githubusercontent.com` is blocked (Turkey, routinely) the screen was
+     * EMPTY even though the packs existed. A language pack is a few kilobytes
+     * of JSON; there is no reason for it to depend on a network at all.
+     *
+     * Built-in packs are read from the asset, never copied to filesDir, and
+     * cannot be deleted — "remove" hides them instead
+     * ([hiddenIds]). They are what the device language matches against on a
+     * fresh install, before any download is attempted.
+     */
+    private const val ASSET_DIR = "packs"
 
     /**
      * One pack. Everything is optional except [id] and [name]; a pack that only
@@ -125,20 +144,112 @@ object TranslationPacks {
     private fun fileFor(context: Context, id: String): File =
         File(dir(context), "${id.replace(Regex("[^A-Za-z0-9._-]"), "_")}.json")
 
-    fun installed(context: Context): List<Pack> =
-        dir(context).listFiles { f -> f.isFile && f.name.endsWith(".json") }
+    fun installed(context: Context): List<Pack> {
+        val hidden = hiddenIds(context)
+        val downloaded = dir(context).listFiles { f -> f.isFile && f.name.endsWith(".json") }
             ?.mapNotNull { f -> runCatching { parse(f.readText(), sourceUrl = null) }.getOrNull() }
-            ?.sortedBy { it.name.lowercase() }
             ?: emptyList()
+        val byId = LinkedHashMap<String, Pack>()
+        // Built-ins first so a downloaded copy of the same id overrides it —
+        // a newer catalogue pack must win over the one baked into the APK.
+        builtIn(context).forEach { byId[it.id] = it }
+        downloaded.forEach { byId[it.id] = it }
+        return byId.values
+            .filter { it.id !in hidden }
+            .sortedWith(compareBy({ !matchesDeviceLanguage(context, it) }, { it.name.lowercase() }))
+    }
 
-    fun installedSizeBytes(context: Context): Long =
-        dir(context).listFiles()?.filter { it.isFile }?.sumOf { it.length() } ?: 0L
+    /**
+     * Reads the shipped packs once per process. `forLanguage` is called for
+     * every translated block, and re-reading three assets each time would put
+     * file IO on a hot path for a value that cannot change at runtime.
+     */
+    @Volatile
+    private var builtInCache: List<Pack>? = null
 
+    /** Every shipped pack, regardless of hide state. */
+    fun builtIn(context: Context): List<Pack> {
+        builtInCache?.let { return it }
+        val names = runCatching {
+            context.applicationContext.assets.list(ASSET_DIR)
+                ?.filter { it.endsWith(".json") }
+                ?.sorted()
+                ?: emptyList()
+        }.getOrDefault(emptyList())
+        return names.mapNotNull { name ->
+            runCatching {
+                context.applicationContext.assets
+                    .open("$ASSET_DIR/$name")
+                    .bufferedReader()
+                    .use { it.readText() }
+            }.mapCatching { parse(it, sourceUrl = null, builtIn = true) }.getOrNull()
+        }.also { builtInCache = it }
+    }
+
+    fun hiddenIds(context: Context): Set<String> =
+        prefs(context).getStringSet(KEY_HIDDEN, emptySet())?.toSet() ?: emptySet()
+
+    private fun setHidden(context: Context, id: String, hidden: Boolean) {
+        val next = hiddenIds(context).toMutableSet()
+        if (hidden) next.add(id) else next.remove(id)
+        prefs(context).edit().putStringSet(KEY_HIDDEN, next).apply()
+    }
+
+    /**
+     * The device's own UI language, as the English display name the packs use
+     * ("Turkish", "English"). This is what makes a Turkish phone show the
+     * Turkish packs without the user finding a setting first.
+     */
+    fun deviceLanguageName(context: Context): String = runCatching {
+        java.util.Locale.getDefault().getDisplayLanguage(java.util.Locale.ENGLISH)
+    }.getOrNull().orEmpty().ifBlank { "English" }
+
+    fun matchesDeviceLanguage(context: Context, pack: Pack): Boolean =
+        languagesMatch(pack.targetLanguage, deviceLanguageName(context))
+
+    /**
+     * Whether two language names refer to the same language. Pure so it can be
+     * tested without a Context: pack files write "Turkish", and the device
+     * answers `getDisplayLanguage(Locale.ENGLISH)` with the same spelling, but
+     * one of the two may still arrive padded or cased differently from a
+     * hand-edited pack.
+     */
+    internal fun languagesMatch(packTarget: String, deviceLanguage: String): Boolean {
+        val target = packTarget.trim()
+        val device = deviceLanguage.trim()
+        if (target.isEmpty() || device.isEmpty()) return false
+        return target.equals(device, ignoreCase = true)
+    }
+
+    fun installedSizeBytes(context: Context): Long {
+        val files = dir(context).listFiles()?.filter { it.isFile }?.sumOf { it.length() } ?: 0L
+        val assets = runCatching {
+            context.applicationContext.assets.list(ASSET_DIR)?.sumOf { name ->
+                runCatching {
+                    context.applicationContext.assets.open("$ASSET_DIR/$name").use { it.available().toLong() }
+                }.getOrDefault(0L)
+            } ?: 0L
+        }.getOrDefault(0L)
+        return files + assets
+    }
+
+    /**
+     * Removes a pack. A shipped pack cannot be deleted (it lives in the APK), so
+     * it is hidden instead; [restoreBuiltIn] brings it back.
+     */
     fun remove(context: Context, id: String): Boolean {
-        val ok = fileFor(context, id).delete()
+        val isBuiltIn = builtIn(context).any { it.id == id }
+        val fileDeleted = if (isBuiltIn) false else fileFor(context, id).delete()
+        if (isBuiltIn) setHidden(context, id, true)
         if (activeId(context) == id) setActive(context, null)
-        AppLogger.info(TAG, "[remove] $id -> $ok")
-        return ok
+        AppLogger.info(TAG, "[remove] $id builtIn=$isBuiltIn deleted=$fileDeleted")
+        return isBuiltIn || fileDeleted
+    }
+
+    /** Un-hides a shipped pack that was removed from the list. */
+    fun restoreBuiltIn(context: Context, id: String) {
+        setHidden(context, id, false)
+        AppLogger.info(TAG, "[restore] $id")
     }
 
     fun setActive(context: Context, id: String?) {
@@ -178,6 +289,8 @@ object TranslationPacks {
             val pack = parse(json, sourceUrl)
             require(!pack.isEmpty) { "pack '${pack.id}' carries no rules" }
             fileFor(context, pack.id).writeText(pack.toJson().toString(2))
+            // Re-installing a pack that was hidden must bring it back.
+            setHidden(context, pack.id, false)
             AppLogger.info(
                 TAG,
                 "[install] ${pack.id} v${pack.version} lang=${pack.targetLanguage} " +
@@ -192,17 +305,62 @@ object TranslationPacks {
      * kilobytes, so a slow response means the URL is wrong, not that the
      * network is slow.
      */
-    suspend fun installFromUrl(context: Context, url: String): Result<Pack> = runCatching {
-        val body = httpGet(url)
-        installJson(context, body, sourceUrl = url).getOrThrow()
+    suspend fun installFromUrl(context: Context, url: String): Result<Pack> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val body = httpGet(url)
+                installJson(context, body, sourceUrl = url).getOrThrow()
+            }
+        }
+
+    /** One catalogue row plus the facts the screen needs to draw it. */
+    data class CatalogResult(
+        val entries: List<CatalogEntry>,
+        /** False when the remote index could not be read (offline, blocked host). */
+        val online: Boolean,
+        /** Why the remote index failed, for the footer. Null when online. */
+        val error: String?,
+    )
+
+    /**
+     * The catalogue: shipped packs first, then anything the remote index adds.
+     *
+     * [MINIS-OZEL 11.1] Three things used to make this screen empty, and all
+     * three are fixed here:
+     *
+     *  1. It ran `httpGet` on the caller's thread — the Compose scope is Main,
+     *     so Android threw NetworkOnMainThreadException and [runCatching]
+     *     swallowed it into a message nobody read. Now it runs on IO.
+     *  2. It returned nothing at all when the URL failed, and
+     *     `raw.githubusercontent.com` is blocked on Turkish networks. Now the
+     *     packs baked into the APK are always returned.
+     *  3. It did not know the device language, so a Turkish phone got no
+     *     ordering preference. Now matching packs come first.
+     */
+    suspend fun catalog(context: Context): CatalogResult = withContext(Dispatchers.IO) {
+        val shipped = builtIn(context)
+        val remote = runCatching { remoteCatalog() }
+        val merged = LinkedHashMap<String, CatalogEntry>()
+        remote.getOrNull()?.forEach { merged[it.pack.id] = it }
+        shipped.forEach { merged.putIfAbsent(it.id, CatalogEntry(it, "")) }
+        CatalogResult(
+            entries = merged.values.sortedWith(
+                compareBy(
+                    { !matchesDeviceLanguage(context, it.pack) },
+                    { it.pack.name.lowercase() },
+                ),
+            ),
+            online = remote.isSuccess,
+            error = remote.exceptionOrNull()?.let { it.message ?: it.javaClass.simpleName },
+        )
     }
 
-    /** The shipped catalogue. Never throws: a dead network is not an app error. */
-    suspend fun catalog(): Result<List<CatalogEntry>> = runCatching {
+    /** Reads the published index. Caller supplies the IO context. */
+    private fun remoteCatalog(): List<CatalogEntry> {
         val body = httpGet(INDEX_URL)
         val root = JSONObject(body)
         val arr = root.optJSONArray("packs") ?: JSONArray()
-        (0 until arr.length()).mapNotNull { i ->
+        return (0 until arr.length()).mapNotNull { i ->
             val o = arr.optJSONObject(i) ?: return@mapNotNull null
             val packObj = o.optJSONObject("pack")
             val url = o.optString("url", "")
@@ -214,7 +372,7 @@ object TranslationPacks {
 
     // ── parsing ─────────────────────────────────────────────────────────────
 
-    internal fun parse(raw: String, sourceUrl: String?): Pack {
+    internal fun parse(raw: String, sourceUrl: String?, builtIn: Boolean = false): Pack {
         val o = JSONObject(raw)
         val id = o.optString("id").trim()
         val name = o.optString("name").trim()
@@ -251,7 +409,7 @@ object TranslationPacks {
             keepAsIs = keep,
             examples = examples,
             sourceUrl = sourceUrl,
-            builtIn = false,
+            builtIn = builtIn,
         )
     }
 

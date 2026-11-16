@@ -2108,5 +2108,15 @@
     <string name="translation_packs_install">Kur</string>
     <string name="translation_packs_active">Bu dil için etkin: %1$s</string>
     <string name="translation_packs_none_active">yok — çeviri çalışır, yalnız daha az tutarlı olur</string>
+    <string name="translation_packs_hidden">Gizlenen paketler</string>
+    <string name="translation_packs_hidden_subtitle">Uygulamaya gömülü — geri getir</string>
+    <string name="translation_packs_catalog_offline">Depoya ulaşılamadı (%1$s). Uygulamaya gömülü paketler yukarıda listeleniyor ve ağ olmadan çalışır.</string>
+    <string name="translation_packs_nothing_new">Yeni bir şey yok — katalogdaki her paket zaten kullanılabilir.</string>
+    <string name="translation_packs_device_header">Cihaz dili</string>
+    <string name="translation_packs_device_footer">%1$s için paketler önce listelenir. Sırayı değiştirmek için cihaz dilini değiştir.</string>
+    <string name="translation_packs_device_value">Kullanılan dil: %1$s</string>
+    <string name="translation_packs_device">cihaz dili</string>
+    <string name="translation_packs_bundled">uygulamada gömülü</string>
+    <string name="translation_packs_installed_label">kurulu</string>
     <string name="translation_packs_active_subtitle">Her çeviriye uygulanan terim ve üslup kuralları</string>
 </resources>

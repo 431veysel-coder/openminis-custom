@@ -2873,5 +2873,15 @@
     <string name="translation_packs_install">Install</string>
     <string name="translation_packs_active">Active for this language: %1$s</string>
     <string name="translation_packs_none_active">none — translation still works, it is just less consistent</string>
+    <string name="translation_packs_hidden">Hidden packs</string>
+    <string name="translation_packs_hidden_subtitle">Shipped in the app — bring it back</string>
+    <string name="translation_packs_catalog_offline">The repository could not be reached (%1$s). The packs shipped in the app are listed above and work without a network.</string>
+    <string name="translation_packs_nothing_new">Nothing new — every pack in the catalogue is already available.</string>
+    <string name="translation_packs_device_header">Device language</string>
+    <string name="translation_packs_device_footer">Packs for %1$s are listed first. Change the device language to change the order.</string>
+    <string name="translation_packs_device_value">Using %1$s</string>
+    <string name="translation_packs_device">device language</string>
+    <string name="translation_packs_bundled">in the app</string>
+    <string name="translation_packs_installed_label">installed</string>
     <string name="translation_packs_active_subtitle">Terminology and style rules applied to every translation</string>
 </resources>

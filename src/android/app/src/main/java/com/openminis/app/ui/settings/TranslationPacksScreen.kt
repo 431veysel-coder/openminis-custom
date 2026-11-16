@@ -8,11 +8,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudDownload
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,16 +35,18 @@ import kotlinx.coroutines.launch
 /**
  * [MINIS-OZEL] Settings › Translation › Packs.
  *
- * Same shape as the Toolchains screen on purpose: a list of things that can be
- * downloaded, a size, an install and a remove. What is being installed differs
- * (a few kilobytes of terminology rather than a few hundred megabytes of
- * compiler), but the mental model a user needs is identical, and inventing a
- * second one for the same verb would be a cost with no benefit.
+ * ## What changed in 11.1
  *
- * Nothing here spends money: a pack is a JSON file. The cost it affects is the
- * one already visible on the Translation screen — every translation is a
- * second model request — and a pack does not add a request, it only changes
- * what the existing one is told.
+ * The screen used to be empty on a fresh install until the user pressed
+ * "check the catalogue", and it stayed empty forever on any network where
+ * `raw.githubusercontent.com` is blocked — which is the default state on
+ * Turkish mobile networks. The packs themselves were fine; they simply were
+ * not in the APK and nothing told the user why they were missing.
+ *
+ * Now: the packs ship inside the APK, the ones matching the device language are
+ * listed first, and the remote index is only ever an ADDITION. The screen
+ * therefore never shows "no pack" for a language this build knows, and the
+ * catalogue refresh is a background nicety rather than a prerequisite.
  */
 @Composable
 fun TranslationPacksScreen(onBack: () -> Unit) {
@@ -52,16 +56,40 @@ fun TranslationPacksScreen(onBack: () -> Unit) {
     var installed by remember { mutableStateOf(TranslationPacks.installed(context)) }
     var activeId by remember { mutableStateOf(TranslationPacks.activeId(context)) }
     var catalog by remember { mutableStateOf<List<TranslationPacks.CatalogEntry>>(emptyList()) }
+    var online by remember { mutableStateOf(true) }
+    var catalogError by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
     var url by remember { mutableStateOf("") }
+    var hidden by remember { mutableStateOf(TranslationPacks.hiddenIds(context)) }
+
+    val deviceLanguage = remember { TranslationPacks.deviceLanguageName(context) }
+    val builtIn = remember { TranslationPacks.builtIn(context) }
 
     fun refresh() {
         installed = TranslationPacks.installed(context)
         activeId = TranslationPacks.activeId(context)
+        hidden = TranslationPacks.hiddenIds(context)
     }
 
+    fun loadCatalog() {
+        busy = true
+        scope.launch {
+            val result = TranslationPacks.catalog(context)
+            busy = false
+            catalog = result.entries
+            online = result.online
+            catalogError = result.error
+        }
+    }
+
+    // Automatic: a pack list that needs a button to appear is a list that
+    // never appears.
+    LaunchedEffect(Unit) { loadCatalog() }
+
     val sizeKb = TranslationPacks.installedSizeBytes(context) / 1024L
+    val catalogueOnly = catalog.filter { entry -> installed.none { it.id == entry.pack.id } }
+    val hiddenPacks = builtIn.filter { it.id in hidden }
 
     SettingsScaffold(
         title = stringResource(R.string.translation_packs_title),
@@ -84,6 +112,7 @@ fun TranslationPacksScreen(onBack: () -> Unit) {
                 PackRow(
                     pack = pack,
                     active = pack.id == activeId,
+                    device = TranslationPacks.matchesDeviceLanguage(context, pack),
                     showDivider = index < installed.lastIndex,
                     onActivate = {
                         TranslationPacks.setActive(
@@ -102,31 +131,38 @@ fun TranslationPacksScreen(onBack: () -> Unit) {
             }
         }
 
+        if (hiddenPacks.isNotEmpty()) {
+            SettingsSection(header = stringResource(R.string.translation_packs_hidden)) {
+                hiddenPacks.forEachIndexed { index, pack ->
+                    SettingsRow(
+                        title = pack.name,
+                        subtitle = stringResource(R.string.translation_packs_hidden_subtitle),
+                        icon = Icons.Outlined.Restore,
+                        iconColor = Color(0xFF30B0C7),
+                        onClick = {
+                            TranslationPacks.restoreBuiltIn(context, pack.id)
+                            refresh()
+                        },
+                        showDivider = index < hiddenPacks.lastIndex,
+                    )
+                }
+            }
+        }
+
         SettingsSection(
             header = stringResource(R.string.translation_packs_catalog),
-            footer = stringResource(R.string.translation_packs_catalog_footer),
+            footer = if (online) {
+                stringResource(R.string.translation_packs_catalog_footer)
+            } else {
+                stringResource(
+                    R.string.translation_packs_catalog_offline,
+                    catalogError ?: "—",
+                )
+            },
         ) {
             SettingsCardBlock {
                 OutlinedButton(
-                    onClick = {
-                        busy = true
-                        message = null
-                        scope.launch {
-                            val res = TranslationPacks.catalog()
-                            busy = false
-                            res.onSuccess {
-                                catalog = it
-                                if (it.isEmpty()) {
-                                    message = context.getString(R.string.translation_packs_empty_catalog)
-                                }
-                            }.onFailure {
-                                message = context.getString(
-                                    R.string.translation_packs_catalog_failed,
-                                    it.message ?: it.javaClass.simpleName,
-                                )
-                            }
-                        }
-                    },
+                    onClick = { loadCatalog() },
                     enabled = !busy,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -146,29 +182,36 @@ fun TranslationPacksScreen(onBack: () -> Unit) {
                     )
                 }
             }
-            catalog.forEachIndexed { index, entry ->
-                val already = installed.any { it.id == entry.pack.id }
+            if (catalogueOnly.isEmpty()) {
+                SettingsCardBlock {
+                    Text(
+                        text = stringResource(R.string.translation_packs_nothing_new),
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                    )
+                }
+            }
+            catalogueOnly.forEachIndexed { index, entry ->
                 PackRow(
                     pack = entry.pack,
                     active = false,
-                    installedLabel = already,
-                    showDivider = index < catalog.lastIndex,
+                    device = TranslationPacks.matchesDeviceLanguage(context, entry.pack),
+                    installedLabel = false,
+                    showDivider = index < catalogueOnly.lastIndex,
                     onActivate = {
-                        if (!already) {
-                            busy = true
-                            message = null
-                            scope.launch {
-                                val res = TranslationPacks.installFromUrl(context, entry.url)
-                                busy = false
-                                res.onSuccess { p ->
-                                    refresh()
-                                    message = context.getString(
-                                        R.string.translation_packs_installed_ok,
-                                        p.name,
-                                    )
-                                }.onFailure {
-                                    message = it.message ?: it.javaClass.simpleName
-                                }
+                        busy = true
+                        message = null
+                        scope.launch {
+                            val res = TranslationPacks.installFromUrl(context, entry.url)
+                            busy = false
+                            res.onSuccess { p ->
+                                refresh()
+                                message = context.getString(
+                                    R.string.translation_packs_installed_ok,
+                                    p.name,
+                                )
+                            }.onFailure {
+                                message = it.message ?: it.javaClass.simpleName
                             }
                         }
                     },
@@ -198,7 +241,10 @@ fun TranslationPacksScreen(onBack: () -> Unit) {
                             res.onSuccess { p ->
                                 refresh()
                                 url = ""
-                                message = context.getString(R.string.translation_packs_installed_ok, p.name)
+                                message = context.getString(
+                                    R.string.translation_packs_installed_ok,
+                                    p.name,
+                                )
                             }.onFailure {
                                 message = it.message ?: it.javaClass.simpleName
                             }
@@ -231,6 +277,19 @@ fun TranslationPacksScreen(onBack: () -> Unit) {
                 }
             }
         }
+
+        SettingsSection(
+            header = stringResource(R.string.translation_packs_device_header),
+            footer = stringResource(R.string.translation_packs_device_footer, deviceLanguage),
+        ) {
+            SettingsCardBlock {
+                Text(
+                    text = stringResource(R.string.translation_packs_device_value, deviceLanguage),
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                )
+            }
+        }
     }
 }
 
@@ -238,16 +297,28 @@ fun TranslationPacksScreen(onBack: () -> Unit) {
 private fun PackRow(
     pack: Pack,
     active: Boolean,
+    device: Boolean,
     showDivider: Boolean,
     installedLabel: Boolean = false,
     onActivate: () -> Unit,
     onRemove: (() -> Unit)?,
 ) {
+    val deviceLabel = stringResource(R.string.translation_packs_device)
+    val bundledLabel = stringResource(R.string.translation_packs_bundled)
+    val installedText = stringResource(R.string.translation_packs_installed_label)
     val subtitle = buildString {
-        if (pack.targetLanguage.isNotBlank()) append(pack.targetLanguage)
+        if (device) append(deviceLabel)
+        if (pack.targetLanguage.isNotBlank()) {
+            if (isNotEmpty()) append(" · ")
+            append(pack.targetLanguage)
+        }
         if (pack.glossary.isNotEmpty()) {
             if (isNotEmpty()) append(" · ")
             append("${pack.glossary.size} terms")
+        }
+        if (pack.builtIn) {
+            if (isNotEmpty()) append(" · ")
+            append(bundledLabel)
         }
         if (pack.description.isNotBlank()) {
             if (isNotEmpty()) append(" · ")
@@ -255,7 +326,7 @@ private fun PackRow(
         }
         if (installedLabel) {
             if (isNotEmpty()) append(" · ")
-            append("installed")
+            append(installedText)
         }
     }
     SettingsRow(

@@ -94,4 +94,23 @@ class TranslationPackTest {
         val f = TranslationPacks.promptFragment(TranslationPacks.parse(json, null))
         assertTrue("fragment grew to ${f.length} chars", f.length < 12_000)
     }
+
+    // [MINIS-OZEL 11.1] The device-language match is what makes a Turkish
+    // phone show the Turkish packs without a setting. It is a pure comparison,
+    // so the failure modes worth pinning are the boring ones: padding, case,
+    // and an empty target that must never match everything.
+    @Test
+    fun `device language matching is case and whitespace insensitive`() {
+        assertTrue(TranslationPacks.languagesMatch("Turkish", "Turkish"))
+        assertTrue(TranslationPacks.languagesMatch("  turkish ", "Turkish"))
+        assertTrue(TranslationPacks.languagesMatch("ENGLISH", "English"))
+        assertFalse(TranslationPacks.languagesMatch("Turkish", "German"))
+    }
+
+    @Test
+    fun `empty language never matches`() {
+        assertFalse(TranslationPacks.languagesMatch("", "Turkish"))
+        assertFalse(TranslationPacks.languagesMatch("Turkish", ""))
+        assertFalse(TranslationPacks.languagesMatch("   ", "   "))
+    }
 }
