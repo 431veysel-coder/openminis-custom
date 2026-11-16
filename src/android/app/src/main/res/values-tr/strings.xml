@@ -1244,6 +1244,7 @@
     <string name="add_custom_model_id_footer">Model Kimliği, şu sağlayıcıya gönderilen API tanımlayıcısıdır: %1$s. Görünen Ad ise seçicide gösterilen daha okunaklı etikettir; boş bırakılırsa Model Kimliği kullanılır.</string>
     <string name="add_custom_model_eg_id_placeholder">örn. gpt-4o-custom</string>
     <string name="add_provider_built_in_models_count">%1$d yerleşik model</string>
+    <string name="add_provider_subtitle_vercel">Birçok sağlayıcı için tek API, aylık krediyle. Üçüncü taraf servis; bu uygulama tarafından işletilmez veya denetlenmez.</string>
     <string name="add_provider_subtitle_nvidia">NVIDIA NIM — Llama, Nemotron, DeepSeek, Qwen ve daha fazlası</string>
     <string name="add_provider_subtitle_mistral">Mistral Large, Codestral, Pixtral ve daha fazlası</string>
     <string name="add_provider_subtitle_openai">Codex, DeepSeek, Moonshot, Groq ve diğer uyumlu sağlayıcılarla çalışır</string>

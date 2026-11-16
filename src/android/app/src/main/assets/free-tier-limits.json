@@ -1,0 +1,149 @@
+{
+  "_comment": [
+    "Free-tier SHAPE per vendor, not numbers.",
+    "",
+    "Why there are no numbers here: every vendor publishes its limits in a table",
+    "that is rendered from live account data, so any number baked into an APK is",
+    "wrong within weeks — and a wrong limit is worse than no limit, because the",
+    "user plans around it. So this file records only what IS stable and was",
+    "verified against the vendor's own documentation (see 'verifiedAt'):",
+    "  - which dimensions the vendor measures (rpm / rpd / tpm / tpd / ...),",
+    "  - where the reset happens,",
+    "  - whether an API endpoint reports a counter we can read instead of counting,",
+    "  - whether free models are marked in the model id.",
+    "",
+    "The app tracks usage locally (it knows every request it sent) and compares",
+    "against a limit the user enters once from their own dashboard. Where a vendor",
+    "exposes a counter endpoint, that is read instead — see 'counter' below."
+  ],
+  "version": 1,
+  "verifiedAt": "2026-11-16",
+  "limits": [
+    {
+      "provider": "groq",
+      "matchHost": "api.groq.com",
+      "docUrl": "https://console.groq.com/docs/rate-limits",
+      "dimensions": ["rpm", "rpd", "tpm", "tpd", "itpm", "otpm"],
+      "perModel": true,
+      "resetTz": "UTC",
+      "counter": null,
+      "note": "Groq measures RPM, RPD, TPM, TPD, ITPM, OTPM and audio-second limits, all at once — the first one hit is the error you get. Limits are per model AND per key, so two keys are two independent budgets."
+    },
+    {
+      "provider": "gemini",
+      "matchHost": "generativelanguage.googleapis.com",
+      "docUrl": "https://ai.google.dev/gemini-api/docs/rate-limits",
+      "dimensions": ["rpm", "rpd", "tpm"],
+      "perModel": true,
+      "resetTz": "America/Los_Angeles",
+      "counter": null,
+      "note": "Gemini evaluates RPM, TPM and RPD together and applies them per PROJECT, not per key — two keys from the same project share one budget. RPD resets at midnight Pacific."
+    },
+    {
+      "provider": "openrouter",
+      "matchHost": "openrouter.ai",
+      "docUrl": "https://openrouter.ai/docs/api-reference/limits",
+      "dimensions": ["rpm", "rpd"],
+      "perModel": false,
+      "resetTz": "UTC",
+      "freeModelSuffix": ":free",
+      "counter": {
+        "path": "/api/v1/key",
+        "field": "free_model_daily_requests",
+        "auth": "bearer",
+        "note": "OpenRouter reports the free-model daily counter itself. Reading it is strictly better than counting locally: it includes requests made from other devices on the same key."
+      },
+      "note": "Free models are the ids ending in :free. The daily cap depends on lifetime credits purchased, so the number is per-account and only the account page or /api/v1/key knows it."
+    },
+    {
+      "provider": "cerebras",
+      "matchHost": "api.cerebras.ai",
+      "docUrl": "https://inference-docs.cerebras.ai/support/rate-limits",
+      "dimensions": ["rpm", "tpm", "tpd"],
+      "perModel": false,
+      "resetTz": "UTC",
+      "counter": null,
+      "note": "Measured in requests and tokens per minute plus tokens per day."
+    },
+    {
+      "provider": "vercel",
+      "matchHost": "ai-gateway.vercel.sh",
+      "docUrl": "https://vercel.com/docs/ai-gateway/pricing",
+      "dimensions": ["credit"],
+      "perModel": false,
+      "resetTz": "UTC",
+      "counter": null,
+      "note": "Vercel bills a monthly credit, not a daily request count. Some catalogue models carry a $0 price and consume nothing — those are the ones worth grouping as free."
+    },
+    {
+      "provider": "mistral",
+      "matchHost": "api.mistral.ai",
+      "docUrl": "https://docs.mistral.ai/deployment/laplateforme/tier/",
+      "dimensions": ["rps", "monthly_tokens"],
+      "perModel": false,
+      "resetTz": "UTC",
+      "counter": null,
+      "note": "The free tier is capped per second and by a monthly token allowance, not per day."
+    },
+    {
+      "provider": "github-models",
+      "matchHost": "models.github.ai",
+      "docUrl": "https://docs.github.com/en/github-models/use-github-models/prototyping-with-ai-models",
+      "dimensions": ["rpd", "rpm"],
+      "perModel": true,
+      "resetTz": "UTC",
+      "counter": null,
+      "note": "The allowance is set by the account's Copilot plan, so only the account page states it."
+    },
+    {
+      "provider": "nvidia",
+      "matchHost": "integrate.api.nvidia.com",
+      "docUrl": "https://build.nvidia.com",
+      "dimensions": ["rpm", "total_credits"],
+      "perModel": false,
+      "resetTz": "UTC",
+      "counter": null,
+      "note": "Developer credits are consumed per request rather than reset daily."
+    },
+    {
+      "provider": "huggingface",
+      "matchHost": "router.huggingface.co",
+      "docUrl": "https://huggingface.co/docs/inference-providers/pricing",
+      "dimensions": ["credit"],
+      "perModel": false,
+      "resetTz": "UTC",
+      "counter": null,
+      "note": "A small monthly credit on the free plan, with per-provider limits underneath."
+    },
+    {
+      "provider": "deepseek",
+      "matchHost": "api.deepseek.com",
+      "docUrl": "https://api-docs.deepseek.com/quick_start/rate_limit",
+      "dimensions": ["concurrency"],
+      "perModel": false,
+      "resetTz": "UTC",
+      "counter": null,
+      "note": "No free daily allowance; the platform limits how many requests may run at once."
+    },
+    {
+      "provider": "together",
+      "matchHost": "api.together.xyz",
+      "docUrl": "https://docs.together.ai/docs/rate-limits",
+      "dimensions": ["rpm"],
+      "perModel": true,
+      "resetTz": "UTC",
+      "counter": null,
+      "note": "Rate limits are set per model."
+    },
+    {
+      "provider": "fireworks",
+      "matchHost": "api.fireworks.ai",
+      "docUrl": "https://docs.fireworks.ai/faq",
+      "dimensions": ["rpm"],
+      "perModel": false,
+      "resetTz": "UTC",
+      "counter": null,
+      "note": "Spend-based; no daily request reset."
+    }
+  ]
+}

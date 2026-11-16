@@ -29,6 +29,27 @@ data class ChatProviderPreset(
 ) {
     companion object {
         /**
+         * Vercel AI Gateway — OpenAI-compatible at `/v1`.
+         *
+         * Verified 2026-11-16: `GET https://ai-gateway.vercel.sh/v1/models`
+         * answers 200 unauthenticated and returns 509 models with `pricing`
+         * and `tags` per model, which is what lets [com.openminis.app.provider.FreeModelCatalog]
+         * mark the zero-priced ones without a second lookup.
+         *
+         * Why a preset: the base URL is not guessable (it is not `api.vercel.com`),
+         * and the gateway is the practical way to reach many vendors with one
+         * credit balance.
+         */
+        val VERCEL = ChatProviderPreset(
+            id = "vercel",
+            displayName = "Vercel AI Gateway",
+            providerType = ProviderType.openAI,
+            baseURL = "https://ai-gateway.vercel.sh",
+            appendV1 = true,
+            subtitleRes = com.openminis.app.R.string.add_provider_subtitle_vercel,
+        )
+
+        /**
          * NVIDIA NIM — OpenAI-compatible inference for the hosted catalogue
          * (Llama, Nemotron, DeepSeek, Mistral, Qwen and more). Key prefix `nvapi-`.
          */
@@ -124,7 +145,7 @@ data class ChatProviderPreset(
 
         /** Every preset the picker offers, in display order. */
         val all: List<ChatProviderPreset> = listOf(
-            NVIDIA, MISTRAL, DEEPSEEK, TOGETHER, FIREWORKS, HUGGING_FACE,
+            VERCEL, NVIDIA, MISTRAL, DEEPSEEK, TOGETHER, FIREWORKS, HUGGING_FACE,
         )
 
         fun byId(id: String?): ChatProviderPreset? =
