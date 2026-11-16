@@ -117,6 +117,9 @@ fun SettingsScreen(
     // [MINIS-OZEL] Settings › Minis Özel › Features: one switch per feature
     // this fork added, so a feature in the way can be put away.
     onOzelFeaturesClick: () -> Unit = {},
+    // [MINIS-OZEL] Settings › Storage › Linux environments: Alpine (bundled)
+    // and Debian (downloaded) side by side, one active at a time.
+    onSandboxEnvsClick: () -> Unit = {},
     // [T-mcp-integration-android] MCP Integrations page, listed directly below
     // Memory. Default no-op for callers that haven't wired the route yet.
     onMcpClick: () -> Unit = {},
@@ -336,6 +339,13 @@ fun SettingsScreen(
                     title = stringResource(R.string.settings_section_storage),
                     subtitle = stringResource(R.string.settings_storage_subtitle),
                     onClick = onRootfsClick,
+                )
+                SettingsItem(
+                    icon = Icons.Outlined.Terminal,
+                    iconColor = Color(0xFF5E5CE6),
+                    title = stringResource(R.string.sandbox_env_title),
+                    subtitle = stringResource(R.string.sandbox_env_section),
+                    onClick = onSandboxEnvsClick,
                 )
                 if (on(OzelFeatures.Feature.TOOLCHAINS)) {
                     SettingsItem(

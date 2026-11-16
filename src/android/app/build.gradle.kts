@@ -544,6 +544,15 @@ dependencies {
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")
 
+    // [MINIS-OZEL] XZ decoding for the Debian rootfs.
+    //
+    // Alpine publishes .tar.gz; the Debian images LXC publishes are .tar.xz.
+    // Handing a .tar.xz to GZIPInputStream fails on the first block, which the
+    // extractor can only report as a corrupt archive — so the decoder has to
+    // exist before the file can be read at all. Pure Java, ~120 KB, no native
+    // code: it works on every ABI and adds nothing to the APK's lib/ tree.
+    implementation("org.tukaani:xz:1.10")
+
     // Testing — JVM unit tests
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")

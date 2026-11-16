@@ -2109,4 +2109,14 @@
     <string name="translation_packs_active">Bu dil için etkin: %1$s</string>
     <string name="translation_packs_none_active">yok — çeviri çalışır, yalnız daha az tutarlı olur</string>
     <string name="translation_packs_active_subtitle">Her çeviriye uygulanan terim ve üslup kuralları</string>
+    <string name="sandbox_env_title">Linux ortamları</string>
+    <string name="sandbox_env_section">Kurulu ortamlar</string>
+    <string name="sandbox_env_footer">Ajanın kabuğu etkin ortamda çalışır. Alpine uygulamayla birlikte gelir ve saniyeler içinde açılır; Debian, glibc isteyen ve Alpine\'de \"not found\" ile düşen hazır ikililer için indirilir. Değişiklik yeni kabuklara uygulanır — çalışan bir kabuk başladığı ortamda kalır.</string>
+    <string name="sandbox_env_not_installed">kurulu değil</string>
+    <string name="sandbox_env_download_hint"> · diskte ~%1$d MB</string>
+    <string name="sandbox_env_install">Kur</string>
+    <string name="sandbox_env_download">İndir ve kur</string>
+    <string name="sandbox_env_remove">Bu ortamı kaldır</string>
+    <string name="sandbox_env_installed">%1$s kuruldu.</string>
+    <string name="sandbox_env_removed">%1$s kaldırıldı.</string>
 </resources>

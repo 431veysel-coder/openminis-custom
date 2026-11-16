@@ -189,6 +189,8 @@ object Routes {
     const val OZEL_FEATURES = "ozel_features"
     /** [MINIS-OZEL] Settings > Translation > Packs. */
     const val TRANSLATION_PACKS = "translation_packs"
+    /** [MINIS-OZEL] Settings > Storage > Linux environments (Alpine / Debian). */
+    const val SANDBOX_ENVS = "sandbox_envs"
     /** [T-tools-granular-switches] Settings > Agent Runtime > Tools. */
     const val AGENT_TOOLS = "agent_tools"
     /** [T-mcp-integration-android] MCP Integrations management screen. */
@@ -678,6 +680,7 @@ fun AppNavigation(
                 onTranslationClick = { navController.safeNavigate(Routes.TRANSLATION_SETTINGS) },
                 onThinkingClick = { navController.safeNavigate(Routes.THINKING_SETTINGS) },
                 onOzelFeaturesClick = { navController.safeNavigate(Routes.OZEL_FEATURES) },
+                onSandboxEnvsClick = { navController.safeNavigate(Routes.SANDBOX_ENVS) },
                 onAgentToolsClick = { navController.safeNavigate(Routes.AGENT_TOOLS) },
                 onMcpClick = { navController.safeNavigate(Routes.MCP) },
                 onSoulClick = { navController.safeNavigate(Routes.SOUL) },
@@ -1560,6 +1563,11 @@ fun AppNavigation(
         }
         composable(Routes.TOOLCHAINS) {
             com.openminis.app.ui.settings.ToolchainScreen(
+                onBack = { navController.safePopBackStack() },
+            )
+        }
+        composable(Routes.SANDBOX_ENVS) {
+            com.openminis.app.ui.settings.SandboxEnvironmentsScreen(
                 onBack = { navController.safePopBackStack() },
             )
         }

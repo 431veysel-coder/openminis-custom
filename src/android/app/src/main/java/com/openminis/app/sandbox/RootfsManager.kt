@@ -11,9 +11,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FilterInputStream
+import java.io.IOException
 import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import java.nio.charset.Charset
 import java.util.zip.GZIPInputStream
+import org.tukaani.xz.XZInputStream
 
 /**
  * Observable state for rootfs installation. Mirrors the conceptual iOS
@@ -39,10 +43,59 @@ sealed class RootfsInstallState {
  */
 class RootfsManager private constructor(private val context: Context) {
 
-    val rootfsDir: File = File(context.filesDir, "alpine-rootfs")
+    /**
+     * [MINIS-OZEL] More than one Linux environment, one app.
+     *
+     * The bundled Alpine is 3.9 MB and answers almost everything an agent
+     * does; a downloadable Debian exists for the glibc binaries Alpine cannot
+     * execute. Both live side by side under `filesDir/rootfs/` and the ACTIVE
+     * one is what [rootfsDir] points at, which is why every existing caller
+     * (twenty-odd files) keeps working unchanged.
+     *
+     * Two separate APKs could not do this — a second app is a second sandbox
+     * the agent's shell cannot reach, which defeats the purpose.
+     */
+    val environments: List<SandboxEnvironment> = SandboxEnvironment.entries
+
+    private val prefs get() = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    /** The environment new shells boot into. Persisted; defaults to Alpine. */
+    var activeId: String
+        get() = prefs.getString(KEY_ACTIVE, SandboxEnvironment.DEFAULT.id) ?: SandboxEnvironment.DEFAULT.id
+        private set(value) = prefs.edit().putString(KEY_ACTIVE, value).apply()
+
+    val activeEnvironment: SandboxEnvironment
+        get() = SandboxEnvironment.byId(activeId) ?: SandboxEnvironment.DEFAULT
+
+    /**
+     * Switches the environment for FUTURE shells.
+     *
+     * Shells already running keep their root — they captured the absolute path
+     * at exec time, and killing a live shell to change a setting would lose
+     * whatever it was doing.
+     */
+    fun activate(env: SandboxEnvironment) {
+        activeId = env.id
+        _installState.value = if (isInstalled(env)) {
+            RootfsInstallState.Installed
+        } else {
+            RootfsInstallState.Idle
+        }
+        Log.i(TAG, "[env] active=${env.id}")
+    }
+
+    /** Every environment and whether its image is on disk. */
+    fun installedMap(): Map<SandboxEnvironment, Boolean> =
+        environments.associateWith { isInstalled(it) }
+
+    /** Where [env]'s root lives. */
+    fun dirOf(env: SandboxEnvironment): File = env.dir(context.filesDir)
+
+    /** The active environment's root. Unchanged meaning for every caller. */
+    val rootfsDir: File get() = dirOf(activeEnvironment)
     val prootBinary: File = File(context.applicationInfo.nativeLibraryDir, "libproot.so")
 
-    private val archFile: File get() = File(rootfsDir, ".arch")
+    private fun archFile(env: SandboxEnvironment): File = File(dirOf(env), ".arch")
 
     /**
      * [MINIS-OZEL] Which rootfs image the extraction produced, so an update
@@ -53,17 +106,28 @@ class RootfsManager private constructor(private val context: Context) {
      * after a build shipped 3.22, and the only way to get the new base was to
      * uninstall the app (which also deletes 1.4 GB of installed toolchains).
      */
-    private val imageFile: File get() = File(rootfsDir, ".image")
+    private fun imageFile(env: SandboxEnvironment): File = File(dirOf(env), ".image")
 
-    /** The image id of the asset this build ships. Bump with the Alpine version. */
-    private val expectedImage: String get() = ROOTFS_IMAGE_ID
+    /** The image id shipped or pinned for [env]. */
+    private fun expectedImage(env: SandboxEnvironment): String = when (env) {
+        SandboxEnvironment.ALPINE -> ROOTFS_IMAGE_ID
+        // The Debian image is identified by its pinned URL's date segment, so a
+        // new pin makes existing installs re-extract (and carry their trees).
+        SandboxEnvironment.DEBIAN -> (env.archive as Archive.RemoteArchive)
+            .url.substringAfter("/default/").substringBefore("/").ifBlank { "debian" }
+    }
 
-    val isInstalled: Boolean
-        get() = rootfsDir.exists() && archFile.exists() &&
-                archFile.readText().trim() == ARCH &&
-                // A rootfs from an older image counts as NOT installed: the
-                // caller re-extracts. See installIfNeeded for what is preserved.
-                imageFile.exists() && imageFile.readText().trim() == expectedImage
+    fun isInstalled(env: SandboxEnvironment): Boolean {
+        val dir = dirOf(env)
+        val arch = archFile(env)
+        val image = imageFile(env)
+        return dir.exists() && arch.exists() && arch.readText().trim() == ARCH &&
+            // A rootfs from an older image counts as NOT installed: the caller
+            // re-extracts. See install for what is preserved.
+            image.exists() && image.readText().trim() == expectedImage(env)
+    }
+
+    val isInstalled: Boolean get() = isInstalled(activeEnvironment)
 
     /**
      * Observable install progress. UI layers (OnboardingScreen,
@@ -83,15 +147,31 @@ class RootfsManager private constructor(private val context: Context) {
      * Finalizing → Installed / Failed).
      */
     suspend fun installIfNeeded() = withContext(Dispatchers.IO) {
-        if (isInstalled) {
-            Log.d(TAG, "Rootfs already installed at $rootfsDir")
-            _installState.value = RootfsInstallState.Installed
+        install(activeEnvironment)
+    }
+
+    /**
+     * [MINIS-OZEL] Installs (or upgrades) one environment.
+     *
+     * Bundled images come from the APK's assets; remote ones are downloaded
+     * first. Both end in the same tar extractor, because decompressing is the
+     * only difference — `.tar.gz` for Alpine, `.tar.xz` for the Debian images
+     * LXC publishes.
+     */
+    suspend fun install(
+        env: SandboxEnvironment,
+        onProgress: ((Float) -> Unit)? = null,
+    ) = withContext(Dispatchers.IO) {
+        val rootfsDir = dirOf(env)
+        if (isInstalled(env)) {
+            Log.d(TAG, "[env:${env.id}] already installed at $rootfsDir")
+            if (env == activeEnvironment) _installState.value = RootfsInstallState.Installed
             return@withContext
         }
 
         try {
             _installState.value = RootfsInstallState.Preparing
-            Log.i(TAG, "Installing Alpine rootfs...")
+            Log.i(TAG, "[env:${env.id}] installing from ${env.archive}")
 
             // [MINIS-OZEL] A rootfs may be here because it is PARTIAL, or
             // because it is complete but from an older image. The difference
@@ -105,9 +185,14 @@ class RootfsManager private constructor(private val context: Context) {
             var previous: File? = null
             var carryOver: List<String> = emptyList()
             if (rootfsDir.exists()) {
-                val complete = archFile.exists() && File(rootfsDir, "etc/apk/world").exists()
+                // "Complete" means the package manager's own record survived,
+                // which is what makes the trees worth carrying over. Which file
+                // that is depends on the distro: apk's world, or dpkg's status.
+                val complete = archFile(env).exists() &&
+                    (File(rootfsDir, "etc/apk/world").exists() ||
+                        File(rootfsDir, "var/lib/dpkg/status").exists())
                 if (complete) {
-                    previous = File(rootfsDir.parentFile, "alpine-rootfs.prev")
+                    previous = File(rootfsDir.parentFile, "\${env.dirName}.prev")
                     previous.deleteRecursively()
                     if (rootfsDir.renameTo(previous)) {
                         carryOver = USER_TREES.filter { File(previous, it).exists() }
@@ -123,46 +208,75 @@ class RootfsManager private constructor(private val context: Context) {
             }
             rootfsDir.mkdirs()
 
-            // Extract rootfs from assets.
-            // AAPT may decompress .tar.gz → .tar automatically, so try both names.
-            val assetName = try {
-                context.assets.open(ROOTFS_ASSET).close()
-                ROOTFS_ASSET
-            } catch (_: java.io.FileNotFoundException) {
-                ROOTFS_ASSET_TAR
-            }
-
-            // Asset size for progress calculation — compressed length (for .gz)
-            // or uncompressed length (for .tar). openFd() fails for 0-length
-            // assets on some devices; fall back to 0 which disables progress.
-            val assetTotal: Long = try {
-                context.assets.openFd(assetName).use { it.length }
-            } catch (_: Exception) { 0L }
-
             // Emit an initial 0% so the UI flips from Preparing → progress bar.
             _installState.value = RootfsInstallState.Extracting(0f)
 
-            context.assets.open(assetName).use { rawAsset ->
-                // Wrap the ASSET stream (not the gzip stream) so progress tracks
-                // compressed bytes consumed — monotonic and matches the size we
-                // have a total for. Throttle updates to avoid flooding the StateFlow.
-                val progressStream = ProgressInputStream(rawAsset, assetTotal) { fraction ->
-                    _installState.value = RootfsInstallState.Extracting(fraction)
-                }
-                if (assetName.endsWith(".gz")) {
-                    GZIPInputStream(progressStream).use { gzipStream ->
-                        extractTar(gzipStream, rootfsDir)
+            // Where the archive comes from differs; what happens after it is
+            // decompressed does not.
+            when (val a = env.archive) {
+                is Archive.BundledAsset -> {
+                    // AAPT may decompress .tar.gz → .tar automatically, so try
+                    // both names rather than assuming.
+                    val assetName = try {
+                        context.assets.open(a.gzName).close()
+                        a.gzName
+                    } catch (_: java.io.FileNotFoundException) {
+                        a.tarName
                     }
-                } else {
-                    extractTar(progressStream, rootfsDir)
+                    val assetTotal: Long = try {
+                        context.assets.openFd(assetName).use { it.length }
+                    } catch (_: Exception) { 0L }
+
+                    context.assets.open(assetName).use { rawAsset ->
+                        // Wrap the ASSET stream (not the gzip stream) so progress
+                        // tracks compressed bytes consumed — monotonic, and the
+                        // size we have a total for.
+                        val progressStream = ProgressInputStream(rawAsset, assetTotal) { fraction ->
+                            _installState.value = RootfsInstallState.Extracting(fraction)
+                            onProgress?.invoke(fraction)
+                        }
+                        if (assetName.endsWith(".gz")) {
+                            GZIPInputStream(progressStream).use { gz ->
+                                extractTar(gz, rootfsDir)
+                            }
+                        } else {
+                            extractTar(progressStream, rootfsDir)
+                        }
+                    }
+                }
+
+                is Archive.RemoteArchive -> {
+                    val archiveFile = download(a, env) { fraction ->
+                        _installState.value = RootfsInstallState.Extracting(fraction * 0.6f)
+                        onProgress?.invoke(fraction * 0.6f)
+                    }
+                    try {
+                        archiveFile.inputStream().buffered().use { raw ->
+                            // 0.6 .. 1.0 covers the extract half of the work:
+                            // unpacking 350 MB costs real time, and a bar that
+                            // jumps from "download done" to "done" hides it.
+                            val tracked = ProgressInputStream(raw, archiveFile.length()) { f ->
+                                val overall = 0.6f + f * 0.4f
+                                _installState.value = RootfsInstallState.Extracting(overall)
+                                onProgress?.invoke(overall)
+                            }
+                            if (a.innerFormat == "tar.xz") {
+                                XZInputStream(tracked).use { xz -> extractTar(xz, rootfsDir) }
+                            } else {
+                                GZIPInputStream(tracked).use { gz -> extractTar(gz, rootfsDir) }
+                            }
+                        }
+                    } finally {
+                        archiveFile.delete()
+                    }
                 }
             }
 
             _installState.value = RootfsInstallState.Finalizing
 
             // Write arch marker and the image id it was extracted from
-            archFile.writeText(ARCH)
-            imageFile.writeText(expectedImage)
+            archFile(env).writeText(ARCH)
+            imageFile(env).writeText(expectedImage(env))
 
             // Carry the user's own content into the fresh image. Only these
             // paths: system trees come from the new image on purpose.
@@ -244,7 +358,14 @@ class RootfsManager private constructor(private val context: Context) {
      * Reset rootfs. Optionally keeps user data (/root).
      * Returns the backup directory if keepUserData is true, null otherwise.
      */
-    suspend fun reset(keepUserData: Boolean = false): File? = withContext(Dispatchers.IO) {
+    suspend fun reset(keepUserData: Boolean = false): File? = resetEnvironment(activeEnvironment, keepUserData)
+
+    /** [MINIS-OZEL] Wipes one environment, optionally keeping /root. */
+    suspend fun resetEnvironment(
+        env: SandboxEnvironment,
+        keepUserData: Boolean = false,
+    ): File? = withContext(Dispatchers.IO) {
+        val rootfsDir = dirOf(env)
         var backupDir: File? = null
 
         if (keepUserData) {
@@ -257,7 +378,7 @@ class RootfsManager private constructor(private val context: Context) {
         }
 
         rootfsDir.deleteRecursively()
-        installIfNeeded()
+        install(env)
 
         // Restore user data
         if (backupDir != null && backupDir.exists()) {
@@ -557,6 +678,81 @@ class RootfsManager private constructor(private val context: Context) {
         return BIN_DIR_PREFIXES.any { normalized.startsWith(it) }
     }
 
+    // --- remote image download ---
+
+    /**
+     * [MINIS-OZEL] Fetches a remote image into `cacheDir`, returning the file.
+     *
+     * Deliberately NOT into `filesDir`: a 95 MB download that fails halfway
+     * must not be countable as installed state, and `cacheDir` is the place the
+     * system is allowed to reclaim. The file is deleted by the caller once it
+     * has been extracted, so the steady-state cost is zero.
+     *
+     * `Content-Length` is required. Without it there is no denominator for the
+     * progress bar, and a 350 MB extract that shows "0%" for two minutes reads
+     * as a hang. A redirect is followed by [HttpURLConnection] automatically;
+     * the LXC mirror answers with one.
+     */
+    private fun download(
+        archive: Archive.RemoteArchive,
+        env: SandboxEnvironment,
+        onProgress: (Float) -> Unit,
+    ): File {
+        val url = URL(archive.url)
+        val target = File(context.cacheDir, "image-${env.id}-${archive.fileName}")
+        target.parentFile?.mkdirs()
+        target.delete()
+
+        Log.i(TAG, "[env:${env.id}] downloading ${archive.url}")
+        val conn = (url.openConnection() as HttpURLConnection).apply {
+            connectTimeout = 20_000
+            // Read timeout is per-read, not for the whole transfer: 95 MB over a
+            // slow link is fine as long as bytes keep arriving.
+            readTimeout = 60_000
+            setRequestProperty("User-Agent", "minis-ozel")
+            instanceFollowRedirects = true
+        }
+        try {
+            val code = conn.responseCode
+            if (code !in 200..299) {
+                throw IOException("HTTP $code from ${archive.url}")
+            }
+            val total = conn.contentLengthLong
+            conn.inputStream.use { input ->
+                target.outputStream().buffered().use { out ->
+                    val buf = ByteArray(1 shl 16)
+                    var written = 0L
+                    var lastReported = -1
+                    while (true) {
+                        val n = input.read(buf)
+                        if (n <= 0) break
+                        out.write(buf, 0, n)
+                        written += n
+                        if (total > 0) {
+                            val pct = ((written * 100) / total).toInt()
+                            if (pct != lastReported) {
+                                lastReported = pct
+                                onProgress(written.toFloat() / total)
+                            }
+                        }
+                    }
+                    Log.i(TAG, "[env:${env.id}] downloaded $written bytes (expected $total)")
+                    // A truncated download that still returns 200 would fail
+                    // later as "corrupt archive", pointing at the wrong thing.
+                    if (total > 0 && written != total) {
+                        throw IOException("short download: $written of $total bytes")
+                    }
+                }
+            }
+        } catch (t: Throwable) {
+            target.delete()
+            throw t
+        } finally {
+            conn.disconnect()
+        }
+        return target
+    }
+
     // --- POSIX tar extraction ---
 
     /**
@@ -727,6 +923,31 @@ class RootfsManager private constructor(private val context: Context) {
         }
     }
 
+    /**
+     * [MINIS-OZEL] Moves a pre-multi-environment install to the new layout.
+     *
+     * The layout used to be `filesDir/alpine-rootfs`; it is now
+     * `filesDir/rootfs/alpine-rootfs`, so a second environment can sit beside
+     * it. Without this migration, every existing user's 1.4 GB of installed
+     * toolchains would silently become unreachable and re-downloaded — the app
+     * would look like it had lost them.
+     *
+     * A rename, so it is instant even at 1.4 GB. Runs once, at first launch
+     * after the update.
+     */
+    private fun migrateLegacyLayout() {
+        val legacy = File(context.filesDir, "alpine-rootfs")
+        val target = dirOf(SandboxEnvironment.ALPINE)
+        if (!legacy.exists() || target.exists()) return
+        target.parentFile?.mkdirs()
+        val moved = runCatching { legacy.renameTo(target) }.getOrDefault(false)
+        if (moved) {
+            Log.i(TAG, "[migrate] alpine-rootfs -> rootfs/alpine-rootfs")
+        } else {
+            Log.w(TAG, "[migrate] could not move the legacy rootfs; it will be re-extracted")
+        }
+    }
+
     companion object {
         private const val TAG = "RootfsManager"
 
@@ -848,6 +1069,9 @@ class RootfsManager private constructor(private val context: Context) {
             "/usr/local/sbin/",
         )
 
+        private const val PREFS = "sandbox_env_prefs"
+        private const val KEY_ACTIVE = "active_env"
+
         @Volatile
         private var instance: RootfsManager? = null
 
@@ -855,6 +1079,7 @@ class RootfsManager private constructor(private val context: Context) {
             return instance ?: synchronized(this) {
                 instance ?: RootfsManager(context.applicationContext).also {
                     instance = it
+                    it.migrateLegacyLayout()
                 }
             }
         }

@@ -2874,4 +2874,14 @@
     <string name="translation_packs_active">Active for this language: %1$s</string>
     <string name="translation_packs_none_active">none — translation still works, it is just less consistent</string>
     <string name="translation_packs_active_subtitle">Terminology and style rules applied to every translation</string>
+    <string name="sandbox_env_title">Linux environments</string>
+    <string name="sandbox_env_section">Installed environments</string>
+    <string name="sandbox_env_footer">The agent's shell runs in the active environment. Alpine ships with the app and boots in seconds; Debian is a download for the prebuilt binaries that need glibc and fail on Alpine with \"not found\". Switching applies to new shells — one already running keeps the environment it started in.</string>
+    <string name="sandbox_env_not_installed">not installed</string>
+    <string name="sandbox_env_download_hint"> · ~%1$d MB on disk</string>
+    <string name="sandbox_env_install">Install</string>
+    <string name="sandbox_env_download">Download and install</string>
+    <string name="sandbox_env_remove">Remove this environment</string>
+    <string name="sandbox_env_installed">%1$s installed.</string>
+    <string name="sandbox_env_removed">%1$s removed.</string>
 </resources>
