@@ -32,7 +32,6 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
-import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.ImportExport
 import androidx.compose.material.icons.filled.Search
@@ -100,7 +99,6 @@ import com.openminis.app.data.repository.NoteRepository
 import com.openminis.app.ui.components.DialogTextField
 import com.openminis.app.ui.components.MinisButton
 import com.openminis.app.ui.components.RowLabel
-import com.openminis.app.ui.components.safeLaunchPicker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
