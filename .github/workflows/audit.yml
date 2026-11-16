@@ -1,0 +1,63 @@
+name: Auditors
+
+# [MINIS-OZEL 11.3.1] The third side of the guard.
+#
+#   .githooks/pre-push   — stops a problem before it leaves the device
+#   this workflow        — catches what a missing hook, a second machine or a
+#                          force-push would let through
+#   audit_all.py         — one entry point, so both sides agree on "clean"
+#
+# It is deliberately NOT part of the APK build: 34 seconds of Python on its own
+# runner costs nothing on the clock, and a red audit must be readable even when
+# the APK build itself is broken (or being cancelled).
+#
+# The baseline is what makes this usable on a 4,000-file fork: pre-existing
+# findings are recorded, and only NEW ones fail. `--update-baseline` is a
+# deliberate, reviewable act, never a way to get to green.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: auditors-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Security · Code · Compliance
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # A scanner that has stopped matching reports "clean" forever. The
+      # self-test plants one defect per rule and one correct sample per rule
+      # that must NOT fire; audit_all refuses to report a verdict without it.
+      - name: Run the auditors
+        run: python3 scripts/audit/audit_all.py --report audit-report.json
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          # v4 stores paths relative to their common ancestor. This is a
+          # single file at the repo root, so the ancestor is the root and the
+          # download lands flat — the CMP012 trap does not apply here.
+          name: audit-report
+          path: audit-report.json
+          retention-days: 14
+          if-no-files-found: ignore

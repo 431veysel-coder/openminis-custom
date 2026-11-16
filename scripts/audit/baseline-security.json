@@ -1,0 +1,14 @@
+{
+  "_comment": "Findings that predate the auditor. CI fails on anything NOT listed here. Regenerate deliberately with `audit_all.py --update-baseline` after reviewing the report.",
+  "known": {
+    "31b7453c4a4c7f5c": "SEC012 src/android/app/src/main/AndroidManifest.xml:0",
+    "34084d299e1a5618": "SEC012 src/android/app/src/main/AndroidManifest.xml:0",
+    "52a0f8c20bb7854b": "SEC012 src/android/app/src/main/AndroidManifest.xml:0",
+    "5bde025cbe31daa2": "SEC012 src/android/app/src/main/AndroidManifest.xml:0",
+    "5ea752a89bd2dde4": "SEC010 src/android/app/src/main/AndroidManifest.xml:537",
+    "7d60d28cf8c3c849": "SEC012 src/android/app/src/main/AndroidManifest.xml:0",
+    "cd73f136b886a760": "SEC010 src/android/app/src/main/AndroidManifest.xml:415",
+    "cd79a6ce0cb75647": "SEC012 src/android/app/src/main/AndroidManifest.xml:0",
+    "eefd8d829983309d": "SEC012 src/android/app/src/main/AndroidManifest.xml:0"
+  }
+}

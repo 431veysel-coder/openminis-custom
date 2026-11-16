@@ -40,6 +40,24 @@
         <domain includeSubdomains="true">github.com</domain>
         <domain includeSubdomains="true">githubcopilot.com</domain>
         <domain includeSubdomains="true">kimi.com</domain>
+        <!-- [MINIS-OZEL 11.3.1] SEC011: these hosts take a bearer token from
+             the provider presets this fork added (or that upstream already
+             shipped) and were missing from this list, so they inherited the
+             base config's cleartext permission. An http:// typo in a base URL
+             would have sent the API key in plaintext. scripts/audit/
+             security_audit.py fails the build when a token host is missing
+             from this block; adding the host here is the fix it asks for. -->
+        <domain includeSubdomains="true">api.together.xyz</domain>
+        <domain includeSubdomains="true">api.fireworks.ai</domain>
+        <domain includeSubdomains="true">router.huggingface.co</domain>
+        <domain includeSubdomains="true">ai-gateway.vercel.sh</domain>
+        <domain includeSubdomains="true">api.groq.com</domain>
+        <domain includeSubdomains="true">api.mistral.ai</domain>
+        <domain includeSubdomains="true">api.moonshot.cn</domain>
+        <domain includeSubdomains="true">api.moonshot.ai</domain>
+        <domain includeSubdomains="true">api.cerebras.ai</domain>
+        <domain includeSubdomains="true">api.sambanova.ai</domain>
+        <domain includeSubdomains="true">api.nvidia.com</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>

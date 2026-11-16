@@ -62,8 +62,12 @@ android {
         // more than tidy: UpdatePolicy.isNewer compares the raw counter, so
         // anything at or below 37013 would leave those installs unable to
         // update, forever.
-        versionCode = 37028
-        versionName = "1.15-ozel.11.1"
+        // 11.3.1 → 37029. The counter is monotonic, not derived from the
+        // semantic part: 37017-37027 were burned by the unreleased ozel.10.2-
+        // 10.21 series, which is why 11.1 already sat at 37028. Never reuse a
+        // number — see the note above.
+        versionCode = 37029
+        versionName = "1.15-ozel.11.3.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

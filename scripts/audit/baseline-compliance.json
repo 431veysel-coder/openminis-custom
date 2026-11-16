@@ -1,0 +1,26 @@
+{
+  "_comment": "Findings that predate the auditor. CI fails on anything NOT listed here. Regenerate deliberately with `audit_all.py --update-baseline` after reviewing the report.",
+  "known": {
+    "007ae150e7bb35ed": "CMP004 src/android/app/src/main/res/values-fil:0",
+    "1abe4bda289be451": "CMP004 src/android/app/src/main/res/values-fr:0",
+    "2015d6e9ff8d4ae5": "CMP004 src/android/app/src/main/res/values-de:0",
+    "23d20a34e0daa5f7": "CMP004 src/android/app/src/main/res/values-pl:0",
+    "2f26d2f1f556cb05": "CMP004 src/android/app/src/main/res/values-ko:0",
+    "49d60c7c4a1b41bf": "CMP004 src/android/app/src/main/res/values-es:0",
+    "5f3972bd586925cd": "CMP004 src/android/app/src/main/res/values-th:0",
+    "74ff0ed6e44458db": "CMP004 src/android/app/src/main/res/values-ro:0",
+    "7d2bb82f81f1bda5": "CMP004 src/android/app/src/main/res/values-hu:0",
+    "842ddd74c568ae41": "CMP004 src/android/app/src/main/res/values-nl:0",
+    "8c2dfed950e53b68": "CMP004 src/android/app/src/main/res/values-pt-rBR:0",
+    "9784880c2790fc57": "CMP004 src/android/app/src/main/res/values-ru:0",
+    "9904cf596e448917": "CMP004 src/android/app/src/main/res/values-fa:0",
+    "b36307d6a0159ead": "CMP004 src/android/app/src/main/res/values-in:0",
+    "b496ddf7a9951bfa": "CMP004 src/android/app/src/main/res/values-zh:0",
+    "ccf79ef1bc6020d9": "CMP004 src/android/app/src/main/res/values-it:0",
+    "d609ac91f651e81f": "CMP004 src/android/app/src/main/res/values-hr:0",
+    "df3c359e136018bb": "CMP004 src/android/app/src/main/res/values-zh-rTW:0",
+    "e6c8f2c9cc91cd67": "CMP004 src/android/app/src/main/res/values-cs:0",
+    "eb50871ddaff3016": "CMP004 src/android/app/src/main/res/values-ja:0",
+    "fd8590e1844d6dd6": "CMP004 src/android/app/src/main/res/values-ms:0"
+  }
+}

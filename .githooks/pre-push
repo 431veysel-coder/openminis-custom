@@ -47,5 +47,22 @@ if [ -n "$forbidden" ]; then
     exit 1
 fi
 
+# 4. [MINIS-OZEL 11.3.1] The auditors, on the same entry point CI uses.
+#
+#    Deliberately last and deliberately not blocking on warnings: the secret
+#    scan above is the gate that must never be skipped, and a 34-second audit
+#    sitting in front of it would tempt people to reach for --no-verify, which
+#    would skip the secret scan too. An ERROR here still blocks.
+if [ "${SKIP_AUDIT:-0}" != "1" ]; then
+    echo "pre-push: running the auditors (SKIP_AUDIT=1 to skip)..."
+    if ! python3 scripts/audit/audit_all.py; then
+        echo "" >&2
+        echo "pre-push: blocked — a NEW audit error. Fix it, or if the finding" >&2
+        echo "          is a false positive, suppress it inline with a reason:" >&2
+        echo "              // audit:ok RULE — why" >&2
+        exit 1
+    fi
+fi
+
 echo "pre-push: clean"
 exit 0

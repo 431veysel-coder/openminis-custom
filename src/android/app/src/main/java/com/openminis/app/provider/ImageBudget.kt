@@ -833,6 +833,11 @@ object ImageBudget {
             else -> "bin"
         }
         val sha = try {
+            // audit:ok SEC004 — this is a content-addressed cache filename for
+            // a spillover file, not a security primitive. A collision costs one
+            // wrong cache hit, which the size check below catches. Kept as
+            // SHA-1 because the value is already persisted in the on-disk
+            // cache of shipped installs; changing the digest would orphan it.
             val md = java.security.MessageDigest.getInstance("SHA-1")
             md.update(data)
             md.digest().joinToString("") { "%02x".format(it) }
