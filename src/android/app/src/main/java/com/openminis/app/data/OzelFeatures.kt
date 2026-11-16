@@ -74,6 +74,13 @@ object OzelFeatures {
          * Only meaningful in builds that ship it (DEV_TOOLS).
          */
         DEV_SERVER("dev_server", false),
+
+        /**
+         * Browser tab limit (1-10). When enabled, the tab cap is shown in
+         * Browser Settings and enforced by BrowserTabPool. Off by default
+         * means unlimited (but still capped by the pool's hard max of 3).
+         */
+        BROWSER_TAB_LIMIT("browser_tab_limit", false),
         ;
 
         companion object {

@@ -784,6 +784,15 @@ class BrowserUseManager(
             BrowserAction.FETCH -> return fetch(input.url)
             BrowserAction.GET_COOKIES -> return getCookies(input.keywords, input.fuzzy)
             BrowserAction.SET_COOKIES -> return setCookies(input.cookies)
+            BrowserAction.CLEAR_COOKIES -> return clearCookies(input.keywords, input.fuzzy)
+            BrowserAction.FILL_FORM -> return fillForm(input.selector, input.fields)
+            BrowserAction.SUBMIT_FORM -> return submitForm(input.selector)
+            BrowserAction.UPLOAD_FILE -> return uploadFile(input.selector, input.filePath)
+            BrowserAction.LIST_DOWNLOADS -> return listDownloads()
+            BrowserAction.CANCEL_DOWNLOAD -> return cancelDownload(input.downloadId)
+            BrowserAction.GET_CONSOLE_LOGS -> return getConsoleLogs()
+            BrowserAction.GET_NETWORK_REQUESTS -> return getNetworkRequests()
+            BrowserAction.SAVE_AS_PDF -> return saveAsPdf(input.pdfOptions)
             BrowserAction.SCROLL_AND_COLLECT -> return scrollAndCollect(
                 input.scrollCount, input.itemSelector, input.keywords,
             )
@@ -2004,6 +2013,320 @@ class BrowserUseManager(
             is String -> v.toDoubleOrNull()
             else -> null
         }
+
+    // -- Clear Cookies --
+
+    private fun clearCookies(keywords: List<String>?, fuzzy: Boolean): BrowserActionResult {
+        val url = _currentURL.value.takeIf { it.isNotEmpty() }
+            ?: return BrowserActionResult.error("clear_cookies: no page is loaded (navigate first)")
+        val cookieMgr = runCatching { CookieManager.getInstance() }.getOrNull()
+            ?: return BrowserActionResult.error("clear_cookies: CookieManager unavailable")
+        // CookieManager.removeAllCookies() clears everything. If we want selective
+        // clearing by keyword, we'd need to enumerate and remove individually.
+        // For now, clear all and let the user re-set what they need.
+        if (keywords.isNullOrEmpty()) {
+            cookieMgr.removeAllCookies { result ->
+                Log.i(TAG, "clear_cookies: removed all cookies, success=$result")
+            }
+            return BrowserActionResult(text = "Cleared all cookies for $url")
+        }
+        // Selective clear: get cookies, filter by keyword, re-set everything except matched.
+        // Since CookieManager doesn't support selective removal, we clear all and re-set.
+        // This is a best-effort approximation.
+        val raw = cookieMgr.getCookie(url).orEmpty()
+        val pairs = raw.split(";")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .mapNotNull {
+                val eq = it.indexOf('=')
+                if (eq <= 0) null else it.substring(0, eq).trim() to it.substring(eq + 1).trim()
+            }
+        val toKeep = pairs.filter { (name, _) ->
+            !keywords.any { kw ->
+                if (fuzzy) name.contains(kw, ignoreCase = true)
+                else name.equals(kw, ignoreCase = true)
+            }
+        }
+        cookieMgr.removeAllCookies(null)
+        // Re-set kept cookies
+        for ((name, value) in toKeep) {
+            cookieMgr.setCookie(url, "$name=$value; Path=/; Domain=${java.net.URI(url).host.orEmpty()}")
+        }
+        cookieMgr.flush()
+        val removed = pairs.size - toKeep.size
+        return BrowserActionResult(text = "Cleared $removed cookie(s) for $url (kept ${toKeep.size})")
+    }
+
+    // -- Fill Form --
+
+    private suspend fun fillForm(selector: String?, fields: Map<String, Any?>?): BrowserActionResult {
+        if (fields.isNullOrEmpty()) {
+            return BrowserActionResult.error("fill_form: 'fields' map is required (selector -> value)")
+        }
+        val formSelector = selector ?: "form"
+        var filled = 0
+        var errors = mutableListOf<String>()
+        for ((fieldSelector, value) in fields) {
+            val js = """
+                (function() {
+                    var el = document.querySelector(${JSONObject.quote(fieldSelector)});
+                    if (!el) return 'NOT_FOUND:' + ${JSONObject.quote(fieldSelector)};
+                    var tag = el.tagName.toLowerCase();
+                    var type = el.type ? el.type.toLowerCase() : '';
+                    try {
+                        if (tag === 'select') {
+                            // Select by value
+                            var opt = Array.from(el.options).find(o => o.value == ${JSONObject.quote(value.toString())});
+                            if (opt) { opt.selected = true; el.value = ${JSONObject.quote(value.toString())}; el.dispatchEvent(new Event('change', {bubbles:true})); }
+                        } else if (type === 'checkbox' || type === 'radio') {
+                            el.checked = ${value.toString().toLowerCase() == "true" || value.toString() == "1"};
+                            el.dispatchEvent(new Event('change', {bubbles:true}));
+                        } else if (type === 'file') {
+                            return 'SKIP_FILE:' + ${JSONObject.quote(fieldSelector)}; // files handled by upload_file
+                        } else {
+                            el.value = ${JSONObject.quote(value.toString())};
+                            el.dispatchEvent(new Event('input', {bubbles:true}));
+                            el.dispatchEvent(new Event('change', {bubbles:true}));
+                        }
+                        return 'OK:' + ${JSONObject.quote(fieldSelector)};
+                    } catch (e) {
+                        return 'ERROR:' + ${JSONObject.quote(fieldSelector)} + ':' + e.message;
+                    }
+                })();
+            """.trimIndent()
+            val result = evaluateJavascript(js)
+            if (result.startsWith("OK:")) filled++
+            else if (result.startsWith("NOT_FOUND:")) errors.add("Not found: $fieldSelector")
+            else if (result.startsWith("ERROR:")) errors.add("Error: $fieldSelector - ${result.substringAfterLast(':')}")
+            else if (result.startsWith("SKIP_FILE:")) errors.add("Skipped file input: $fieldSelector (use upload_file)")
+            else errors.add("Unknown result: $result")
+        }
+        val text = buildString {
+            appendLine("Filled $filled field(s) in form '$formSelector'")
+            if (errors.isNotEmpty()) {
+                appendLine("Warnings: ${errors.joinToString("; ")}")
+            }
+        }
+        return BrowserActionResult(text = text.trimEnd())
+    }
+
+    // -- Submit Form --
+
+    private suspend fun submitForm(selector: String?): BrowserActionResult {
+        val formSelector = selector ?: "form"
+        val js = """
+            (function() {
+                var form = document.querySelector(${JSONObject.quote(formSelector)});
+                if (!form) return 'NOT_FOUND:' + ${JSONObject.quote(formSelector)};
+                if (form.tagName.toLowerCase() !== 'form') return 'NOT_FORM:' + ${JSONObject.quote(formSelector)};
+                form.submit();
+                return 'OK';
+            })();
+        """.trimIndent()
+        val result = evaluateJavascript(js)
+        return when {
+            result.startsWith("OK") -> BrowserActionResult(text = "Form '$formSelector' submitted")
+            result.startsWith("NOT_FOUND") -> BrowserActionResult.error("Form not found: $formSelector")
+            result.startsWith("NOT_FORM") -> BrowserActionResult.error("Element is not a form: $formSelector")
+            else -> BrowserActionResult.error("Submit failed: $result")
+        }
+    }
+
+    // -- Upload File --
+
+    private suspend fun uploadFile(selector: String?, filePath: String?): BrowserActionResult {
+        val inputSelector = selector ?: "input[type=file]"
+        val path = filePath ?: return BrowserActionResult.error("upload_file: 'file_path' is required")
+        val file = java.io.File(path)
+        if (!file.exists()) return BrowserActionResult.error("upload_file: file not found: $path")
+        if (!file.isFile) return BrowserActionResult.error("upload_file: not a file: $path")
+
+        // Read file as base64 and create a File object in JS
+        val bytes = file.readBytes()
+        val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+        val filename = file.name
+        val mimeType = when {
+            filename.endsWith(".png") -> "image/png"
+            filename.endsWith(".jpg") || filename.endsWith(".jpeg") -> "image/jpeg"
+            filename.endsWith(".gif") -> "image/gif"
+            filename.endsWith(".pdf") -> "application/pdf"
+            else -> "application/octet-stream"
+        }
+
+        val js = """
+            (function() {
+                var input = document.querySelector(${JSONObject.quote(inputSelector)});
+                if (!input) return 'NOT_FOUND:' + ${JSONObject.quote(inputSelector)};
+                if (input.type !== 'file') return 'NOT_FILE:' + ${JSONObject.quote(inputSelector)};
+
+                // Create a File object from base64
+                var binary = atob(${JSONObject.quote(base64)});
+                var len = binary.length;
+                var buffer = new Uint8Array(len);
+                for (var i = 0; i < len; i++) buffer[i] = binary.charCodeAt(i);
+                var blob = new Blob([buffer], { type: ${JSONObject.quote(mimeType)} });
+                var file = new File([blob], ${JSONObject.quote(filename)}, { type: ${JSONObject.quote(mimeType)} });
+
+                // Create a DataTransfer and assign to input
+                var dt = new DataTransfer();
+                dt.items.add(file);
+                input.files = dt.files;
+                input.dispatchEvent(new Event('change', {bubbles:true}));
+                return 'OK:' + input.files.length;
+            })();
+        """.trimIndent()
+        val result = evaluateJavascript(js)
+        return when {
+            result.startsWith("OK:") -> BrowserActionResult(text = "Uploaded '$filename' to '$inputSelector' (${result.substringAfterLast(':')} file(s))")
+            result.startsWith("NOT_FOUND:") -> BrowserActionResult.error("File input not found: $inputSelector")
+            result.startsWith("NOT_FILE:") -> BrowserActionResult.error("Element is not a file input: $inputSelector")
+            else -> BrowserActionResult.error("Upload failed: $result")
+        }
+    }
+
+    // -- List Downloads --
+
+    private suspend fun listDownloads(): BrowserActionResult {
+        // The download list is maintained by BrowserTabPool, not individual manager.
+        // This is a placeholder - the pool should expose the download history.
+        val js = """
+            (function() {
+                // Try to get downloads from Chrome's download API if available
+                try {
+                    if (chrome && chrome.downloads) {
+                        return 'CHROME_API';
+                    }
+                } catch(e) {}
+                return 'NO_API';
+            })();
+        """.trimIndent()
+        val hasApi = evaluateJavascript(js).trim() == "CHROME_API"
+        if (!hasApi) {
+            return BrowserActionResult(text = "Download list not available (no chrome.downloads API in WebView). Downloads are handled by BrowserTabPool.")
+        }
+        // If we had the API, we'd query it. For now, return placeholder.
+        return BrowserActionResult(text = "Downloads are managed by BrowserTabPool; see session workspace for downloaded files.")
+    }
+
+    // -- Cancel Download --
+
+    private suspend fun cancelDownload(downloadId: String?): BrowserActionResult {
+        val id = downloadId ?: return BrowserActionResult.error("cancel_download: 'download_id' is required")
+        val js = """
+            (function() {
+                try {
+                    if (chrome && chrome.downloads && chrome.downloads.cancel) {
+                        chrome.downloads.cancel(${id});
+                        return 'OK';
+                    }
+                } catch(e) {}
+                return 'NO_API';
+            })();
+        """.trimIndent()
+        val result = evaluateJavascript(js).trim()
+        return if (result == "OK") {
+            BrowserActionResult(text = "Cancelled download $id")
+        } else {
+            BrowserActionResult.error("cancel_download: chrome.downloads API not available in WebView")
+        }
+    }
+
+    // -- Get Console Logs --
+
+    private suspend fun getConsoleLogs(): BrowserActionResult {
+        // WebView doesn't expose console logs directly. We'd need to inject a
+        // console.log wrapper at page load time. For now, return a note.
+        val js = """
+            (function() {
+                if (window.__minis_console_logs) {
+                    var logs = window.__minis_console_logs.slice(-100);
+                    window.__minis_console_logs = [];
+                    return JSON.stringify(logs);
+                }
+                return 'NOT_INSTRUMENTED';
+            })();
+        """.trimIndent()
+        val result = evaluateJavascript(js).trim()
+        if (result == "NOT_INSTRUMENTED") {
+            return BrowserActionResult(text = "Console logs not captured. To enable, the page needs to be instrumented at load time (inject console.log wrapper).")
+        }
+        try {
+            val arr = JSONArray(result)
+            val text = buildString {
+                appendLine("Console logs (last ${arr.length()}):")
+                for (i in 0 until arr.length()) {
+                    val log = arr.getJSONObject(i)
+                    val level = log.optString("level", "log")
+                    val msg = log.optString("message", "")
+                    val time = log.optString("time", "")
+                    appendLine("  [$level] $time: $msg")
+                }
+            }
+            return BrowserActionResult(text = text.trimEnd())
+        } catch (e: Exception) {
+            return BrowserActionResult.error("Failed to parse console logs: ${e.message}")
+        }
+    }
+
+    // -- Get Network Requests --
+
+    private suspend fun getNetworkRequests(): BrowserActionResult {
+        val js = """
+            (function() {
+                if (window.__minis_network_logs) {
+                    var logs = window.__minis_network_logs.slice(-50);
+                    window.__minis_network_logs = [];
+                    return JSON.stringify(logs);
+                }
+                return 'NOT_INSTRUMENTED';
+            })();
+        """.trimIndent()
+        val result = evaluateJavascript(js).trim()
+        if (result == "NOT_INSTRUMENTED") {
+            return BrowserActionResult(text = "Network requests not captured. To enable, the page needs to be instrumented at load time (inject fetch/XHR wrappers).")
+        }
+        try {
+            val arr = JSONArray(result)
+            val text = buildString {
+                appendLine("Network requests (last ${arr.length()}):")
+                for (i in 0 until arr.length()) {
+                    val log = arr.getJSONObject(i)
+                    val method = log.optString("method", "GET")
+                    val url = log.optString("url", "")
+                    val status = log.optInt("status", 0)
+                    val time = log.optString("time", "")
+                    appendLine("  $method $status $url ($time)")
+                }
+            }
+            return BrowserActionResult(text = text.trimEnd())
+        } catch (e: Exception) {
+            return BrowserActionResult.error("Failed to parse network logs: ${e.message}")
+        }
+    }
+
+    // -- Save as PDF --
+
+    private suspend fun saveAsPdf(pdfOptions: Map<String, Any?>?): BrowserActionResult {
+        // WebView's PrintDocumentAdapter can generate PDF
+        val paperSize = pdfOptions?.get("paper_size") as String? ?: "A4"
+        val landscape = pdfOptions?.get("landscape") as Boolean? ?: false
+
+        val printAdapter = withContext(Dispatchers.Main) {
+            webView.createPrintDocumentAdapter(_currentURL.value.ifEmpty { "page" })
+        }
+
+        val file = java.io.File(webView.context.cacheDir, "browser_${System.currentTimeMillis()}.pdf")
+        val pdfWriter = android.graphics.pdf.PdfDocument()
+        val pageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(
+            if (landscape) 842 else 595, // A4 width in points
+            if (landscape) 595 else 842, // A4 height in points
+            1
+        ).create()
+
+        // This is a simplified approach - full PDF generation would need
+        // a custom PrintDocumentAdapter implementation. For now, return note.
+        return BrowserActionResult(text = "save_as_pdf: PDF generation via PrintDocumentAdapter requires a custom implementation. For now, use screenshot with full_page=true and convert to PDF externally.")
+    }
 
     // -- Wait for DOM Stable --
 

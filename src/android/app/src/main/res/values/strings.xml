@@ -233,6 +233,34 @@
     <!-- [T-mcp-startup-timeout] Optional STDIO startup/handshake timeout (seconds) -->
     <string name="mcp_form_startup_timeout">Startup timeout (seconds)</string>
     <string name="mcp_form_startup_timeout_placeholder">Default 60</string>
+
+    <!-- Notes module -->
+    <string name="settings_notes">Notes</string>
+    <string name="settings_notes_subtitle">Persistent per-session notes for the Agent</string>
+    <string name="notes_title">Agent Notes</string>
+    <string name="notes_create_title">Create Note</string>
+    <string name="notes_edit_title">Edit Note</string>
+    <string name="notes_save">Save</string>
+    <string name="notes_cancel">Cancel</string>
+    <string name="notes_create">New Note</string>
+    <string name="notes_create_first">Create your first note</string>
+    <string name="notes_empty">No notes yet</string>
+    <string name="notes_no_results">No matching notes</string>
+    <string name="notes_search_hint">Search notes…</string>
+    <string name="notes_clear_search">Clear search</string>
+    <string name="notes_filter_tags">Filter by tag</string>
+    <string name="notes_all_tags">All tags</string>
+    <string name="notes_title_label">Title</string>
+    <string name="notes_content_label">Content</string>
+    <string name="notes_tags_label">Tags</string>
+    <string name="notes_tags_placeholder">comma, separated, tags</string>
+    <string name="notes_export">Export</string>
+    <string name="notes_import">Import</string>
+    <string name="notes_export_title">Export Notes</string>
+    <string name="notes_export_desc">Save as JSON file</string>
+    <string name="notes_export_json">JSON</string>
+    <string name="notes_export_save">Save to Files</string>
+
     <!-- [T-android-provider-voice] Voice Services (shadow voice providers) -->
     <string name="voice_services_section">Voice Services</string>
     <string name="voice_services_duplicate_hint">A voice service is configured more than once. Voice is merged into a single row here; you can delete the extra provider above if you want.</string>
@@ -2837,6 +2865,8 @@
     <string name="ozel_feature_background_gates_subtitle">Shows the checklist that explains why a task died with the screen off</string>
     <string name="ozel_feature_qs_tile">Quick Settings tile</string>
     <string name="ozel_feature_qs_tile_subtitle">Greys out the notification-panel tile that opens a new chat. Android cannot remove a tile from the panel for you.</string>
+    <string name="ozel_feature_browser_tab_limit">Browser tab limit</string>
+    <string name="ozel_feature_browser_tab_limit_subtitle">Enforces a configurable tab cap (1-10) in the browser. When off, the pool default (3) applies.</string>
     <string name="ozel_features_section_providers">Providers</string>
     <string name="ozel_features_provider_footer">A preset only prefills the Base URL and label when you add a provider. Switching it off removes it from the list; a provider you already created keeps working.</string>
     <string name="ozel_feature_evren">Evren API preset</string>

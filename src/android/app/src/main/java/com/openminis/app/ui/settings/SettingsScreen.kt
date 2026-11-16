@@ -120,6 +120,8 @@ fun SettingsScreen(
     // [T-mcp-integration-android] MCP Integrations page, listed directly below
     // Memory. Default no-op for callers that haven't wired the route yet.
     onMcpClick: () -> Unit = {},
+    // [MINIS-OZEL] Agent Notes — persistent per-session notes for the Agent.
+    onNotesClick: () -> Unit = {},
     // [T-soul-md] Soul settings page lives between Skills and Memory in the
     // Agent Runtime section; default no-op for callers that haven't wired
     // the route yet.
@@ -317,6 +319,14 @@ fun SettingsScreen(
                     title = stringResource(R.string.settings_mcp),
                     subtitle = stringResource(R.string.settings_mcp_subtitle),
                     onClick = onMcpClick,
+                )
+                // [MINIS-OZEL] Agent Notes — below MCP.
+                SettingsItem(
+                    icon = Icons.Outlined.Description,
+                    iconColor = Color(0xFFFF9500),
+                    title = stringResource(R.string.settings_notes),
+                    subtitle = stringResource(R.string.settings_notes_subtitle),
+                    onClick = onNotesClick,
                 )
                 SettingsItem(
                     icon = Icons.Outlined.Terminal,

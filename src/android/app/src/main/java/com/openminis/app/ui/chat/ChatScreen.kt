@@ -301,6 +301,7 @@ import com.openminis.app.data.model.ThinkingLevel
 import com.openminis.app.agent.jobs.AgentJobRegistry
 import com.openminis.app.data.repository.ChatRepository
 import com.openminis.app.data.repository.MemoryRepository
+import com.openminis.app.data.repository.NoteRepository
 import com.openminis.app.data.repository.ProviderRepository
 import com.openminis.app.ui.browser.BrowserSheet
 import com.openminis.app.ui.theme.ChatColors
@@ -519,6 +520,7 @@ fun ChatScreen(
     memoryRepository: MemoryRepository? = null,
     skillRepository: com.openminis.app.data.repository.SkillRepository? = null,
     mcpRepository: com.openminis.app.data.repository.MCPRepository? = null,
+    noteRepository: com.openminis.app.data.repository.NoteRepository? = null,
     onBack: () -> Unit,
     /**
      * [T-android-tablet-split] True when this chat is rendered as the DETAIL
@@ -589,6 +591,7 @@ fun ChatScreen(
             memoryRepository = memoryRepository,
             skillRepository = skillRepository,
             mcpRepository = mcpRepository,
+            noteRepository = noteRepository,
         ),
     )
     // [UI-261023-07] While this chat is in the foreground it is being read:

@@ -908,6 +908,7 @@ fun ChatSplitScaffoldRoute(
     memoryRepository: com.openminis.app.data.repository.MemoryRepository?,
     skillRepository: com.openminis.app.data.repository.SkillRepository?,
     mcpRepository: com.openminis.app.data.repository.MCPRepository?,
+    noteRepository: com.openminis.app.data.repository.NoteRepository?,
 ) {
     ChatSplitScaffold(
         initialSessionId = initialSessionId,
@@ -956,6 +957,7 @@ fun ChatSplitScaffoldRoute(
                 memoryRepository = memoryRepository,
                 skillRepository = skillRepository,
                 mcpRepository = mcpRepository,
+                noteRepository = noteRepository,
                 // Back inside the pair is the pane navigator's job (it knows
                 // whether that means "hide the detail" or "pop to the list").
                 onBack = onBackInPane,

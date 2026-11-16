@@ -133,6 +133,7 @@ object Routes {
     fun mirrorCategoryDetail(categoryKey: String) = "mirror_category/$categoryKey"
     const val FILE_BROWSER = "file_browser"
     const val FILE_PREVIEW = "file_preview"
+    const val NOTES = "notes/{sessionId}"
     const val ENV_VARS = "env_vars"
     const val NETWORK = "network"
     // [FEAT-261021-04] The other pages of Settings > Network.
@@ -636,6 +637,9 @@ fun AppNavigation(
                 memoryRepository = memoryRepository,
                 skillRepository = skillRepository,
                 mcpRepository = mcpRepository,
+                noteRepository = com.openminis.app.data.repository.NoteRepository(
+                    androidx.compose.ui.platform.LocalContext.current
+                ),
             )
         }
 
@@ -652,6 +656,9 @@ fun AppNavigation(
                 memoryRepository = memoryRepository,
                 skillRepository = skillRepository,
                 mcpRepository = mcpRepository,
+                noteRepository = com.openminis.app.data.repository.NoteRepository(
+                    androidx.compose.ui.platform.LocalContext.current
+                ),
             )
         }
 
@@ -680,6 +687,7 @@ fun AppNavigation(
                 onOzelFeaturesClick = { navController.safeNavigate(Routes.OZEL_FEATURES) },
                 onAgentToolsClick = { navController.safeNavigate(Routes.AGENT_TOOLS) },
                 onMcpClick = { navController.safeNavigate(Routes.MCP) },
+                onNotesClick = { navController.safeNavigate(Routes.NOTES) },
                 onSoulClick = { navController.safeNavigate(Routes.SOUL) },
                 onPermissionsClick = { navController.safeNavigate(Routes.PERMISSIONS) },
                 onUsageClick = { navController.safeNavigate(Routes.USAGE_STATS) },
@@ -1576,6 +1584,19 @@ fun AppNavigation(
         }
         composable(Routes.OZEL_FEATURES) {
             com.openminis.app.ui.settings.OzelFeaturesScreen(
+                onBack = { navController.safePopBackStack() },
+            )
+        }
+        composable(
+            route = Routes.NOTES,
+            arguments = listOf(navArgument("sessionId") { type = NavType.StringType; defaultValue = "" }),
+        ) { backStackEntry ->
+            val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
+            com.openminis.app.ui.settings.NotesScreen(
+                noteRepository = com.openminis.app.data.repository.NoteRepository(
+                    androidx.compose.ui.platform.LocalContext.current
+                ),
+                currentSessionId = sessionId,
                 onBack = { navController.safePopBackStack() },
             )
         }

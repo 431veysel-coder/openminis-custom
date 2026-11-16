@@ -111,6 +111,7 @@ class ChatViewModel(
     val memoryRepository: MemoryRepository? = null,
     val skillRepository: com.openminis.app.data.repository.SkillRepository? = null,
     val mcpRepository: com.openminis.app.data.repository.MCPRepository? = null,
+    val noteRepository: com.openminis.app.data.repository.NoteRepository? = null,
 ) : ViewModel() {
 
     companion object {
@@ -688,6 +689,7 @@ class ChatViewModel(
             memoryRepository: MemoryRepository?,
             skillRepository: com.openminis.app.data.repository.SkillRepository?,
             mcpRepository: com.openminis.app.data.repository.MCPRepository? = null,
+            noteRepository: com.openminis.app.data.repository.NoteRepository? = null,
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -699,6 +701,7 @@ class ChatViewModel(
                     memoryRepository = memoryRepository,
                     skillRepository = skillRepository,
                     mcpRepository = mcpRepository,
+                    noteRepository = noteRepository,
                 ) as T
             }
         }
@@ -16478,6 +16481,8 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
         // enabled-MCP disclosure, injected right after the skills fragment.
         mcpRepository?.reloadFromDisk()
         val mcpFragment = mcpRepository?.mcpPromptFragment(activeSessionId)
+        // [MINIS-OZEL] Agent Notes — persistent per-session notes for the agent.
+        val notesFragment = noteRepository?.promptFragment(activeSessionId)
         // [T-memory-toggle-gates-injection-and-tools-android] Skip loading
         // GLOBAL.md + recent daily logs entirely when the user has turned
         // memory off for this session. Cheaper (no disk read) and — more
@@ -16498,7 +16503,8 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
             "[XSessionDiag] prompt/memory: session=${activeSessionId.take(8)} " +
                 "memoryEnabled=$memoryOn " +
                 "globalChars=${globalMemoryFragment?.length ?: 0} " +
-                "dailyChars=${dailyMemoryFragment?.length ?: 0}",
+                "dailyChars=${dailyMemoryFragment?.length ?: 0} " +
+                "notesChars=${notesFragment?.length ?: 0}",
         )
 
         return buildString {
@@ -16510,6 +16516,10 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
             if (mcpFragment != null) {
                 append("\n\n")
                 append(mcpFragment)
+            }
+            if (notesFragment != null) {
+                append("\n\n")
+                append(notesFragment)
             }
             if (globalMemoryFragment != null) {
                 append("\n\n")

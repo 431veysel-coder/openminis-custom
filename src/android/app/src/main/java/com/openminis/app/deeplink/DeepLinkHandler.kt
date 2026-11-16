@@ -175,6 +175,7 @@ object DeepLinkHandler {
             "usage", "usage-stats", "usage_stats" ->
                 DeepLinkAction.OpenSettingsScreen(Routes.USAGE_STATS)
             "skills" -> DeepLinkAction.OpenSettingsScreen(Routes.SKILLS)
+            "notes" -> DeepLinkAction.OpenSettingsScreen(Routes.notes(arg.orEmpty()))
             "memory" -> DeepLinkAction.OpenSettingsScreen(Routes.MEMORY)
             // [T-p2-agent-settings] Settings › Agents; scheduled tasks list.
             "agents" -> DeepLinkAction.OpenSettingsScreen(Routes.AGENTS)

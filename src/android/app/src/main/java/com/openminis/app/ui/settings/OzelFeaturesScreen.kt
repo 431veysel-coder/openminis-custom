@@ -103,6 +103,12 @@ fun OzelFeaturesScreen(onBack: () -> Unit) {
                 subtitle = stringResource(R.string.ozel_feature_qs_tile_subtitle),
                 checked = values[Feature.QS_TILE] == true,
                 onCheckedChange = { set(Feature.QS_TILE, it) },
+            )
+            SettingsSwitchRow(
+                title = stringResource(R.string.ozel_feature_browser_tab_limit),
+                subtitle = stringResource(R.string.ozel_feature_browser_tab_limit_subtitle),
+                checked = values[Feature.BROWSER_TAB_LIMIT] == true,
+                onCheckedChange = { set(Feature.BROWSER_TAB_LIMIT, it) },
                 showDivider = false,
             )
         }

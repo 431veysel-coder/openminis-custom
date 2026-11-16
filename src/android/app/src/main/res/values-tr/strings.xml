@@ -238,6 +238,33 @@
     <string name="mcp_form_oauth_incomplete">Önce Client ID, Yetkilendirme ve Token uç noktalarını girin.</string>
     <string name="mcp_export_copy">JSON\'u Kopyala</string>
     <string name="mcp_export_share">JSON\'u Paylaş</string>
+
+    <!-- Notes module -->
+    <string name="settings_notes">Notlar</string>
+    <string name="settings_notes_subtitle">Agent için oturum başına kalıcı notlar</string>
+    <string name="notes_title">Agent Notları</string>
+    <string name="notes_create_title">Not Oluştur</string>
+    <string name="notes_edit_title">Not Düzenle</string>
+    <string name="notes_save">Kaydet</string>
+    <string name="notes_cancel">İptal</string>
+    <string name="notes_create">Yeni Not</string>
+    <string name="notes_create_first">İlk notunuzu oluşturun</string>
+    <string name="notes_empty">Henüz not yok</string>
+    <string name="notes_no_results">Eşleşen not bulunamadı</string>
+    <string name="notes_search_hint">Notlarda ara…</string>
+    <string name="notes_clear_search">Aramayı temizle</string>
+    <string name="notes_filter_tags">Etikete göre filtrele</string>
+    <string name="notes_all_tags">Tüm etiketler</string>
+    <string name="notes_title_label">Başlık</string>
+    <string name="notes_content_label">İçerik</string>
+    <string name="notes_tags_label">Etiketler</string>
+    <string name="notes_tags_placeholder">virgülle, ayrılmış, etiketler</string>
+    <string name="notes_export">Dışa Aktar</string>
+    <string name="notes_import">İçe Aktar</string>
+    <string name="notes_export_title">Notları Dışa Aktar</string>
+    <string name="notes_export_desc">JSON dosyası olarak kaydet</string>
+    <string name="notes_export_json">JSON</string>
+    <string name="notes_export_save">Dosyalara Kaydet</string>
     <string name="mcp_export_copied">Yapılandırma panoya kopyalandı</string>
     <string name="mcp_form_error_no_name">Sunucu adı gereklidir.</string>
     <string name="mcp_form_error_no_transport">Bir URL (HTTP) ya da komut (STDIO) girin.</string>
@@ -2072,6 +2099,8 @@
     <string name="ozel_feature_background_gates_subtitle">Ekran kapalıyken görevin neden öldüğünü açıklayan kontrol listesini gösterir</string>
     <string name="ozel_feature_qs_tile">Hızlı Ayarlar karosu</string>
     <string name="ozel_feature_qs_tile_subtitle">Yeni sohbet açan bildirim paneli karosunu soluklaştırır. Android karoyu panelden senin adına kaldıramaz.</string>
+    <string name="ozel_feature_browser_tab_limit">Tarayıcı sekme sınırı</string>
+    <string name="ozel_feature_browser_tab_limit_subtitle">Tarayıcıda yapılandırılabilir sekme sınırı (1-10) zorlar. Kapalıyken havuz varsayılanı (3) uygulanır.</string>
     <string name="ozel_features_section_providers">Sağlayıcılar</string>
     <string name="ozel_features_provider_footer">Ön ayar yalnız sağlayıcı eklerken Base URL ve etiketi doldurur. Kapatmak onu listeden kaldırır; daha önce oluşturduğun sağlayıcı çalışmaya devam eder.</string>
     <string name="ozel_feature_evren">Evren API ön ayarı</string>

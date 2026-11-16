@@ -24,6 +24,15 @@ enum class BrowserAction(val value: String) {
     LIST_TABS("list_tabs"),
     GET_COOKIES("get_cookies"),
     SET_COOKIES("set_cookies"),
+    CLEAR_COOKIES("clear_cookies"),
+    FILL_FORM("fill_form"),
+    SUBMIT_FORM("submit_form"),
+    UPLOAD_FILE("upload_file"),
+    LIST_DOWNLOADS("list_downloads"),
+    CANCEL_DOWNLOAD("cancel_download"),
+    GET_CONSOLE_LOGS("get_console_logs"),
+    GET_NETWORK_REQUESTS("get_network_requests"),
+    SAVE_AS_PDF("save_as_pdf"),
     SCROLL_AND_COLLECT("scroll_and_collect"),
     WAIT_FOR_DOM_STABLE("wait_for_dom_stable");
 
