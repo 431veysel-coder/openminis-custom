@@ -1,6 +1,7 @@
 package com.openminis.app.tools
 
 import android.content.Context
+import com.openminis.app.data.journal.FileLock
 import com.openminis.app.data.model.AgentToolDefinition
 import com.openminis.app.data.model.AgentToolParam
 import com.openminis.app.sandbox.PRootKernel
@@ -70,9 +71,22 @@ object FileReadTool {
             // [T-port-filetool-size-guard] The read runs off the caller's
             // thread with a timeout, and streams the file (see read()).
             try {
-                FileToolIO.run("Reading $path") {
+                val result = FileToolIO.run("Reading $path") {
                     read(file, path, offset, requestedLines, maxLength, direction, toolTitle)
                 }
+                // [MINIS-OZEL 11.3.1] Remember what this session has now seen.
+                // A later write to the same path is checked against it, so an
+                // agent cannot overwrite a change that happened after this read
+                // without noticing. Only a FULL read counts as "seen": a
+                // windowed read (offset/lines/tail) leaves the session with a
+                // partial view, and treating that as the whole file would make
+                // the guard fire on correct behaviour.
+                if (result.success && !args.has("offset") && !args.has("lines") &&
+                    direction != "tail"
+                ) {
+                    FileLock.noteSeen(sessionId, path, file)
+                }
+                result
             } catch (e: FileToolIO.TimedOut) {
                 ToolExecutionResult("Error: ${e.message}", false, toolTitle = toolTitle, timedOut = true)
             } catch (e: FileToolIO.OutOfMemory) {

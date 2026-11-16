@@ -4,6 +4,7 @@ import android.content.Context
 import com.openminis.app.data.ContextOffload
 import com.openminis.app.data.OzelFeatures
 import com.openminis.app.data.journal.ActionJournal
+import com.openminis.app.data.journal.FileLock
 import com.openminis.app.data.scope.AgentScope
 import com.openminis.app.data.model.AgentToolDefinition
 import com.openminis.app.data.model.AgentToolParam
@@ -101,9 +102,14 @@ object FileEditTool {
                 null
             }
             try {
+                // [MINIS-OZEL 11.3.1] One editor per path: an interleaved
+                // read-modify-write is how a file ends up with neither edit.
                 val result = FileToolIO.run("Editing $path", writes = true) {
-                    edit(file, path, oldString, newString, replaceAll, toolTitle)
+                    FileLock.withLock(path) {
+                        edit(file, path, oldString, newString, replaceAll, toolTitle)
+                    }
                 }
+                if (result.success) FileLock.noteSeen(sessionId, path, file)
                 if (journaled && result.success) {
                     val entry = ActionJournal.record(
                         ctx = context,

@@ -4,6 +4,7 @@ import android.content.Context
 import com.openminis.app.data.ContextOffload
 import com.openminis.app.data.OzelFeatures
 import com.openminis.app.data.journal.ActionJournal
+import com.openminis.app.data.journal.FileLock
 import com.openminis.app.data.scope.AgentScope
 import com.openminis.app.data.model.AgentToolDefinition
 import com.openminis.app.data.model.AgentToolParam
@@ -131,19 +132,39 @@ object FileWriteTool {
                 else -> try { file.readText() } catch (e: Exception) { null }
             }
 
-            try {
-                FileToolIO.run("Writing $path", writes = true) {
-                    val parent = file.parentFile
-                    if (parent != null && (createDirs || !parent.exists())) {
-                        parent.mkdirs()
-                    }
+            // [MINIS-OZEL 11.3.1] A write that would discard a change this
+            // session never saw is refused, not performed. Two things cause it:
+            // another agent/panel wrote the same file, or the user edited it
+            // while the run was thinking. Both are recoverable by re-reading;
+            // neither is recoverable after an overwrite.
+            if (!append && FileLock.isStaleFor(sessionId, path, file)) {
+                return ToolExecutionResult(
+                    FileLock.conflictMessage(path),
+                    false, toolTitle = toolTitle,
+                )
+            }
 
-                    if (append) {
-                        file.appendText(content)
-                    } else {
-                        file.writeText(content)
+            try {
+                // [MINIS-OZEL 11.3.1] One writer per path. Two agents writing
+                // the same file would otherwise interleave into a file that is
+                // neither result, with two successes reported in the transcript.
+                FileToolIO.run("Writing $path", writes = true) {
+                    FileLock.withLock(path) {
+                        val parent = file.parentFile
+                        if (parent != null && (createDirs || !parent.exists())) {
+                            parent.mkdirs()
+                        }
+
+                        if (append) {
+                            file.appendText(content)
+                        } else {
+                            file.writeText(content)
+                        }
                     }
                 }
+                // The session now knows the new content; without this the next
+                // write in the same run would look stale to its own guard.
+                FileLock.noteSeen(sessionId, path, file)
             } catch (e: FileToolIO.TimedOut) {
                 return ToolExecutionResult("Error: ${e.message}", false, toolTitle = toolTitle, timedOut = true)
             }
