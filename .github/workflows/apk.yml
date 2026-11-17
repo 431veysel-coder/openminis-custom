@@ -10,6 +10,21 @@ on:
         type: choice
         options: [release, debug]
         default: release
+      # [MINIS-OZEL 11.3.1] A release build that does NOT publish.
+      #
+      # Minified size, the real signing key and R8's effect on behaviour can
+      # only be checked on a release build, and until now the only way to get
+      # one was to publish it — so "is this too big / does it still run" was
+      # answered after the release existed, in front of users. This input makes
+      # the verification build the default for a check, and publishing an
+      # explicit act.
+      #
+      # It only gates the publish path; the artifact upload below always runs,
+      # so a verification build still produces a downloadable APK.
+      publish:
+        description: "Publish a GitHub release (release builds only)"
+        type: boolean
+        default: true
   push:
     branches:
       - main
@@ -520,6 +535,50 @@ jobs:
           echo "MINIS_VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
           echo "MINIS_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
 
+      # [MINIS-OZEL 11.3.1] Report what the APK is made of, every build.
+      #
+      # "The app got bigger" was answerable only by downloading the file and
+      # unpacking it by hand, so it was answered late and from impression
+      # instead of measurement. This prints the total and the ten largest
+      # entries on the run summary of the build that introduced the change —
+      # and it makes the debug/release difference visible: a debug build has
+      # 32 MB of dex and no R8, a release build has 5 MB.
+      - name: Report APK size
+        working-directory: src/android
+        run: |
+          set -e
+          APK=$(find app/build/outputs/apk -name 'app-github-*.apk' | head -1)
+          {
+            echo "### APK size — $(basename "$APK")"
+            python3 - "$APK" <<'PYEOF'
+          import sys, zipfile, collections
+          z = zipfile.ZipFile(sys.argv[1])
+          rows = sorted(((i.compress_size, i.filename) for i in z.infolist()), reverse=True)
+          total = sum(r[0] for r in rows)
+          cat = collections.Counter()
+          for size, name in rows:
+              if name.startswith('classes') and name.endswith('.dex'): k = 'dex'
+              elif name.startswith('lib/'): k = 'native libs'
+              elif name.startswith('res/'): k = 'res'
+              elif name == 'resources.arsc': k = 'resources.arsc'
+              elif name.startswith('assets/'): k = 'assets'
+              else: k = 'other'
+              cat[k] += size
+          print()
+          print(f"total: **{total/1e6:.1f} MB** ({len(rows)} entries)")
+          print()
+          print("| category | MB | share |")
+          print("|---|---:|---:|")
+          for k, v in cat.most_common():
+              print(f"| {k} | {v/1e6:.2f} | {100*v/total:.1f}% |")
+          print()
+          print("| largest entries | MB |")
+          print("|---|---:|")
+          for size, name in rows[:10]:
+              print(f"| `{name}` | {size/1e6:.2f} |")
+          PYEOF
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
@@ -531,7 +590,7 @@ jobs:
       # Runs last and with a hard budget: a non-blocking step still blocks the
       # artifact upload when it hangs, and the full upstream suite takes 20+ min.
       - name: Build the release notes from commits
-        if: ${{ (inputs.build_type || 'release') == 'release' }}
+        if: ${{ (inputs.build_type || 'release') == 'release' && (inputs.publish == null || inputs.publish) }}
         id: notes
         run: |
           set -e
@@ -604,7 +663,7 @@ jobs:
         # strictly greater than the one it published. Bumping the version is
         # the only way to publish again, which is the rule the version scheme
         # in FORK.md §6 already implied.
-        if: ${{ (inputs.build_type || 'release') == 'release' }}
+        if: ${{ (inputs.build_type || 'release') == 'release' && (inputs.publish == null || inputs.publish) }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -642,7 +701,7 @@ jobs:
         # tag_name is derived from the versionName (v1.15-ozel.2), so repeated
         # builds of the same version replace the same release instead of piling
         # up entries the updater would have to choose between.
-        if: ${{ (inputs.build_type || 'release') == 'release' }}
+        if: ${{ (inputs.build_type || 'release') == 'release' && (inputs.publish == null || inputs.publish) }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.MINIS_VERSION_NAME }}

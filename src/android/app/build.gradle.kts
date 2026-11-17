@@ -172,6 +172,20 @@ android {
                 debugSymbolLevel = "FULL"
             }
             isMinifyEnabled = true
+            // [MINIS-OZEL 11.3.1] Resource shrinking was never enabled, which
+            // left every string, drawable and layout that R8 removed the last
+            // reference to still inside the APK: resources.arsc alone is 4.9 MB
+            // and res/ another 5.8 MB. With 88 locales and a dozen optional
+            // features behind OzelFeatures switches, there is a lot of it.
+            //
+            // Safe here because the resource ids are only reached from
+            // minified code and from XML: the shrinker keeps anything a kept
+            // class references, and AGP's keep rules cover the reflective
+            // cases. The one thing to watch is a resource named from a string
+            // at runtime (getIdentifier) — none exist in this fork, and the
+            // audit's CMP003 rule fails the build on an R.string that does not
+            // resolve.
+            isShrinkResources = true
             // [MINIS-OZEL] Keep the on-device developer tooling in RELEASE too.
             //
             // The debug server is what makes the installed app reachable: it
