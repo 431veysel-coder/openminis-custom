@@ -23,7 +23,8 @@ chmod +x .githooks/* 2>/dev/null || true
 git config core.hooksPath .githooks
 
 echo "hooks installed (core.hooksPath=.githooks)"
-echo "  pre-push: refuses to push a commit that contains a credential"
+echo "  pre-push:    refuses to push a commit that contains a credential"
+echo "  pre-commit:  runs scripts/preflight.sh on the staged change set"
 echo
 echo "verify with:  git config --get core.hooksPath"
 echo "bypass with:  git push --no-verify   (publishes the secret; rotate after)"

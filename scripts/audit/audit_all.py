@@ -44,6 +44,26 @@ def main() -> int:
         return 1
     print(f"self-test: {st.stdout.strip().splitlines()[-1]}\n")
 
+    # [MINIS-OZEL 11.3.1 merge] The preflight gate that shipped in 11.2 runs
+    # FIRST, before the auditors, because it is the faster and more specific
+    # one: it catches the two failure classes that cost the most build minutes
+    # (a resource/import that aapt2 or kotlinc will reject 10 minutes later).
+    # Both used to be separate entry points; after the merge there is exactly
+    # one, so "is the tree clean" has one answer.
+    preflight = Path(__file__).resolve().parents[1] / "preflight.py"
+    if preflight.exists():
+        st_pre = subprocess.run(
+            [sys.executable, str(preflight)], capture_output=True, text=True,
+        )
+        sys.stdout.write(st_pre.stdout)
+        if st_pre.stderr:
+            sys.stderr.write(st_pre.stderr)
+        if st_pre.returncode != 0:
+            if not args.update_baseline:
+                print("\naudit: preflight failed — stopping before the auditors",
+                      file=sys.stderr)
+                return 1
+
     overall = 0
     sections: dict[str, list] = {}
     for name, script in AUDITORS:

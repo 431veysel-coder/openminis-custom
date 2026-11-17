@@ -1,0 +1,55 @@
+#!/bin/sh
+# [MINIS-OZEL] Pre-commit gate: lints the STAGED change set.
+#
+# Why a commit hook and not only CI: the four failures this catches (missing
+# import, unescaped XML apostrophe, stale enum constant, undefined R.string)
+# all cost a 4-5 minute CI round to discover, and all of them are visible from
+# the source text alone. Catching them here costs ~7 seconds once.
+#
+# Why `--staged` and not the whole tree: a full run takes ~10s and re-reports
+# problems that have nothing to do with this commit. The staged subset keeps
+# the gate honest about "what am I about to add".
+#
+# Bypass: `git commit --no-verify` — but then CI is the only guard, and it
+# runs 4.5 minutes later with a message that points at a line number in a file
+# you have already forgotten.
+#
+# Install once per clone:  sh scripts/install_hooks.sh
+
+set -u
+
+root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+cd "$root" || exit 0
+
+[ -x scripts/preflight.sh ] || [ -f scripts/preflight.sh ] || exit 0
+
+# Skip the gate when nothing relevant is staged (docs-only commits, for
+# instance) — a hook that fires on a README edit teaches people to bypass it.
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+relevant=$(printf '%s\n' "$staged" | grep -E '\.(kt|xml)$' || true)
+if [ -z "$relevant" ]; then
+    exit 0
+fi
+
+# L0 (XML escaping, version) must look at the whole tree: a broken <string>
+# fails resource merging no matter which file the commit touched. The faster
+# L1/L2 checks are scoped to the staged Kotlin files.
+PREFLIGHT_TIMEOUT="${PREFLIGHT_TIMEOUT:-60}" sh scripts/preflight.sh --staged
+rc=$?
+
+if [ "$rc" -eq 0 ]; then
+    exit 0
+fi
+
+if [ "$rc" -eq 2 ]; then
+    echo ""
+    echo "preflight: denetim TAMAMLANMADI (watchdog). Commit engellendi."
+    echo "Bu 'temiz' demek değil. Tekrar deneyin; sürerse:"
+    echo "    PREFLIGHT_TIMEOUT=180 git commit ..."
+    exit 1
+fi
+
+echo ""
+echo "preflight: yukarıdaki sorunları düzeltin, sonra tekrar commit edin."
+echo "Kabul edilebilir bir sorunsa:  python3 scripts/preflight.py --update-baseline"
+exit 1

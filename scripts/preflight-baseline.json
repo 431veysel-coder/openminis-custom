@@ -1,0 +1,10 @@
+{
+  "_comment": [
+    "Kabul edilmiş denetim sorunları. Kapı yalnız bu listede OLMAYAN",
+    "sorunda düşer. Amaç: eski gürültü işi kilitlemesin, yeni gerileme",
+    "yine yakalansın. Bir kaydı silmek = o sorunu düzeltmeyi taahhüt.",
+    "Boş liste hedeftir."
+  ],
+  "count": 0,
+  "accepted": []
+}

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -37,7 +38,14 @@ import com.openminis.app.R
 import com.openminis.app.ui.components.openExternalUrl
 
 @Composable
-fun AboutScreen(onBack: () -> Unit) {
+fun AboutScreen(
+    onBack: () -> Unit,
+    // [MINIS-OZEL 11.1] Settings › About › Versions. The version history is a
+    // property of "about this app", so it belongs here rather than under the
+    // fork's own settings screen — a user looking for "go back to the version
+    // that worked" looks in About, and that is the whole point of the screen.
+    onOpenVersions: () -> Unit = {},
+) {
     val context = LocalContext.current
     val tileBlue = Color(0xFF007AFF)
 
@@ -105,6 +113,23 @@ fun AboutScreen(onBack: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 24.dp),
+            )
+        }
+
+        // [MINIS-OZEL 11.1] Version history: every published build, with the
+        // numbers this device is running, one tap away from a switch.
+        SettingsSection(header = stringResource(R.string.about_versions_header)) {
+            SettingsRow(
+                title = stringResource(R.string.about_versions_row),
+                subtitle = stringResource(
+                    R.string.about_versions_row_subtitle,
+                    BuildConfig.VERSION_NAME,
+                    BuildConfig.VERSION_CODE,
+                ),
+                icon = Icons.Outlined.History,
+                iconColor = Color(0xFF30B0C7),
+                onClick = onOpenVersions,
+                showDivider = false,
             )
         }
 

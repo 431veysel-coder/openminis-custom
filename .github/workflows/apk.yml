@@ -54,6 +54,41 @@ jobs:
   # cannot catch their regressions. Upstream's 721 test files stay advisory —
   # a red upstream test is not our bug to hold a release for, and upstream
   # ships them non-blocking too.
+  # [MINIS-OZEL 11.2] The pre-commit gate, verified independently.
+  #
+  # Runs FIRST and finishes in ~15 s, so a missing import or an unescaped XML
+  # apostrophe fails the workflow in seconds instead of surfacing 4.5 minutes
+  # later as "Unresolved reference" inside a Kotlin compile log. The same
+  # script runs on the developer's machine as a pre-commit hook; this job is
+  # what makes that a guarantee rather than a habit (a hook is not installed
+  # in every clone, and `--no-verify` exists).
+  #
+  # Deliberately NOT `needs: native` — it has no Gradle or NDK dependency, and
+  # putting it behind the 2-minute native layer would throw away the whole
+  # point of a fast gate.
+  preflight:
+    name: Preflight (fast gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Self-test the checks
+        # A check that silently stopped detecting anything is worse than no
+        # check: it reports "clean" forever. --selftest feeds each check a
+        # known-bad sample and fails if the check does not fire.
+        run: python3 scripts/preflight.py --selftest
+
+      - name: Run the gate
+        # Watchdog: the wrapper enforces a hard 120 s limit and exits 2 (never
+        # 0) if it is hit. A hung gate must not read as a passing one.
+        env:
+          PREFLIGHT_TIMEOUT: "120"
+        run: sh scripts/preflight.sh
+
   tests:
     name: Unit tests
     # `needs: native`, and not just for the wall clock: rclone.aar is a Gradle
@@ -231,9 +266,12 @@ jobs:
 
   build:
     name: Android APK (${{ inputs.build_type || 'release' }})
-    # The native layer arrives as an artifact. This is what makes the pipeline
-    # max(native + build, tests) instead of native + build + tests.
-    needs: native
+    # The fast gate answers in seconds; letting the 10-minute build start first
+    # would mean paying for the whole compile before a one-line fix is known.
+    # The native layer arrives as an artifact. Depending on both keeps the
+    # pipeline at max(native + build, tests) instead of native + build + tests,
+    # since preflight finishes long before native does.
+    needs: [preflight, native]
     runs-on: ubuntu-latest
     timeout-minutes: 60
 

@@ -62,11 +62,13 @@ android {
         // more than tidy: UpdatePolicy.isNewer compares the raw counter, so
         // anything at or below 37013 would leave those installs unable to
         // update, forever.
-        // 11.3.1 → 37029. The counter is monotonic, not derived from the
-        // semantic part: 37017-37027 were burned by the unreleased ozel.10.2-
-        // 10.21 series, which is why 11.1 already sat at 37028. Never reuse a
-        // number — see the note above.
-        versionCode = 37029
+        // 37030, not 37029. 11.2 shipped with 37029 (release
+        // v1.15-ozel.11.2, asset build37029), so the merged release has to sit
+        // above it: a number must never describe two binaries, and an install
+        // carrying 37029 can only ever update upward. The earlier assumption
+        // that 37029 was free came from the branch, before main's release was
+        // taken into account — this merge is what surfaced it.
+        versionCode = 37030
         versionName = "1.15-ozel.11.3.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

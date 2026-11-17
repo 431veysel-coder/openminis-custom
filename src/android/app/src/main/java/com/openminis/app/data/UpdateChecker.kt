@@ -213,8 +213,7 @@ object UpdateChecker {
         }
     }
 
-    internal fun parseReleases(arr: JSONArray): List<UpdatePolicy.Release> {
-        val out = mutableListOf<UpdatePolicy.Release>()
+    internal fun parseReleases(arr: JSONArray): List<UpdatePolicy.Release> {        val out = mutableListOf<UpdatePolicy.Release>()
         for (i in 0 until arr.length()) {
             val r = arr.optJSONObject(i) ?: continue
             val tag = r.optString("tag_name")
@@ -239,6 +238,74 @@ object UpdateChecker {
             )
         }
         return out
+    }
+
+    // ── [MINIS-OZEL 11.1] The version list, for Settings › About › Versions ──
+
+    /** One page of the release feed for the versions screen. */
+    sealed class PageResult {
+        data class Page(val releases: List<CheckResult.UpdateAvailable>) : PageResult()
+
+        /** No more pages (or the page was empty). */
+        data object End : PageResult()
+
+        data class Failed(val message: String) : PageResult()
+    }
+
+    /**
+     * Lists one page of releases as installable candidates.
+     *
+     * Separate from [check] on purpose: [check] answers "is there an update"
+     * for the CURRENT channel and deliberately hides older builds, drafts and
+     * rollback artefacts. The versions screen needs the opposite — every
+     * published build, newest first — and reusing [check] for it would either
+     * hide rows the user is looking for or force the updater to change what
+     * "update available" means.
+     *
+     * What it does share with [check] is [UpdatePolicy.toCandidate], so a row
+     * this screen offers is always a row the installer would accept: same ABI
+     * filter, same name parsing, same versionCode extraction.
+     */
+    suspend fun checkPage(context: Context, page: Int): PageResult = withContext(Dispatchers.IO) {
+        try {
+            val abis = Build.SUPPORTED_ABIS.toList()
+            val (_, releases) = fetchPage(page, etag = null) ?: return@withContext PageResult.End
+            if (releases.isEmpty()) return@withContext PageResult.End
+            val rows = releases
+                .filter { !it.draft }
+                .mapNotNull { UpdatePolicy.toCandidate(it, abis) }
+                // A release that shipped no APK for this device is not an
+                // installable version, so it is not a row here either.
+                .map { c ->
+                    CheckResult.UpdateAvailable(
+                        tagName = c.tag,
+                        versionName = c.versionName,
+                        versionCode = c.versionCode,
+                        releaseName = c.releaseName,
+                        changelog = c.changelog,
+                        apkUrl = c.apk.url,
+                        apkSizeBytes = c.apk.size,
+                        sha256 = c.apk.sha256,
+                        releaseUrl = c.htmlUrl,
+                    )
+                }
+            if (rows.isEmpty()) PageResult.End else PageResult.Page(rows)
+        } catch (e: HttpFailure) {
+            // fetchPage maps every non-success onto a CheckResult; only the
+            // message matters here, and Forbidden (403/451) gets its own
+            // sentence because "blocked or rate-limited" is actionable and
+            // "API 403" is not.
+            PageResult.Failed(
+                when (val r = e.result) {
+                    is CheckResult.Error -> r.message
+                    is CheckResult.Forbidden -> "GitHub blocked or rate-limited the request"
+                    else -> "release list unavailable"
+                },
+            )
+        } catch (e: Exception) {
+            AppLogger.warning(TAG, "checkPage($page) failed: ${e.javaClass.simpleName}: ${e.message}")
+            PageResult.Failed(e.message ?: e.javaClass.simpleName)
+        }
     }
 
     private fun decide(

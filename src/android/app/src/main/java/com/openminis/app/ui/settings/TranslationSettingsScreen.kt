@@ -47,6 +47,11 @@ fun TranslationSettingsScreen(
     onOpenPacks: () -> Unit = {},
 ) {
     val context = LocalContext.current
+    // [MINIS-OZEL 11.1] Engine switch state, held so the row recomposes
+    // immediately; the persisted value lives in TranslationPrefs.
+    var engineWithPack by remember {
+        mutableStateOf(TranslationPrefs.engine(context) == TranslationPrefs.Engine.MODEL_WITH_PACK)
+    }
     val app = context.applicationContext as MinisApp
     val config by app.providerRepository.config.collectAsState()
 
@@ -105,6 +110,36 @@ fun TranslationSettingsScreen(
                 onCheckedChange = {
                     autoTranslate = it
                     TranslationPrefs.setAutoTranslate(context, it)
+                },
+                showDivider = false,
+            )
+        }
+
+        // [MINIS-OZEL 11.1] Which engine does the work.
+        //
+        // Worth a switch rather than a hidden default: a pack is prompt
+        // material, so choosing it changes the output (consistent terms), the
+        // cost (more prompt tokens) and the cache key. Both options are a model
+        // call — this app ships no offline translator — and the footer says so
+        // in one sentence, because "offline pack" is what a user may assume.
+        SettingsSection(
+            header = stringResource(R.string.translation_engine_header),
+            footer = stringResource(R.string.translation_engine_footer),
+        ) {
+            SettingsSwitchRow(
+                title = stringResource(R.string.translation_engine_pack),
+                subtitle = stringResource(R.string.translation_engine_pack_subtitle),
+                checked = engineWithPack,
+                onCheckedChange = { usePack ->
+                    TranslationPrefs.setEngine(
+                        context,
+                        if (usePack) {
+                            TranslationPrefs.Engine.MODEL_WITH_PACK
+                        } else {
+                            TranslationPrefs.Engine.MODEL_ONLY
+                        },
+                    )
+                    engineWithPack = usePack
                 },
                 showDivider = false,
             )

@@ -198,6 +198,9 @@ object Routes {
 
     /** [MINIS-OZEL 11.3.1] Settings › Minis Özel › Agent scope. */
     const val AGENT_SCOPE = "agent_scope"
+
+    /** [MINIS-OZEL 11.1] Every published build, with upgrade/return. */
+    const val VERSIONS = "versions"
     /** [T-tools-granular-switches] Settings > Agent Runtime > Tools. */
     const val AGENT_TOOLS = "agent_tools"
     /** [T-mcp-integration-android] MCP Integrations management screen. */
@@ -1601,6 +1604,11 @@ fun AppNavigation(
                 onBack = { navController.safePopBackStack() },
             )
         }
+        composable(Routes.VERSIONS) {
+            com.openminis.app.ui.settings.VersionsScreen(
+                onBack = { navController.safePopBackStack() },
+            )
+        }
         composable(Routes.NOTES_PAGE) {
             com.openminis.app.ui.settings.NotesScreen(
                 onBack = { navController.safePopBackStack() },
@@ -1629,7 +1637,10 @@ fun AppNavigation(
         }
 
         composable(Routes.ABOUT) {
-            AboutScreen(onBack = { navController.safePopBackStack() })
+            AboutScreen(
+                onBack = { navController.safePopBackStack() },
+                onOpenVersions = { navController.safeNavigate(Routes.VERSIONS) },
+            )
         }
 
         composable(Routes.LOGS) {

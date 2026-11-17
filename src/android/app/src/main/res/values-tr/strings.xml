@@ -1254,6 +1254,7 @@
     <string name="add_custom_model_id_footer">Model Kimliği, şu sağlayıcıya gönderilen API tanımlayıcısıdır: %1$s. Görünen Ad ise seçicide gösterilen daha okunaklı etikettir; boş bırakılırsa Model Kimliği kullanılır.</string>
     <string name="add_custom_model_eg_id_placeholder">örn. gpt-4o-custom</string>
     <string name="add_provider_built_in_models_count">%1$d yerleşik model</string>
+    <string name="add_provider_subtitle_cloudflare">Workers AI — tek anahtar, çok sayıda açık model. Hesap kimliği anahtardan bulunur. Üçüncü taraf servis; bu uygulama tarafından işletilmez veya denetlenmez.</string>
     <string name="add_provider_subtitle_vercel">Birçok sağlayıcı için tek API, aylık krediyle. Üçüncü taraf servis; bu uygulama tarafından işletilmez veya denetlenmez.</string>
     <string name="add_provider_subtitle_nvidia">NVIDIA NIM — Llama, Nemotron, DeepSeek, Qwen ve daha fazlası</string>
     <string name="add_provider_subtitle_mistral">Mistral Large, Codestral, Pixtral ve daha fazlası</string>
@@ -2083,6 +2084,36 @@
          özellik için bir anahtar. Kapatmak giriş noktasını gizler; veri silmez. -->
     <string name="model_tag_free">ücretsiz</string>
     <string name="model_tag_limited">limit takipli</string>
+    <string name="versions_title">Sürümler</string>
+    <string name="versions_installed_header">Şu an kurulu</string>
+    <string name="versions_installed_footer">Bu cihazın çalıştırdığı sürüm.</string>
+    <string name="versions_all_header">Yayınlanan sürümler</string>
+    <string name="versions_all_footer">Yeni sürümler tek dokunuşla kurulur. Daha eski bir sürüme kurtarma derlemesiyle dönülür: aynı kod, daha yüksek bir numarayla yeniden yayınlanır; Android bunu sıradan bir güncelleme olarak kabul eder ve verine dokunmaz.</string>
+    <string name="versions_loading">Sürüm listesi yükleniyor…</string>
+    <string name="versions_load_failed">Sürüm listesi okunamadı: %1$s</string>
+    <string name="versions_badge_installed">kurulu</string>
+    <string name="versions_current">Kurulu sürüm bu</string>
+    <string name="versions_install">Buna güncelle</string>
+    <string name="versions_downloading">İndiriliyor…</string>
+    <string name="versions_return_to">Buna dön</string>
+    <string name="versions_confirm_title">Bu sürüm kurulsun mu?</string>
+    <string name="versions_confirm_message">%1$s indirilip kurulu sürümün üstüne kurulacak. Sohbetlerin ve ayarların kalır.</string>
+    <string name="versions_confirm_back_title">Eski sürüme dön</string>
+    <string name="versions_confirm_back_message">Android, %1$s sürümünü doğrudan kurmaz — sürüm numarası eski olduğu için. Bu bir ayar değil, sistem kuralı. Geri dönüşün yolu kurtarma derlemesi: aynı kod, daha yüksek bir numarayla yeniden yayınlanır. Açılan sayfada akışı çalıştır; derleme birkaç dakika içinde burada görünür ve sıradan bir güncelleme gibi kurulur.</string>
+    <string name="versions_recovery_open_short">Sayfayı aç</string>
+    <string name="versions_need_install_permission">Açılan ayar ekranında uygulama kurmaya izin ver, sonra yeniden Güncelle\'ye dokun.</string>
+    <string name="versions_open_failed">%1$s açılamadı — tarayıcıda aç.</string>
+    <string name="versions_recovery_header">Kurtarma derlemesi</string>
+    <string name="versions_recovery_footer">Bir sürüm arızalıysa ve düzeltmeyi beklemeden öncekine dönmek istiyorsan bunu kullan. Hiçbir şey kaldırılmaz, hiçbir veriye dokunulmaz.</string>
+    <string name="versions_recovery_open">Kurtarma derlemesi oluştur</string>
+    <string name="versions_recovery_open_subtitle">Önceki bir sürümü daha yüksek numarayla yeniden yayınla</string>
+    <string name="about_versions_header">Sürümler</string>
+    <string name="about_versions_row">Sürüm geçmişi</string>
+    <string name="about_versions_row_subtitle">Çalışan: %1$s (%2$d) — yayınlanan tüm sürümleri gör, aralarında geç</string>
+    <string name="translation_engine_header">Neyle çevrilsin</string>
+    <string name="translation_engine_footer">İki seçenek de bir model çağrısıdır — dil paketi o çağrıya eklenen sözlük ve üslup kuralıdır, çevrimdışı bir çevirmen değildir. Paketi kapatmak daha hızlı ve daha ucuzdur ama terimler bloklar arasında kayar.</string>
+    <string name="translation_engine_pack">Dil paketini kullan</string>
+    <string name="translation_engine_pack_subtitle">Terimler tutarlı kalır. Kapalı = sadece model, daha az istem jetonu</string>
     <string name="notes_title">Notlar</string>
     <string name="notes_tab_notes">Notlar</string>
     <string name="notes_tab_vault">Kasa</string>

@@ -26,8 +26,39 @@ data class ChatProviderPreset(
     val appendV1: Boolean,
     /** Row subtitle, as a string resource so it is localized like every other row. */
     val subtitleRes: Int,
+    /**
+     * [MINIS-OZEL 11.1] When true the API root contains an account id the user
+     * does not have memorised, and [com.openminis.app.provider.AccountIdDiscovery]
+     * resolves it from the key. Default false so every existing preset keeps
+     * its constant base URL.
+     */
+    val needsAccountId: Boolean = false,
 ) {
     companion object {
+        /**
+         * Cloudflare Workers AI — OpenAI-compatible, but the API root carries
+         * the account id:
+         *
+         *     https://api.cloudflare.com/client/v4/accounts/{id}/ai/v1
+         *
+         * Measured 2026-11-16: that path answers 401 with a placeholder id
+         * (route exists, credential missing), so it is the right endpoint; the
+         * id is what a key alone cannot supply. [needsAccountId] is what makes
+         * the setup flow ask for it — or find it itself via
+         * [com.openminis.app.provider.AccountIdDiscovery].
+         *
+         * `appendV1 = false` because the url above already ends in `/v1`.
+         */
+        val CLOUDFLARE = ChatProviderPreset(
+            id = "cloudflare",
+            displayName = "Cloudflare Workers AI",
+            providerType = ProviderType.openAI,
+            baseURL = "https://api.cloudflare.com/client/v4/accounts",
+            appendV1 = false,
+            subtitleRes = com.openminis.app.R.string.add_provider_subtitle_cloudflare,
+            needsAccountId = true,
+        )
+
         /**
          * Vercel AI Gateway — OpenAI-compatible at `/v1`.
          *
@@ -145,7 +176,7 @@ data class ChatProviderPreset(
 
         /** Every preset the picker offers, in display order. */
         val all: List<ChatProviderPreset> = listOf(
-            VERCEL, NVIDIA, MISTRAL, DEEPSEEK, TOGETHER, FIREWORKS, HUGGING_FACE,
+            VERCEL, CLOUDFLARE, NVIDIA, MISTRAL, DEEPSEEK, TOGETHER, FIREWORKS, HUGGING_FACE,
         )
 
         fun byId(id: String?): ChatProviderPreset? =
