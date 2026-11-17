@@ -86,6 +86,8 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.MoreHoriz
@@ -606,6 +608,10 @@ fun SessionListScreen(
     onRootfsClick: () -> Unit = {},
     // [T-android-scheduled-tasks-design] Entry to the scheduled-tasks list.
     onScheduledTasksClick: () -> Unit = {},
+    /** [MINIS-OZEL 11.4] Home toolbar › Ekip: the team rosters. */
+    onTeamsClick: () -> Unit = {},
+    /** [MINIS-OZEL 11.4] Home toolbar › Projeler: groups as projects. */
+    onProjectsClick: () -> Unit = {},
     /** [FEAT-261021-07] A network pill under the title: opens that Settings > Network page (a route). */
     onNetworkPageClick: (String) -> Unit = {},
     /**
@@ -1037,6 +1043,23 @@ fun SessionListScreen(
                         // [T-android-badge-clip] The count badge used to sit INSIDE
                         // the IconButton, whose 40dp circle clip cut off its
                         // top-right corner; BadgedIconButton keeps it outside.
+                        // [MINIS-OZEL 11.4] The two home entries this line
+                        // opens: Ekip (team rosters) and Projeler (groups seen
+                        // as projects). Placed left of the scheduled-tasks
+                        // icon so the two long-standing actions keep their
+                        // muscle-memory positions on the right edge.
+                        IconButton(onClick = onTeamsClick) {
+                            Icon(
+                                Icons.Outlined.Groups,
+                                contentDescription = stringResource(R.string.sessionlist_teams),
+                            )
+                        }
+                        IconButton(onClick = onProjectsClick) {
+                            Icon(
+                                Icons.Outlined.Folder,
+                                contentDescription = stringResource(R.string.sessionlist_projects),
+                            )
+                        }
                         com.openminis.app.ui.components.BadgedIconButton(
                             onClick = onScheduledTasksClick,
                             badge = scheduledBadgeCount?.let { n ->

@@ -199,6 +199,18 @@ object Routes {
     /** [MINIS-OZEL 11.3.1] Settings › Minis Özel › Agent scope. */
     const val AGENT_SCOPE = "agent_scope"
 
+    /**
+     * [MINIS-OZEL 11.4] Home toolbar › Ekip: the team rosters. A top-level
+     * screen, not a Settings page — the user asked for the entry to sit on the
+     * session list, next to scheduled tasks and the shell menu.
+     */
+    const val TEAMS = "teams"
+
+    /** [MINIS-OZEL 11.4] Home toolbar › Projeler: session groups seen as projects. */
+    const val PROJECTS = "projects"
+    const val PROJECT_DETAIL = "project/{folderId}"
+    fun projectDetail(folderId: String) = "project/$folderId"
+
     /** [MINIS-OZEL 11.1] Every published build, with upgrade/return. */
     const val VERSIONS = "versions"
     /** [T-tools-granular-switches] Settings > Agent Runtime > Tools. */
@@ -664,6 +676,42 @@ fun AppNavigation(
                 memoryRepository = memoryRepository,
                 skillRepository = skillRepository,
                 mcpRepository = mcpRepository,
+            )
+        }
+
+        // [MINIS-OZEL 11.4] Home toolbar › Ekip. A roster list that survives a
+        // restart; the members and the run loop land on top of TeamStore.
+        composable(Routes.TEAMS) {
+            com.openminis.app.ui.team.TeamsScreen(
+                onBack = { navController.safePopBackStack() },
+            )
+        }
+
+        // [MINIS-OZEL 11.4] Home toolbar › Projeler. Groups already exist, so
+        // this is a real directory from the first build; the project's
+        // capability set attaches to it later.
+        composable(Routes.PROJECTS) {
+            com.openminis.app.ui.projects.ProjectsScreen(
+                chatRepository = chatRepository,
+                onBack = { navController.safePopBackStack() },
+                onOpenProject = { folderId ->
+                    navController.safeNavigate(Routes.projectDetail(folderId))
+                },
+            )
+        }
+
+        composable(
+            route = Routes.PROJECT_DETAIL,
+            arguments = listOf(navArgument("folderId") { type = NavType.StringType }),
+        ) { entry ->
+            val folderId = entry.arguments?.getString("folderId") ?: return@composable
+            com.openminis.app.ui.projects.ProjectDetailScreen(
+                folderId = folderId,
+                chatRepository = chatRepository,
+                onBack = { navController.safePopBackStack() },
+                onOpenSession = { sessionId ->
+                    navController.safeNavigate(Routes.chat(sessionId))
+                },
             )
         }
 

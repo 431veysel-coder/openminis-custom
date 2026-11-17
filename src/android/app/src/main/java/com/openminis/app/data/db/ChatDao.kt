@@ -270,6 +270,20 @@ interface ChatDao {
     suspend fun sessionCountInFolder(folderId: String): Int
 
     /**
+     * [MINIS-OZEL 11.4] The project screen's session list: members of one
+     * folder, newest first, three columns only. Child (sub-agent) sessions are
+     * excluded because they are transcript pages, not conversations the user
+     * started — the same rule [titledFolderMembers] applies.
+     */
+    @Query(
+        "SELECT id, title, updated_at AS updatedAt FROM sessions " +
+            "WHERE folder_id = :folderId " +
+            "AND (parent_session_id IS NULL OR parent_session_id = '') " +
+            "ORDER BY updated_at DESC",
+    )
+    suspend fun sessionBriefsInFolder(folderId: String): List<SessionBriefRow>
+
+    /**
      * Move a session in (non-null) or out (null) of a group.
      *
      * Writes ONLY `folder_id` — `updated_at` is deliberately untouched, because
@@ -636,5 +650,12 @@ data class PartsJsonRow(
 data class FolderMemberTitle(
     val folderId: String,
     val title: String,
+    val updatedAt: Long,
+)
+
+/** [MINIS-OZEL 11.4] One project row's session: nullable title, newest-first. */
+data class SessionBriefRow(
+    val id: String,
+    val title: String?,
     val updatedAt: Long,
 )

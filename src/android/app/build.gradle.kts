@@ -68,8 +68,11 @@ android {
         // carrying 37029 can only ever update upward. The earlier assumption
         // that 37029 was free came from the branch, before main's release was
         // taken into account — this merge is what surfaced it.
-        versionCode = 37030
-        versionName = "1.15-ozel.11.3.1"
+        // 37031: 11.4 opens the Ekip/Projeler line (S1 = the two home
+        // entries). 37030 belongs to 11.3.1 and stays untouched — one number,
+        // one binary, and updates only ever move upward.
+        versionCode = 37031
+        versionName = "1.15-ozel.11.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

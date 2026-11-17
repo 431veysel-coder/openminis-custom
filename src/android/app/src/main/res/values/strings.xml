@@ -3008,4 +3008,36 @@
     <string name="ozel_scope_footer">A scope is only defensible because every change is journalled: whatever slips through can be taken back from Settings › Minis Özel › Action journal. Refusals come back to the agent as errors with a reason, so it adapts instead of retrying.</string>
     <string name="ozel_scope_open_row">Agent scope</string>
     <string name="ozel_scope_open_row_subtitle">How much freedom the agent has over this device</string>
+
+    <!-- [MINIS-OZEL 11.4] Home entries: Ekip (teams) and Projeler (projects). -->
+    <string name="sessionlist_teams">Teams</string>
+    <string name="sessionlist_projects">Projects</string>
+
+    <string name="teams_title">Ekip</string>
+    <string name="teams_new">New team</string>
+    <string name="teams_create">Create</string>
+    <string name="teams_delete">Delete team</string>
+    <string name="teams_delete_confirm">“%1$s” and its roster will be deleted. Conversations are not affected.</string>
+    <string name="teams_section_rosters">Teams</string>
+    <string name="teams_footer">A team is several models working on one task: an orchestrator hands work to the members, collects their results and answers once. Members keep their own model, role and tools.</string>
+    <string name="teams_empty_title">No teams yet</string>
+    <string name="teams_empty_subtitle">Create a team to run one task across several models</string>
+    <string name="teams_name_hint">Give the team a name. Members, models and tools are added afterwards.</string>
+    <string name="teams_name_placeholder">e.g. Research desk</string>
+    <string name="teams_row_no_members">No members yet</string>
+    <string name="teams_row_members">%1$d members</string>
+
+    <string name="projects_title">Projeler</string>
+    <string name="projects_section_all">All projects</string>
+    <string name="projects_footer">Every group appears here as a project. Opening one lists its conversations.</string>
+    <string name="projects_empty_title">No projects yet</string>
+    <string name="projects_empty_subtitle">Group a few conversations in the session list and they show up here</string>
+    <string name="projects_row_sessions">%1$d conversations</string>
+    <string name="projects_scope_note">A project will also carry its own working folder, notes, task board and a capability set (tools, MCP servers, skills, scope, budget) that applies to every conversation inside it.</string>
+    <string name="projects_sessions_header">Conversations</string>
+    <string name="projects_loading">Loading…</string>
+    <string name="projects_no_sessions_title">No conversations in this project</string>
+    <string name="projects_no_sessions_subtitle">Move a conversation here from the session list</string>
+    <string name="projects_session_untitled">Untitled chat</string>
+    <string name="projects_detail_note">Project settings — working folder, default model or team, and the capability set — are added on this screen.</string>
 </resources>

@@ -2243,4 +2243,36 @@
     <string name="ozel_scope_footer">Kapsam ancak her değişiklik deftere yazıldığı için savunulabilir: kaçan bir şey Ayarlar › Minis Özel › Eylem defteri üzerinden geri alınabilir. Reddedilen çağrılar ajana gerekçesiyle hata olarak döner, böylece ısrar etmek yerine uyum sağlar.</string>
     <string name="ozel_scope_open_row">Ajan yetki kapsamı</string>
     <string name="ozel_scope_open_row_subtitle">Ajanın bu cihaz üzerinde ne kadar serbest olduğu</string>
+
+    <!-- [MINIS-OZEL 11.4] Ana ekran girişleri: Ekip ve Projeler. -->
+    <string name="sessionlist_teams">Ekip</string>
+    <string name="sessionlist_projects">Projeler</string>
+
+    <string name="teams_title">Ekip</string>
+    <string name="teams_new">Yeni ekip</string>
+    <string name="teams_create">Oluştur</string>
+    <string name="teams_delete">Ekibi sil</string>
+    <string name="teams_delete_confirm">“%1$s” ve kadrosu silinecek. Sohbetler etkilenmez.</string>
+    <string name="teams_section_rosters">Ekipler</string>
+    <string name="teams_footer">Ekip, tek bir görev üzerinde birlikte çalışan birden çok modeldir: orkestratör işi üyelere dağıtır, sonuçları toplar ve tek cevap verir. Her üye kendi modelini, rolünü ve araçlarını korur.</string>
+    <string name="teams_empty_title">Henüz ekip yok</string>
+    <string name="teams_empty_subtitle">Tek görevi birkaç modelde koşturmak için bir ekip oluştur</string>
+    <string name="teams_name_hint">Ekibe bir ad ver. Üyeler, modeller ve araçlar sonra eklenir.</string>
+    <string name="teams_name_placeholder">örn. Araştırma masası</string>
+    <string name="teams_row_no_members">Henüz üye yok</string>
+    <string name="teams_row_members">%1$d üye</string>
+
+    <string name="projects_title">Projeler</string>
+    <string name="projects_section_all">Tüm projeler</string>
+    <string name="projects_footer">Her grup burada bir proje olarak görünür. Birini açınca içindeki sohbetler listelenir.</string>
+    <string name="projects_empty_title">Henüz proje yok</string>
+    <string name="projects_empty_subtitle">Oturum listesinde birkaç sohbeti grupla, burada görünsün</string>
+    <string name="projects_row_sessions">%1$d sohbet</string>
+    <string name="projects_scope_note">Proje ayrıca kendi çalışma klasörünü, notlarını, görev panosunu ve içindeki her sohbete uygulanacak bir yetenek setini (araçlar, MCP sunucuları, beceriler, yetki kapsamı, bütçe) taşıyacak.</string>
+    <string name="projects_sessions_header">Sohbetler</string>
+    <string name="projects_loading">Yükleniyor…</string>
+    <string name="projects_no_sessions_title">Bu projede sohbet yok</string>
+    <string name="projects_no_sessions_subtitle">Oturum listesinden bir sohbeti buraya taşı</string>
+    <string name="projects_session_untitled">Başlıksız sohbet</string>
+    <string name="projects_detail_note">Proje ayarları — çalışma klasörü, varsayılan model veya ekip, yetenek seti — bu ekrana eklenecek.</string>
 </resources>

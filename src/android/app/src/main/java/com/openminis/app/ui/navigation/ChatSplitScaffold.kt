@@ -937,6 +937,9 @@ fun ChatSplitScaffoldRoute(
                 onTerminalClick = { navController.safeNavigate(Routes.terminal()) },
                 onRootfsClick = { navController.safeNavigate(Routes.ROOTFS_MANAGEMENT) },
                 onScheduledTasksClick = { navController.safeNavigate(Routes.SCHEDULED_TASKS) },
+                // [MINIS-OZEL 11.4] The two home entries the toolbar carries.
+                onTeamsClick = { navController.safeNavigate(Routes.TEAMS) },
+                onProjectsClick = { navController.safeNavigate(Routes.PROJECTS) },
                 onNetworkPageClick = { route -> navController.safeNavigate(route) },
                 selectedSessionId = selectedSessionId,
                 // [T-android-draft-placeholder-row] Synthetic "New Chat" row,

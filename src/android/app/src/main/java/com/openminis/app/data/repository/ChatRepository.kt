@@ -6,6 +6,7 @@ import com.openminis.app.data.db.ChatSessionEntity
 import com.openminis.app.data.db.FolderEntity
 import com.openminis.app.data.db.MessageEntity
 import com.openminis.app.data.db.MessageHeadRow
+import com.openminis.app.data.db.SessionBriefRow
 import com.openminis.app.data.model.ModelAttributionSnapshot
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filterNotNull
@@ -167,6 +168,13 @@ class ChatRepository(internal val dao: ChatDao) {
     suspend fun listFolders(): List<FolderEntity> = dao.listFolders()
 
     suspend fun getFolder(id: String): FolderEntity? = dao.getFolder(id)
+
+    /** [MINIS-OZEL 11.4] Project screen: how many conversations a folder holds. */
+    suspend fun sessionCountInFolder(folderId: String): Int = dao.sessionCountInFolder(folderId)
+
+    /** [MINIS-OZEL 11.4] Project screen: that folder's conversations, newest first. */
+    suspend fun sessionBriefsInFolder(folderId: String): List<SessionBriefRow> =
+        dao.sessionBriefsInFolder(folderId)
 
     /**
      * Create a group. The description is trimmed and capped at
