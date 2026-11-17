@@ -2572,6 +2572,15 @@ class ChatViewModel(
                 context,
                 com.openminis.app.data.OzelFeatures.Feature.ACCEPTANCE_CRITERIA,
             ),
+            // [MINIS-OZEL 11.4 S2] Only a team with enough members is runnable;
+            // advertising an unrunnable team would spend a turn on a refusal.
+            // Read from disk each build: the roster is a handful of small JSON
+            // files and this property is deliberately uncached.
+            teamNames = if (isHelper) emptyList() else {
+                com.openminis.app.data.team.TeamStore.list(context)
+                    .filter { it.members.size >= com.openminis.app.data.team.Team.MIN_MEMBERS }
+                    .map { it.name }
+            },
         )
 
     /**
@@ -14281,6 +14290,52 @@ class ChatViewModel(
                 } else {
                     toolDisabledResult("verify")
                 }
+            // [MINIS-OZEL 11.4 S2] team_run. This is the BLOCKING call by
+            // design: a team run is a multi-round negotiation whose only useful
+            // output is the finished report, so returning "started" would leave
+            // the caller with nothing to act on. The loop's own budget bounds
+            // it, and the tool schema says so.
+            "team_run" -> {
+                val o = runCatching { JSONObject(argsJson) }.getOrElse { JSONObject() }
+                val team = o.optString("team", "").trim()
+                val task = o.optString("task", "").trim()
+                val title = o.optString("tool_title", "").ifEmpty { "team run" }
+                when {
+                    isHelper -> ToolExecutionResult(
+                        "A sub agent cannot start a team: depth would be 2 and the " +
+                            "budget would not be accountable to the conversation. " +
+                            "Do the work yourself, or report back and let the parent run the team.",
+                        false,
+                        toolTitle = title,
+                    )
+                    team.isEmpty() || task.isEmpty() -> ToolExecutionResult(
+                        "team_run needs both `team` and `task`.",
+                        false,
+                        toolTitle = title,
+                    )
+                    else -> {
+                        val rounds = o.optInt("max_rounds", 0).takeIf { it > 0 }
+                        val budget = if (rounds == null) {
+                            com.openminis.app.agent.team.TeamBudget()
+                        } else {
+                            com.openminis.app.agent.team.TeamBudget(
+                                maxRounds = rounds.coerceIn(
+                                    com.openminis.app.agent.team.TeamBudget.MIN_ROUNDS,
+                                    com.openminis.app.agent.team.TeamBudget.MAX_ROUNDS,
+                                ),
+                            )
+                        }
+                        val outcome = com.openminis.app.agent.team.TeamRunner.run(
+                            context = context,
+                            sessionId = fsSessionId,
+                            teamIdOrName = team,
+                            task = task,
+                            budget = budget,
+                        )
+                        ToolExecutionResult(outcome.output, outcome.ok, toolTitle = title)
+                    }
+                }
+            }
             // [T-sub-agents-v1] One tool, five actions. The legacy names are
             // accepted so a replayed call from a transcript written before the
             // rename still dispatches instead of hitting "Unknown tool".
@@ -18727,6 +18782,9 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
         // the USER took; the row is the agent's notebook.
         com.openminis.app.tools.NoteTool.NAME -> "Notes"
         com.openminis.app.tools.JournalTool.NAME -> "Action journal"
+        // [MINIS-OZEL 11.4 S2] A team run is one row in the tool bar, not one
+        // row per member turn — the per-round trail is in the result text.
+        "team_run" -> "Run team"
         com.openminis.app.tools.VerifyTool.NAME -> "Acceptance criteria"
         com.openminis.app.agent.userask.UserAskPromptText.TOOL_NAME -> "Question for you"
         "web_search" -> "Search Web"

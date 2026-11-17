@@ -205,6 +205,8 @@ object Routes {
      * session list, next to scheduled tasks and the shell menu.
      */
     const val TEAMS = "teams"
+    const val TEAM_EDITOR = "team/{teamId}"
+    fun teamEditor(teamId: String) = "team/$teamId"
 
     /** [MINIS-OZEL 11.4] Home toolbar › Projeler: session groups seen as projects. */
     const val PROJECTS = "projects"
@@ -683,6 +685,18 @@ fun AppNavigation(
         // restart; the members and the run loop land on top of TeamStore.
         composable(Routes.TEAMS) {
             com.openminis.app.ui.team.TeamsScreen(
+                onBack = { navController.safePopBackStack() },
+                onOpenTeam = { teamId -> navController.safeNavigate(Routes.teamEditor(teamId)) },
+            )
+        }
+
+        composable(
+            route = Routes.TEAM_EDITOR,
+            arguments = listOf(navArgument("teamId") { type = NavType.StringType }),
+        ) { entry ->
+            val teamId = entry.arguments?.getString("teamId") ?: return@composable
+            com.openminis.app.ui.team.TeamEditorScreen(
+                teamId = teamId,
                 onBack = { navController.safePopBackStack() },
             )
         }

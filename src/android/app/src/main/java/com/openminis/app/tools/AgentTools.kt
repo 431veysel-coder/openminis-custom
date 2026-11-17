@@ -60,6 +60,9 @@ object AgentTools {
         journalEnabled: Boolean = true,
         // [MINIS-OZEL 11.3.1] Settings › Minis Özel › Acceptance criteria.
         acceptanceEnabled: Boolean = true,
+        // [MINIS-OZEL 11.4 S2] The runnable teams (names). Empty = the tool does
+        // not exist. Same rule as notes/journal: absent, not offered-then-refused.
+        teamNames: List<String> = emptyList(),
     ): List<AgentToolDefinition> = buildList {
         add(shellExecuteDefinition())
         add(FileReadTool.definition())
@@ -88,7 +91,40 @@ object AgentTools {
         // cannot state what finished looks like is the one that returns "done"
         // with nothing done.
         if (acceptanceEnabled) add(com.openminis.app.tools.VerifyTool.definition())
+        // [MINIS-OZEL 11.4 S2] Teams. Offered only when at least one runnable
+        // team exists, for the same reason notes/journal are gated: a tool the
+        // model can see but that cannot succeed is worse than no tool — it
+        // burns a turn and teaches nothing.
+        if (!isHelper && teamNames.isNotEmpty()) add(teamRunDefinition(teamNames))
     }
+
+    /**
+     * [MINIS-OZEL 11.4 S2] `team_run` — hand a task to a team of models.
+     *
+     * The description has one hard job: make a model choose TEAM over
+     * `subagent_task`. They overlap (both are "several agents on one task"), so
+     * the difference is stated as a decision rule rather than a feature list:
+     * delegates of one mind versus disagreeing specialists, and one answer
+     * versus several partial ones.
+     */
+    private fun teamRunDefinition(teamNames: List<String>): AgentToolDefinition = AgentToolDefinition(
+        name = "team_run",
+        description = "Run a task on a TEAM: an orchestrator plans it, hands steps to members with their own " +
+            "models and tools (shell, browser, files, MCP), and verifies the result before reporting. " +
+            "Use it when the task benefits from several different models disagreeing or splitting the work " +
+            "— research across sources, a build that needs both code and docs, a review from two angles. " +
+            "Use subagent_task instead when you need background work from models of your own kind and just " +
+            "want a result back; it is cheaper and starts immediately. " +
+            "A team run blocks until it finishes (or hits its budget) and returns one combined report.",
+        parameters = mapOf(
+            "tool_title" to AgentToolParam("string", "A concise 5-10 word summary of what this tool call does, shown to the user (e.g. 'Run research desk on pricing', 'Team review of the diff'). Use the same language as the user."),
+            "team" to AgentToolParam("string", "Which team to run. Exact name from the Ekip screen.", enumValues = teamNames),
+            "task" to AgentToolParam("string", "The task, written as a complete brief: what the deliverable is, constraints, and how it will be checked. Members do not see this conversation."),
+            "max_rounds" to AgentToolParam("integer", "Optional. Upper bound on orchestrator rounds (default 12). Lower it for a quick answer, raise it for a long build."),
+        ),
+        required = listOf("tool_title", "team", "task"),
+        propertyOrdering = listOf("tool_title", "team", "task", "max_rounds"),
+    )
 
     /**
      * [T-sub-agents-v1] The one sub agent tool: delegate, and inspect or stop

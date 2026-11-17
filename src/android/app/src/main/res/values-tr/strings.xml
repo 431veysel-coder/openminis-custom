@@ -2275,4 +2275,25 @@
     <string name="projects_no_sessions_subtitle">Oturum listesinden bir sohbeti buraya taşı</string>
     <string name="projects_session_untitled">Başlıksız sohbet</string>
     <string name="projects_detail_note">Proje ayarları — çalışma klasörü, varsayılan model veya ekip, yetenek seti — bu ekrana eklenecek.</string>
+
+    <!-- [MINIS-OZEL 11.4 S2] Ekip düzenleyici ve team_run döngüsü. -->
+    <string name="teams_save">Kaydet</string>
+    <string name="teams_missing">Bu ekip artık yok</string>
+    <string name="teams_missing_subtitle">Silinmiş. Geri dön ve yenisini oluştur.</string>
+    <string name="teams_section_identity">Ad</string>
+    <string name="teams_name_label">Ekip adı</string>
+    <string name="teams_section_members">Üyeler</string>
+    <string name="teams_members_footer">Her üye kendi modelini korur. Orkestratör adımları dağıtır, her üye kendi adımını tam araç kemeriyle (shell, tarayıcı, dosyalar, MCP) yapar, orkestratör sonucu raporlamadan önce kontrol eder.</string>
+    <string name="teams_need_members">Ekibin çalışabilmesi için en az %1$d üye gerekir.</string>
+    <string name="teams_add_member">Üye ekle</string>
+    <string name="teams_add_member_hint">İlkini eklemek için dokun</string>
+    <string name="teams_remove_member">Üyeyi çıkar</string>
+    <string name="teams_edit_member">Üyeyi düzenle</string>
+    <string name="teams_member_name">Ad</string>
+    <string name="teams_member_duplicate">İki üye aynı adı taşıyamaz — orkestratör işi ada göre dağıtır.</string>
+    <string name="teams_member_role">Rol</string>
+    <string name="teams_member_role_hint">Tek cümle, örn. “kaynakları okur ve gerçekte ne dediklerini özetler”. Orkestratör atamayı role göre yapar.</string>
+    <string name="teams_pick_model">Model seç</string>
+    <string name="teams_no_models">Kullanılabilir model yok. Önce bir sağlayıcı ekle.</string>
+    <string name="teams_model_missing">Model eksik — varsayılana düşecek</string>
 </resources>

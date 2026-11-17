@@ -43,7 +43,7 @@ import com.openminis.app.ui.settings.SettingsSection
  * would produce teams that look finished and do nothing.
  */
 @Composable
-fun TeamsScreen(onBack: () -> Unit) {
+fun TeamsScreen(onBack: () -> Unit, onOpenTeam: (String) -> Unit) {
     val context = LocalContext.current
     // Re-read on every mutation: the list is a handful of small files, and a
     // cached copy would go stale the moment another screen writes one.
@@ -85,6 +85,7 @@ fun TeamsScreen(onBack: () -> Unit) {
                         SettingsRow(
                             title = team.name,
                             subtitle = memberSummary(team),
+                            onClick = { onOpenTeam(team.id) },
                             showDivider = index < teams.lastIndex,
                             trailing = {
                                 IconButton(onClick = { pendingDelete = team }) {

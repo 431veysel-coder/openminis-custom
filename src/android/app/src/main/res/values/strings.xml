@@ -3040,4 +3040,25 @@
     <string name="projects_no_sessions_subtitle">Move a conversation here from the session list</string>
     <string name="projects_session_untitled">Untitled chat</string>
     <string name="projects_detail_note">Project settings — working folder, default model or team, and the capability set — are added on this screen.</string>
+
+    <!-- [MINIS-OZEL 11.4 S2] Team editor + the team_run loop's strings. -->
+    <string name="teams_save">Save</string>
+    <string name="teams_missing">This team no longer exists</string>
+    <string name="teams_missing_subtitle">It was deleted. Go back and create a new one.</string>
+    <string name="teams_section_identity">Name</string>
+    <string name="teams_name_label">Team name</string>
+    <string name="teams_section_members">Members</string>
+    <string name="teams_members_footer">Every member keeps its own model. The orchestrator hands out steps, each member does its own with the full tool belt (shell, browser, files, MCP), and the orchestrator checks the result before reporting.</string>
+    <string name="teams_need_members">A team needs at least %1$d members before it can be run.</string>
+    <string name="teams_add_member">Add member</string>
+    <string name="teams_add_member_hint">Tap to add the first one</string>
+    <string name="teams_remove_member">Remove member</string>
+    <string name="teams_edit_member">Edit member</string>
+    <string name="teams_member_name">Name</string>
+    <string name="teams_member_duplicate">Two members cannot share a name — the orchestrator assigns work by name.</string>
+    <string name="teams_member_role">Role</string>
+    <string name="teams_member_role_hint">One sentence, e.g. “reads the sources and summarises what they actually say”. The role is what the orchestrator assigns by.</string>
+    <string name="teams_pick_model">Choose model</string>
+    <string name="teams_no_models">No models are available. Add a provider first.</string>
+    <string name="teams_model_missing">Model missing — will fall back</string>
 </resources>

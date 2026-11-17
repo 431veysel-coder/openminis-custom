@@ -191,8 +191,8 @@ Ana ekran girişleri:
 
 | Dilim | İçerik | Sürüm |
 |---|---|---|
-| **S1** | Girişler: Ekip + Projeler ikonları, rotalar, boş durum ekranları, `chat_mode`/`team_id`/`turn_group_id` additive geçiş | 37031 |
-| **S2** | `TeamStore` + `TeamRun` iki döngü + `ask_teammate` + doğrulama + Canlı Görevler entegrasyonu | 37032 |
+| **S1** ✅ | Girişler: Ekip + Projeler ikonları, rotalar, `TeamStore`, grup→proje okuma ekranları | 37031 |
+| **S2** ✅ | `TeamLoop` iki döngü + `AndroidTeamRuntime` (orkestratör doğrudan sağlayıcıya, üye = gizli alt oturum) + `team_run` aracı + üye düzenleyici + 15 birim testi | 37032 |
 | **S3** | Fanout modu + besteci çipi + model seçicide "bu turda / ekip üyeleri" | 37033 |
 | **S4** | Görünür ve kalıcı görev sırası | 37034 |
 | **S5** | Projeler + `CapabilitySet` + proje ekranı | 37035 |
@@ -201,6 +201,21 @@ Ana ekran girişleri:
 Her dilim: `apk.yml` `workflow_dispatch` + `build_type=debug` ile doğrulanır
 (yerel derleme yok — PRoot'ta `java` çalışmıyor). Sürüm numarası her dilimde
 bir artar; 37030 `ozel-11.3` tarafından alınmış durumda.
+
+### 7.1 Yayın otomasyonu (11.4'ten itibaren)
+
+`ozel-*` dallarına yapılan **her push** release derlemesi üretir ve GitHub
+Release'e yayınlar — APK hazır olduğu anda uygulamanın kendi güncelleyicisi
+onu görür. İki kapı bunu güvenli tutar:
+
+1. **`version-gate` işi** (build'den ÖNCE, ~15 s): `build.gradle.kts`'ten
+   versionCode/versionName okur, aynı etiketle yayınlanmış build numarasını
+   karşılaştırır. Yükseltilmemiş sürümle push = saniyeler içinde kırmızı,
+   6 dakikalık derleme harcanmaz.
+2. **Publish adımındaki kapı** (yayın anında): aynı soruyu bu kez gerçek APK
+   için sorar. İki soru, iki cevap yeri.
+
+Debug dispatch yayın **yapmaz** — o hâlâ atılabilir doğrulama derlemesi.
 
 ---
 

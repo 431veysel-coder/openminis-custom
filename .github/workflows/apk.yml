@@ -13,6 +13,13 @@ on:
   push:
     branches:
       - main
+      # [MINIS-OZEL 11.4] A push to a feature branch publishes too. The user
+      # asked for it in one sentence — "every APK that is ready becomes a
+      # release" — and the version gate below is what keeps that safe: a build
+      # whose versionCode was already published fails in ~15 s instead of
+      # replacing a release nobody has installed yet. Debug builds never
+      # publish, so a dispatch run stays a throwaway verification build.
+      - 'ozel-*'
     # [MINIS-OZEL] `tags: 'v*'` used to be here too, and every publish made it
     # fire again: action-gh-release creates the tag, the tag push starts a
     # second run for the same commit, and both try to write the same release.
@@ -88,6 +95,59 @@ jobs:
         env:
           PREFLIGHT_TIMEOUT: "120"
         run: sh scripts/preflight.sh
+
+  version-gate:
+    name: Version gate (fast)
+    # [MINIS-OZEL 11.4] Moved to its own job that runs BEFORE anything is
+    # compiled. It used to be the last step of the build: a push carrying an
+    # already-published versionCode spent six minutes building an APK, then
+    # failed — and by then the artifact existed, so the failure read like a
+    # release accident rather than the arithmetic mistake it was. Reading
+    # versionName/versionCode out of build.gradle.kts needs no Gradle, no NDK
+    # and no cache; the whole job is seconds.
+    #
+    # The publishing step keeps its own copy of the check. That is not
+    # redundancy for its own sake: this job answers "may this run publish",
+    # while the publishing step answers "may this exact APK replace that exact
+    # asset". Two questions, two places they can be answered wrongly.
+    if: ${{ (inputs.build_type || 'release') == 'release' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Refuse to publish a versionCode that already exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          CODE=$(sed -n 's/^ *versionCode *= *\([0-9]\+\).*/\1/p' src/android/app/build.gradle.kts | head -1)
+          NAME=$(sed -n 's/^ *versionName *= *"\([^"]*\)".*/\1/p' src/android/app/build.gradle.kts | head -1)
+          [ -n "$CODE" ] || { echo "::error::could not read versionCode"; exit 1; }
+          [ -n "$NAME" ] || { echo "::error::could not read versionName"; exit 1; }
+          TAG="v$NAME"
+          echo "gate: $TAG build $CODE"
+          EXISTING=$(gh release view "$TAG" --repo "${{ github.repository }}" \
+              --json assets --jq '.assets[].name' 2>/dev/null || true)
+          if [ -z "$EXISTING" ]; then
+            echo "gate: no release for $TAG yet — allowed"
+            exit 0
+          fi
+          OLD=$(echo "$EXISTING" | sed -n 's/.*-build\([0-9]*\)-.*/\1/p' | head -1)
+          if [ -z "$OLD" ]; then
+            echo "::error::$TAG exists without a build number in its asset name — refusing"
+            exit 1
+          fi
+          if [ "$CODE" -le "$OLD" ]; then
+            echo "::error::$TAG already published build $OLD; this tree says $CODE."
+            echo "::error::Bump versionCode (and versionName) before pushing, or the"
+            echo "::error::release would replace an APK nobody has installed yet."
+            exit 1
+          fi
+          echo "gate: $OLD -> $CODE, allowed"
 
   tests:
     name: Unit tests
@@ -271,7 +331,7 @@ jobs:
     # The native layer arrives as an artifact. Depending on both keeps the
     # pipeline at max(native + build, tests) instead of native + build + tests,
     # since preflight finishes long before native does.
-    needs: [preflight, native]
+    needs: [preflight, native, version-gate]
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
