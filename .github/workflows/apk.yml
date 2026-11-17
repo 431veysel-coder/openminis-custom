@@ -331,7 +331,19 @@ jobs:
     # The native layer arrives as an artifact. Depending on both keeps the
     # pipeline at max(native + build, tests) instead of native + build + tests,
     # since preflight finishes long before native does.
-    needs: [preflight, native, version-gate]
+    needs: [preflight, native, version-gate, tests]
+    # [MINIS-OZEL 11.4] `tests` is in `needs` now that publishing is automatic.
+    # Before, a release run whose test job was RED still built and PUBLISHED:
+    # the run said "failure" while the APK was already on the release page, so
+    # the in-app updater offered a build the tests had just rejected — the
+    # worst of both outcomes. Building nothing is the honest result: no APK, no
+    # release, nothing to install.
+    #
+    # The price is the parallel window: the APK no longer builds beside the
+    # tests, so a run takes ~6 minutes longer. Accepted deliberately, and for
+    # debug runs too — a debug APK is never published, but it exists to be
+    # inspected, and inspecting a tree whose tests fail is work done twice.
+    # "Nothing is built unless everything is green" is one rule, not two.
     runs-on: ubuntu-latest
     timeout-minutes: 60
 

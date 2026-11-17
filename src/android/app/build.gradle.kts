@@ -68,10 +68,10 @@ android {
         // carrying 37029 can only ever update upward. The earlier assumption
         // that 37029 was free came from the branch, before main's release was
         // taken into account — this merge is what surfaced it.
-        // 37032: 11.4 S2 (the team run loop). 37031 was S1 only — the two home
-        // entries — and was never published as a release, but it did describe a
-        // different tree, so it stays spent. One number, one binary.
-        versionCode = 37032
+        // 37033: the parser fix (a satisfied ledger no longer needs a speaker)
+        // plus the release gate. 37032 was published WITH a red test job — the
+        // exact failure the new `needs: tests` removes — so it stays spent.
+        versionCode = 37033
         versionName = "1.15-ozel.11.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

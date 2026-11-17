@@ -122,25 +122,35 @@ object ProgressLedgerParser {
         val satisfied = answer(obj, "is_request_satisfied") ?: return null
         val progress = answer(obj, "is_progress_being_made") ?: return null
         val inLoop = answer(obj, "is_in_loop") ?: return null
-        val instruction = instructionOf(obj) ?: return null
-        val speaker = nextSpeakerOf(obj) ?: return null
+
+        // A satisfied ledger is ALLOWED to leave the speaker and the
+        // instruction empty — there is nobody left to instruct. Requiring them
+        // unconditionally rejected the one reply that actually finished a run,
+        // which is the worst possible shape for a bug: the loop re-asked,
+        // consumed the verification answer as a retry, and reported "not
+        // finished" for a task that was done.
+        val instruction = instructionOf(obj).orEmpty()
+        val speaker = nextSpeakerOf(obj).orEmpty()
 
         // A satisfied run needs no speaker; an unsatisfied one must name a real
-        // member. Accepting an unknown name would silently drop the turn.
-        if (!satisfied.answer) {
-            if (participants.isEmpty()) return null
-            if (participants.none { it.equals(speaker, ignoreCase = true) }) {
-                // Tolerate "Member (Role)" and backticked names — models do this
-                // constantly, and it is unambiguous which member is meant.
-                val matched = participants.firstOrNull { p ->
-                    speaker.contains(p, ignoreCase = true)
-                } ?: return null
-                return ProgressLedger(satisfied, progress, inLoop, instruction, matched)
-            }
-            val exact = participants.first { it.equals(speaker, ignoreCase = true) }
-            return ProgressLedger(satisfied, progress, inLoop, instruction, exact)
+        // member and say what to do. Accepting an unknown name would silently
+        // drop the turn; accepting an empty instruction would spend a model
+        // call on nothing.
+        if (satisfied.answer) {
+            return ProgressLedger(satisfied, progress, inLoop, instruction, "")
         }
-        return ProgressLedger(satisfied, progress, inLoop, instruction, "")
+        if (instruction.isBlank()) return null
+        if (participants.isEmpty()) return null
+        if (participants.none { it.equals(speaker, ignoreCase = true) }) {
+            // Tolerate "Member (Role)" and backticked names — models do this
+            // constantly, and it is unambiguous which member is meant.
+            val matched = participants.firstOrNull { p ->
+                speaker.isNotEmpty() && speaker.contains(p, ignoreCase = true)
+            } ?: return null
+            return ProgressLedger(satisfied, progress, inLoop, instruction, matched)
+        }
+        val exact = participants.first { it.equals(speaker, ignoreCase = true) }
+        return ProgressLedger(satisfied, progress, inLoop, instruction, exact)
     }
 
     private fun answer(obj: JSONObject, key: String): LedgerAnswer? {
