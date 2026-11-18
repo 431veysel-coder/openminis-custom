@@ -391,9 +391,18 @@ class AndroidCouncilRuntime(
      * ## PoolKind.CHILD, deliberately
      *
      * A member's session is hidden from the session list and dies with its
-     * parent, which is exactly what the CHILD pool means. It also puts members in
-     * the same cache bucket the 6→10 raise in 37068 is about, so the eviction
-     * accounting has one number to reason about instead of two.
+     * parent, which is exactly what the CHILD pool means, and it keeps the
+     * eviction accounting at one number instead of two.
+     *
+     * ## Why the cap did not need raising
+     *
+     * `ChatViewModelStore.MAX_CACHED_CHILD` is 6 (a SOFT cap: a store with work in
+     * flight, or one held by `holdWhileViewed`, is never evicted), so five pinned
+     * members push the pool over rather than through it. An earlier plan raised it
+     * to 10 for this run; that turned out to be unnecessary once the pin was in
+     * place, and raising a soft cap to accommodate entries that are already exempt
+     * from eviction would only have hidden the real relationship. Members are
+     * protected by the pin, not by the cap.
      */
     private suspend fun stampMemberConfig(childId: String, member: TeamMember) {
         withContext(Dispatchers.Main) {
