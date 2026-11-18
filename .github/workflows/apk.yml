@@ -533,7 +533,7 @@ jobs:
           BT="$ANDROID_HOME/build-tools/36.0.0"
           # 1. identity really landed
           "$BT/aapt2" dump badging "$APK" | head -2
-          "$BT/aapt2" dump badging "$APK" | grep -q "package: name='com.veysel.minis'" \
+          "$BT/aapt2" dump badging "$APK" | grep -q "package: name='com.veysel.minisx'" \
             || { echo "FAIL: applicationId not applied"; exit 1; }
           # 2. signature is ours and verifies
           #
@@ -655,7 +655,7 @@ jobs:
             fi
             echo "---"
             echo ""
-            echo "Kurulum: \`com.veysel.minis\` — resmî Minis'in yanına kurulur."
+            echo "Kurulum: \`com.veysel.minisx\` — resmî Minis'in yanına kurulur."
             echo "Tam değişiklik listesi: [FORK.md §10](https://github.com/${{ github.repository }}/blob/main/FORK.md#10-değişiklik-günlüğü)."
             echo ""
             echo "_Derleme: \`${{ github.sha }}\`_"
@@ -718,7 +718,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.MINIS_VERSION_NAME }}
-          name: Minis Özel ${{ env.MINIS_VERSION_NAME }}
+          name: Minis X ${{ env.MINIS_VERSION_NAME }}
           files: out/*.apk
           # Stable channel: UpdatePolicy.STABLE refuses a prerelease, so publishing
           # our own builds as prereleases would hide them from the in-app updater.

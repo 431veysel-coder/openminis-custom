@@ -32,7 +32,7 @@ object TranslationPrefs {
      * Master switch: whether the translate button appears on thinking blocks.
      *
      * [MINIS-OZEL] Two switches feed this one answer. [OzelFeatures.Feature.TRANSLATION]
-     * is the app-wide switch on Settings › Minis Özel ("I do not want this
+     * is the app-wide switch on Settings › Minis X ("I do not want this
      * feature at all"), this one is the per-screen switch ("I want it, just
      * not right now"). Both have to be on; turning the app-wide one off wins,
      * because the screen that owns the other switch is hidden in that case.

@@ -37,7 +37,7 @@ class MinisTileService : TileService() {
 
     override fun onStartListening() {
         super.onStartListening()
-        // [MINIS-OZEL] Settings › Minis Özel can switch the tile off. Android
+        // [MINIS-OZEL] Settings › Minis X can switch the tile off. Android
         // gives an app no way to remove its own tile from the panel, so the
         // honest state is STATE_UNAVAILABLE: the tile stays where the user put
         // it, greyed out, and does nothing — instead of launching a chat from

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Minis Özel</string>
+    <string name="app_name">Minis X</string>
     <string name="new_chat">Yeni Sohbet</string>
     <string name="settings">Ayarlar</string>
     <string name="providers">Sağlayıcılar</string>
@@ -54,7 +54,7 @@
     <string name="check_update_open_release">Sürüm sayfasını aç</string>
     <string name="check_update_verify_failed">İndirilen dosya doğrulamayı geçemedi. Lütfen tekrar deneyin.</string>
     <string name="check_update_package_invalid">İndirilen paket Minis\'in daha yeni bir sürümü değil, bu yüzden yüklenmedi.</string>
-    <string name="check_update_signature_mismatch">Bu güncelleme, kurulu uygulamayla aynı anahtarla imzalanmamış — bu yüzden reddedildi. Gerçek bir Minis Özel güncellemesi her zaman bu cihazdaki anahtarla imzalanır. Bu dosyayı elle kurmayın.</string>
+    <string name="check_update_signature_mismatch">Bu güncelleme, kurulu uygulamayla aynı anahtarla imzalanmamış — bu yüzden reddedildi. Gerçek bir Minis X güncellemesi her zaman bu cihazdaki anahtarla imzalanır. Bu dosyayı elle kurmayın.</string>
     <string name="check_update_checking">Denetleniyor…</string>
     <string name="check_update_up_to_date">En son sürümü kullanıyorsunuz.</string>
     <string name="check_update_no_release">Henüz yayımlanmış bir sürüm yok.</string>
@@ -2080,7 +2080,7 @@
     <string name="mcp_signin_not_signed_in">Oturum açılmadı</string>
     <string name="mcp_signin_sign_in">Oturum Aç</string>
     <string name="mcp_signin_reset_confirm">Sıfırla</string>
-    <!-- [MINIS-OZEL] Ayarlar › Görünüm › Minis Özel: bu çatalın eklediği her
+    <!-- [MINIS-OZEL] Ayarlar › Görünüm › Minis X: bu çatalın eklediği her
          özellik için bir anahtar. Kapatmak giriş noktasını gizler; veri silmez. -->
     <string name="model_tag_free">ücretsiz</string>
     <string name="model_tag_limited">limit takipli</string>
@@ -2140,7 +2140,7 @@
     <string name="notes_delete_title">Silinsin mi?</string>
     <string name="notes_delete_message">“%1$s” kaldırılacak. Bu geri alınamaz.</string>
     <string name="notes_undecryptable">Bu cihazda çözülemiyor — anahtar cihaz aktarımında ya da yeniden kurulumda kayboldu. Değeri yeniden gir.</string>
-    <string name="ozel_features_title">Minis Özel Özellikleri</string>
+    <string name="ozel_features_title">Minis X Özellikleri</string>
     <string name="ozel_features_subtitle">Bu çatalın eklediği özellikleri aç veya kapat</string>
     <string name="ozel_features_section_interface">Arayüz</string>
     <string name="ozel_features_interface_footer">Bir özelliği kapatmak yalnız giriş noktasını gizler. Kurduğun, kaydettiğin veya oluşturduğun hiçbir şey silinmez; yeniden açtığında olduğu gibi geri gelir.</string>
@@ -2240,7 +2240,7 @@
     <string name="ozel_scope_read_only_desc">Hiç yazma yok; kabuk yalnızca okuma olduğu kanıtlanabilen komutları çalıştırır.</string>
     <string name="ozel_scope_workspace">Çalışma alanı</string>
     <string name="ozel_scope_workspace_desc">Yazma yalnızca /var/minis/workspace altında (/tmp dahil). Bağlı klasörler kapsam dışında kalır.</string>
-    <string name="ozel_scope_footer">Kapsam ancak her değişiklik deftere yazıldığı için savunulabilir: kaçan bir şey Ayarlar › Minis Özel › Eylem defteri üzerinden geri alınabilir. Reddedilen çağrılar ajana gerekçesiyle hata olarak döner, böylece ısrar etmek yerine uyum sağlar.</string>
+    <string name="ozel_scope_footer">Kapsam ancak her değişiklik deftere yazıldığı için savunulabilir: kaçan bir şey Ayarlar › Minis X › Eylem defteri üzerinden geri alınabilir. Reddedilen çağrılar ajana gerekçesiyle hata olarak döner, böylece ısrar etmek yerine uyum sağlar.</string>
     <string name="ozel_scope_open_row">Ajan yetki kapsamı</string>
     <string name="ozel_scope_open_row_subtitle">Ajanın bu cihaz üzerinde ne kadar serbest olduğu</string>
 

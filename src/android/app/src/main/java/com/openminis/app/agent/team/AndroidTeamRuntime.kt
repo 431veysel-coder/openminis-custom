@@ -295,7 +295,7 @@ object TeamRunner {
                 return@withContext Outcome(
                     ok = false,
                     output = "Team \"${team.name}\" is set to council mode, but council is turned " +
-                        "off in Settings › Minis Özel. Turn it on, or switch the team back to " +
+                        "off in Settings › Minis X. Turn it on, or switch the team back to " +
                         "handoff on the Ekip screen.",
                     teamOutcome = null,
                 )

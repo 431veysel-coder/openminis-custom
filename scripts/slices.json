@@ -1,0 +1,89 @@
+{
+  "_comment": [
+    "Dilim manifestosu — bir dilim = bir versionCode = bir derleme birimi.",
+    "files/tests yolları repo köküne göre; dizin verilirse altındaki tüm .kt alınır.",
+    "Kural: bir dilim yalnız kendi dosyaları + [deps] ile derlenebilmeli.",
+    "deps, dilimin kendi dosyası OLMAYAN ama derlemede gereken repo dosyalarıdır;",
+    "bunlar da Android'siz olmak zorunda (kapı android.* importunu hata sayar)."
+  ],
+  "version": 1,
+  "slices": {
+    "37080": {
+      "title": "Onay kapısı",
+      "issue": "komut risk sınıflandırma + kapsam defteri + politika + kuyruk",
+      "files": ["src/android/app/src/main/java/com/openminis/app/policy"],
+      "tests": ["src/android/app/src/test/java/com/openminis/app/policy"],
+      "deps": []
+    },
+    "37081": {
+      "title": "Bütçe tavanı",
+      "issue": "sohbet/gün/ay üç kademe; tavanda yeni tur başlamaz",
+      "files": ["src/android/app/src/main/java/com/openminis/app/budget"],
+      "tests": ["src/android/app/src/test/java/com/openminis/app/budget"],
+      "deps": []
+    },
+    "37082": {
+      "title": "Otomatik yedek zamanlaması",
+      "issue": "aralık + pencere; değişiklik yoksa çalışmaz; budama tarihe göre",
+      "files": ["src/android/app/src/main/java/com/openminis/app/backup/AutoBackupPolicy.kt"],
+      "tests": ["src/android/app/src/test/java/com/openminis/app/backup/AutoBackupPolicyTest.kt"],
+      "deps": []
+    },
+    "37083": {
+      "title": "Plan önizleme",
+      "issue": "pahalı işten önce tek kart; eşik ölçülebilir",
+      "files": ["src/android/app/src/main/java/com/openminis/app/plan"],
+      "tests": ["src/android/app/src/test/java/com/openminis/app/plan"],
+      "deps": []
+    },
+    "37084": {
+      "title": "Tur özeti diff'i",
+      "issue": "tur sonunda '3 dosya +120/−8' + geri alma sırası",
+      "files": ["src/android/app/src/main/java/com/openminis/app/ui/chat/diff"],
+      "tests": ["src/android/app/src/test/java/com/openminis/app/ui/chat/diff"],
+      "deps": []
+    },
+    "37085": {
+      "title": "Araç kapısı",
+      "issue": "niyet sözlüğü → 6-10 aday araç; LLM'siz",
+      "files": ["src/android/app/src/main/java/com/openminis/app/agent/router"],
+      "tests": ["src/android/app/src/test/java/com/openminis/app/agent/router"],
+      "deps": []
+    },
+    "37086": {
+      "title": "Ders defteri",
+      "issue": "hata/düzeltme/döngü → öneri; kendiliğinden yazmaz",
+      "files": ["src/android/app/src/main/java/com/openminis/app/agent/lesson"],
+      "tests": ["src/android/app/src/test/java/com/openminis/app/agent/lesson"],
+      "deps": []
+    },
+    "37087": {
+      "title": "Kanıtlı 'bitti'",
+      "issue": "beyan son 3 turda üretilmiş kanıt ister",
+      "files": ["src/android/app/src/main/java/com/openminis/app/agent/evidence"],
+      "tests": ["src/android/app/src/test/java/com/openminis/app/agent/evidence"],
+      "deps": []
+    },
+    "37088": {
+      "title": "Yazma niyeti",
+      "issue": "çok adımlı iş boyunca bloklamayan beyan + çakışma sicili",
+      "files": ["src/android/app/src/main/java/com/openminis/app/data/journal/WriteIntent.kt"],
+      "tests": ["src/android/app/src/test/java/com/openminis/app/data/journal/WriteIntentTest.kt"],
+      "deps": ["src/android/app/src/main/java/com/openminis/app/data/journal/FileLock.kt"]
+    },
+    "37089": {
+      "title": "Yeniden oynatma",
+      "issue": "araç çıktıları dondurulmuş yeniden koşu; ıskalama metrik",
+      "files": ["src/android/app/src/main/java/com/openminis/app/replay"],
+      "tests": ["src/android/app/src/test/java/com/openminis/app/replay"],
+      "deps": []
+    },
+    "37090": {
+      "title": "Uzaktan konsol jeton modeli",
+      "issue": "yalnız yetki modeli; uygulama yok (ürün kararı bekliyor)",
+      "files": ["src/android/app/src/main/java/com/openminis/app/remote"],
+      "tests": [],
+      "deps": []
+    }
+  }
+}

@@ -17,10 +17,10 @@
 # Run from the repository root.
 set -uo pipefail
 
-APP_ID="com.veysel.minis"          # defaultConfig.applicationId
+APP_ID="com.veysel.minisx"          # defaultConfig.applicationId
 NAMESPACE="com.openminis.app"      # android { namespace }
 RELEASE_REPO="431veysel-coder/openminis-custom"
-APP_LABEL="Minis Özel"             # values/strings.xml app_name
+APP_LABEL="Minis X"             # values/strings.xml app_name
 M="src/android/app/src/main"
 RES="$M/res"
 G="src/android/app/build.gradle.kts"

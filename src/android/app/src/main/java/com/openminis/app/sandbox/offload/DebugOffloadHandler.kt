@@ -19,7 +19,7 @@ import java.net.SocketTimeoutException
 /**
  * minis-debug — CLI wrapper for the local DebugServer JSON-RPC endpoint at
  * 127.0.0.1:5321. Present in every build this fork ships (DEV_TOOLS=true for
- * release too); off unless the user enables it in Settings › Minis Özel.
+ * release too); off unless the user enables it in Settings › Minis X.
  *
  * Lets a user (or agent) in the PRoot shell drive the in-app debug RPC
  * without hand-rolling curl + JSON. Each subcommand maps to one RPC

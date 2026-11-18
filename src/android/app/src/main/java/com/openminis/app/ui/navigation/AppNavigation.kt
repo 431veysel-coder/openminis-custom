@@ -185,7 +185,7 @@ object Routes {
     const val TRANSLATION_SETTINGS = "translation_settings"
     /** [MINIS-OZEL] Settings > Agent Runtime > Thinking (block behaviour). */
     const val THINKING_SETTINGS = "thinking_settings"
-    /** [MINIS-OZEL] Settings > Appearance > Minis Özel: one switch per fork feature. */
+    /** [MINIS-OZEL] Settings > Appearance > Minis X: one switch per fork feature. */
     const val OZEL_FEATURES = "ozel_features"
     /** [MINIS-OZEL] Settings > Translation > Packs. */
     const val TRANSLATION_PACKS = "translation_packs"
@@ -193,10 +193,10 @@ object Routes {
     /** [MINIS-OZEL 11.1] Notes + vault. Global scope — not tied to a chat. */
     const val NOTES_PAGE = "notes_page"
 
-    /** [MINIS-OZEL 11.3.1] Settings › Minis Özel › Action journal. */
+    /** [MINIS-OZEL 11.3.1] Settings › Minis X › Action journal. */
     const val ACTION_JOURNAL = "action_journal"
 
-    /** [MINIS-OZEL 11.3.1] Settings › Minis Özel › Agent scope. */
+    /** [MINIS-OZEL 11.3.1] Settings › Minis X › Agent scope. */
     const val AGENT_SCOPE = "agent_scope"
 
     /**

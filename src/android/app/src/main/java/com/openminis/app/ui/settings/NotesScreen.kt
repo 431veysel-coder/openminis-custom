@@ -45,7 +45,7 @@ import com.openminis.app.ui.components.SectionTextField
 import kotlinx.coroutines.launch
 
 /**
- * [MINIS-OZEL 11.1] Settings › Minis Özel › Notes.
+ * [MINIS-OZEL 11.1] Settings › Minis X › Notes.
  *
  * ## Two lists, one screen, different rules
  *

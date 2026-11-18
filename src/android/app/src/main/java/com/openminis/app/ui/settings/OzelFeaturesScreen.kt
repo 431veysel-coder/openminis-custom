@@ -32,7 +32,7 @@ import com.openminis.app.debug.DevServerController
 import com.openminis.app.ui.components.RowLabel
 
 /**
- * [MINIS-OZEL] Settings › Minis Özel › Features.
+ * [MINIS-OZEL] Settings › Minis X › Features.
  *
  * One screen for every switch this fork added, so a feature that turns out to
  * be in the way can be put away without uninstalling the app or waiting for a

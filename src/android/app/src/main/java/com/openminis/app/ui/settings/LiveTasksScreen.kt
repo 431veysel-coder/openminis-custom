@@ -96,7 +96,7 @@ fun LiveTasksScreen(
         }
     }
 
-    // [MINIS-OZEL] Settings › Minis Özel can switch the gate list off. The
+    // [MINIS-OZEL] Settings › Minis X can switch the gate list off. The
     // panel itself stays useful without it; the checklist is the part some
     // users read once and never want again.
     val gatesEnabled = remember(context) {

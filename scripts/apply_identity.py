@@ -44,10 +44,10 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
-APPLICATION_ID = "com.veysel.minis"
+APPLICATION_ID = "com.veysel.minisx"
 NAMESPACE = "com.openminis.app"
 RELEASE_REPO = "431veysel-coder/openminis-custom"
-APP_NAME = "Minis Özel"
+APP_NAME = "Minis X"
 
 GRADLE = ROOT / "src/android/app/build.gradle.kts"
 RES = ROOT / "src/android/app/src/main/res"

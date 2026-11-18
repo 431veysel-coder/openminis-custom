@@ -32,7 +32,7 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * [MINIS-OZEL 11.3.1] Settings › Minis Özel › Action journal.
+ * [MINIS-OZEL 11.3.1] Settings › Minis X › Action journal.
  *
  * ## Why the user gets this screen and not just the agent
  *

@@ -52,15 +52,15 @@ object AgentTools {
         // not a sub agent, an interactive run). Not in the list = does not
         // exist: no schema, no prompt line, no retries on it. Last, as on iOS.
         userAskExposed: Boolean = false,
-        // [MINIS-OZEL 11.1] Settings › Minis Özel › Notes, and the Agent Tools
+        // [MINIS-OZEL 11.1] Settings › Minis X › Notes, and the Agent Tools
         // switch beside it. Absent = the model never learns the tool exists,
         // which is the only way to make "off" mean off rather than "still
         // offered, then refused".
         notesEnabled: Boolean = true,
-        // [MINIS-OZEL 11.3.1] Settings › Minis Özel › Action journal. Absent =
+        // [MINIS-OZEL 11.3.1] Settings › Minis X › Action journal. Absent =
         // the model never learns the tool exists, same rule as notesEnabled.
         journalEnabled: Boolean = true,
-        // [MINIS-OZEL 11.3.1] Settings › Minis Özel › Acceptance criteria.
+        // [MINIS-OZEL 11.3.1] Settings › Minis X › Acceptance criteria.
         acceptanceEnabled: Boolean = true,
         // [MINIS-OZEL 11.4 S2] The runnable teams (names). Empty = the tool does
         // not exist. Same rule as notes/journal: absent, not offered-then-refused.

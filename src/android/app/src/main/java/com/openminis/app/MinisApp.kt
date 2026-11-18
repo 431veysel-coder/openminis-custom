@@ -827,7 +827,7 @@ class MinisApp : Application(), ImageLoaderFactory {
         // the token, i.e. every other app on the device. Both are now fixed:
         // the socket binds 127.0.0.1 only and requires the token even there
         // (DebugServer), and the whole surface is off unless the user turns it
-        // on in Settings › Minis Özel (off by default).
+        // on in Settings › Minis X (off by default).
         if (BuildConfig.DEV_TOOLS) {
             NativeOffloadServer.register(
                 "minis-debug",

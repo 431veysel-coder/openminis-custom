@@ -3,7 +3,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Platforms](https://img.shields.io/badge/Platforms-iOS%20%7C%20Android-lightgrey.svg)](#beta-programme)
 
-> ## 🔧 Bu depo bir çataldır — **Minis Özel**
+> ## 🔧 Bu depo bir çataldır — **Minis X**
 >
 > Burası [OpenMinis/OpenMinis](https://github.com/OpenMinis/OpenMinis)'in
 > kişisel çatalı. Uygulamayı **kullanmakla kalmayıp sahip olmak** için
@@ -12,7 +12,7 @@
 >
 > | | |
 > |---|---|
-> | Paket | `com.veysel.minis` — resmî uygulamayla yan yana kurulur |
+> | Paket | `com.veysel.minisx` — resmî uygulamayla yan yana kurulur |
 > | Sürüm | `1.15-ozel.7` (37007) |
 > | Durum | upstream v1.15 tabanı + **19 commit özel geliştirme** |
 >

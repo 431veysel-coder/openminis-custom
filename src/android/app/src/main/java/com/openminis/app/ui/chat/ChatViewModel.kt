@@ -2716,7 +2716,7 @@ class ChatViewModel(
             rosterNames = providerRepository.subAgents.map { it.name },
             userAskExposed = userAskExposedThisRun,
             // [MINIS-OZEL 11.1] Two switches, both must be on: the app-wide
-            // Notes flag (Settings › Minis Özel) and the per-tool switch
+            // Notes flag (Settings › Minis X) and the per-tool switch
             // (Settings › Agent Tools). The app-wide one wins when off, because
             // the screen that owns the other switch is hidden in that case.
             notesEnabled = com.openminis.app.data.OzelFeatures.isEnabled(

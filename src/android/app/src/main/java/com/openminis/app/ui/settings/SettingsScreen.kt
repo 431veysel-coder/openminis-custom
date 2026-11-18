@@ -114,7 +114,7 @@ fun SettingsScreen(
     onToolchainsClick: () -> Unit = {},
     onTranslationClick: () -> Unit = {},
     onThinkingClick: () -> Unit = {},
-    // [MINIS-OZEL] Settings › Minis Özel › Features: one switch per feature
+    // [MINIS-OZEL] Settings › Minis X › Features: one switch per feature
     // this fork added, so a feature in the way can be put away.
     onOzelFeaturesClick: () -> Unit = {},
     // [T-mcp-integration-android] MCP Integrations page, listed directly below

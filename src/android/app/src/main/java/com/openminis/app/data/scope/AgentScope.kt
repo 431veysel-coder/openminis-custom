@@ -129,10 +129,10 @@ object AgentScope {
     fun writeRefusal(mode: Mode, path: String): String = when (mode) {
         Mode.OPEN -> ""
         Mode.READ_ONLY ->
-            "Error: this app is in read-only scope (Settings › Minis Özel › Agent scope). " +
+            "Error: this app is in read-only scope (Settings › Minis X › Agent scope). " +
                 "Writing $path is not allowed. Use file_read, or ask the user to change the scope."
         Mode.WORKSPACE ->
-            "Error: $path is outside the workspace scope (Settings › Minis Özel › Agent scope). " +
+            "Error: $path is outside the workspace scope (Settings › Minis X › Agent scope). " +
                 "Writes are limited to /var/minis/workspace. Ask the user to change the scope " +
                 "if this file really needs to change."
         else -> ""
@@ -203,12 +203,12 @@ object AgentScope {
     fun shellRefusal(mode: Mode, command: String): String = when (mode) {
         Mode.OPEN -> ""
         Mode.READ_ONLY ->
-            "Error: read-only scope (Settings › Minis Özel › Agent scope) — " +
+            "Error: read-only scope (Settings › Minis X › Agent scope) — " +
                 "this shell command is not provably a read. " +
                 "Allowed: ls, cat, head, tail, grep, rg, wc, jq, find (without -delete), " +
                 "and similar, with no redirects or pipes into writers."
         Mode.WORKSPACE ->
-            "Error: workspace scope (Settings › Minis Özel › Agent scope) — " +
+            "Error: workspace scope (Settings › Minis X › Agent scope) — " +
                 "only read-only shell commands run outside the workspace, and this one " +
                 "writes or is not provably a read. Use file_write for workspace files."
         else -> ""

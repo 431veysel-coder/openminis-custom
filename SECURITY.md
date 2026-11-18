@@ -1,6 +1,6 @@
 # Güvenlik Politikası
 
-Bu depo `com.veysel.minis` paket adıyla dağıtılan **Minis Özel** uygulamasının
+Bu depo `com.veysel.minisx` paket adıyla dağıtılan **Minis X** uygulamasının
 kaynağıdır — [OpenMinis](https://github.com/OpenMinis/OpenMinis)'in kişisel bir
 çatalı. Uygulama telefonunda gerçek bir Linux kabuğu çalıştırır, dosyalarına
 erişir ve yapay zekâ sağlayıcılarına ağ istekleri yapar. Bu yüzden güvenlik

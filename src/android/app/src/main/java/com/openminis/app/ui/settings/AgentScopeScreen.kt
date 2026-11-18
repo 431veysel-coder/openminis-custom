@@ -16,7 +16,7 @@ import com.openminis.app.R
 import com.openminis.app.data.scope.AgentScope
 
 /**
- * [MINIS-OZEL 11.3.1] Settings › Minis Özel › Agent scope.
+ * [MINIS-OZEL 11.3.1] Settings › Minis X › Agent scope.
  *
  * Three stances, one tap each, no grid. The footer says the thing that makes
  * this a real choice rather than a nag: whatever goes wrong, the action journal

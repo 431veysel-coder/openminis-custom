@@ -182,7 +182,7 @@ PR şablonu doldurulduğunda bunları zaten sorar.
 
 # 3. Commit + tag + push
 git commit -am "chore: 1.15-ozel.8 (build 37008)"
-git tag -a v1.15-ozel.8 -m "Minis Özel 1.15-ozel.8"
+git tag -a v1.15-ozel.8 -m "Minis X 1.15-ozel.8"
 git push origin main --tags
 ```
 

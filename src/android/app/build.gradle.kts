@@ -52,7 +52,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.veysel.minis"
+        applicationId = "com.veysel.minisx"
         minSdk = 26
         targetSdk = 35
         // [MINIS-OZEL] 37014, not 37009. Builds 37009-37013 were spent on the
