@@ -106,7 +106,9 @@ class TaskBoardTest {
 
     @Test
     fun `titles and details are trimmed and capped`() {
-        val long = "x".repeat(500)
+        // Must EXCEED the cap: 500 characters is under MAX_DETAIL (600), so the
+        // old expectation (that the length equals the cap) could never hold.
+        val long = "x".repeat(TaskBoard.MAX_DETAIL + 250)
         val (board, stored, _) = TaskBoard().add(TeamTask(id = "t_1", title = "  spot  ", detail = long))
         assertEquals("spot", stored!!.title)
         assertEquals(TaskBoard.MAX_DETAIL, stored.detail.length)

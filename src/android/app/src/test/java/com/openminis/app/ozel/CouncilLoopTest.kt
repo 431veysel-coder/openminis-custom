@@ -52,11 +52,12 @@ class CouncilLoopTest {
         stance: String = "support",
         falsifier: String = "a failing benchmark",
         evidence: String = "[]",
+        basis: String = "reasoning",
         extra: String = "",
     ): String = """
         {"claim":"$claim",
          "points":[{"ref":"p1","text":"because reasons","stance":"$stance",
-                    "basis":"reasoning","evidence":$evidence}],
+                    "basis":"$basis","evidence":$evidence}],
          "falsifier":"$falsifier"$extra}
     """.trimIndent()
 
@@ -97,7 +98,10 @@ class CouncilLoopTest {
 
     @Test
     fun `evidence basis without a source is flagged but kept`() {
-        val p = PositionParser.parse(positionJson(evidence = "[]"), "Ada")
+        // hasSource is `basis != EVIDENCE || evidence.isNotEmpty()`, so the basis
+        // must actually BE evidence for this test to mean anything: with
+        // "reasoning" the point is sourced by definition.
+        val p = PositionParser.parse(positionJson(evidence = "[]", basis = "evidence"), "Ada")
         assertFalse(p.absent)
         val point = p.points.first()
         // Re-labelled, not dropped: hiding the attempt would hide that the
@@ -264,7 +268,13 @@ class CouncilLoopTest {
 
         val stable = StanceMath.evaluate(r2, previous = r2, attendees = 2, stableStreak = 1)
         assertTrue(stable.stableStreak >= 2)
-        assertFalse(stable.converged)
+        // `converged` is verdict-based (nothing contested, unsure or orphan) and
+        // r2 has both members supporting, so it IS converged. The old assertion
+        // said the opposite while the test's own name says two stable rounds
+        // settle — the assertion was the wrong half. If the intent was instead
+        // "convergence must ALSO wait for a stable streak", that is a change to
+        // Consensus.converged, not to this expectation, and needs a product call.
+        assertTrue(stable.converged)
     }
 
     @Test

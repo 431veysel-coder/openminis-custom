@@ -227,7 +227,8 @@ data class Consensus(
             verdicts.none { it.verdict == Verdict.ORPHAN }
 
     /** Nothing left to argue about, but not everything is unanimous. */
-    val settled: Boolean get() = contested.isEmpty() && unresolved.isEmpty()
+    val settled: Boolean
+        get() = verdicts.isNotEmpty() && contested.isEmpty() && unresolved.isEmpty()
 }
 
 /**

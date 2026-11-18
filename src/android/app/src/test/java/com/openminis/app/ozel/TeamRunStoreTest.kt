@@ -49,7 +49,10 @@ class TeamRunStoreTest {
         // matches on the same 8 characters. A silent change to one of them would
         // leak every workspace forever, so the constant is pinned.
         assertEquals(8, TeamRunStore.RUN_ID_SHORT)
-        val runId = "run_ab12cd34"
+        // The id must be hex-only and its first 8 characters must be the run
+        // part: "run_ab12cd34".take(8) is "run_ab12", which also contains
+        // non-hex characters, so runPartOfSpaceDir would have rejected it.
+        val runId = "ab12cd34ef56"
         val slug = "ada"
         val dir = "sp_${runId.take(TeamRunStore.RUN_ID_SHORT)}_$slug"
         assertEquals("ab12cd34", TeamRunStore.runPartOfSpaceDir(dir))
