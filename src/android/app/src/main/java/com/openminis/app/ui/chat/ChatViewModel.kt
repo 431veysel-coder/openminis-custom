@@ -16480,7 +16480,7 @@ class ChatViewModel(
             }
 
             else -> refuse(
-                "Unknown action "$action". Use one of: add, doing, done, drop, assign, evidence.",
+                "Unknown action \"$action\". Use one of: add, doing, done, drop, assign, evidence.",
             )
         }
     }
