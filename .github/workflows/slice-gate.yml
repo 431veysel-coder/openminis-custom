@@ -102,7 +102,13 @@ jobs:
             "https://repo1.maven.org/maven2/junit/junit/${JUNIT_VERSION}/junit-${JUNIT_VERSION}.jar"
           curl -fsSL -o "$D/hamcrest.jar" \
             "https://repo1.maven.org/maven2/org/hamcrest/hamcrest-core/${HAMCREST_VERSION}/hamcrest-core-${HAMCREST_VERSION}.jar"
-          echo "JUNIT_CP=$PWD/$D/junit.jar:$PWD/$D/hamcrest.jar" >> "$GITHUB_ENV"
+          # kotlin-stdlib MUST be on the runtime classpath: kotlinc adds it when
+          # compiling, but `java -cp` does not. Without it every slice compiles
+          # and then dies with NoClassDefFoundError: kotlin/jvm/internal/Intrinsics
+          # — which is exactly what the first run of this gate reported.
+          STDLIB="$(dirname "$(dirname "$KOTLINC")")/lib/kotlin-stdlib.jar"
+          test -f "$STDLIB" || { echo "kotlin-stdlib.jar not found next to kotlinc"; exit 1; }
+          echo "JUNIT_CP=$PWD/$D/junit.jar:$PWD/$D/hamcrest.jar:$STDLIB" >> "$GITHUB_ENV"
 
       - name: Run the gate
         # Note: no `|| true`. A failing slice must fail the job — the point is

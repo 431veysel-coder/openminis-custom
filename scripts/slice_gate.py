@@ -86,13 +86,37 @@ def kotlinc() -> str | None:
     return None
 
 
-def junit_cp() -> str | None:
-    """JUnit + hamcrest jar'ları. env JUNIT_CP ile dışarıdan verilebilir."""
+def kotlin_stdlib(kc: str | None) -> str | None:
+    """`kotlin-stdlib.jar` — kotlinc'in yanında gelir.
+
+    Neden gerekli: derleme stdlib'i kendisi ekliyor ama **çalıştırma** eklemiyor.
+    İlk denemede 10 dilim "NoClassDefFoundError: kotlin/jvm/internal/Intrinsics"
+    ile düştü; derleme geçmişti, test koşamıyordu. Kapı bunu ancak gerçek bir
+    koşuyla gördü — statik denetim bunu asla göremezdi.
+    """
+    if kc:
+        candidate = pathlib.Path(kc).resolve().parent.parent / "lib/kotlin-stdlib.jar"
+        if candidate.exists():
+            return str(candidate)
+    env = os.environ.get("KOTLIN_STDLIB")
+    return env if env and pathlib.Path(env).exists() else None
+
+
+def junit_cp(kc: str | None = None) -> str | None:
+    """JUnit + hamcrest + kotlin-stdlib. env JUNIT_CP ile dışarıdan verilebilir."""
+    parts = []
     env = os.environ.get("JUNIT_CP")
     if env:
-        return env
-    jars = sorted((ROOT / "build/slice-report/jars").glob("*.jar"))
-    return os.pathsep.join(str(j) for j in jars) if jars else None
+        parts.append(env)
+    else:
+        jars = sorted((ROOT / "build/slice-report/jars").glob("*.jar"))
+        if not jars:
+            return None
+        parts.append(os.pathsep.join(str(j) for j in jars))
+    stdlib = kotlin_stdlib(kc)
+    if stdlib:
+        parts.append(stdlib)
+    return os.pathsep.join(parts)
 
 
 ANDROID_MARK = ("import android.", "import androidx.")
@@ -148,7 +172,7 @@ def compile_slice(name: str, spec: dict, workdir: pathlib.Path, kc: str) -> dict
         result["verdict"] = "PASS" if not leaking else "PASS(uyarı)"
         return result
 
-    cp = junit_cp()
+    cp = junit_cp(kc)
     if cp is None:
         result["test"]["log"] = "JUnit jar'ları yok (JUNIT_CP tanımsız) — testler atlandı"
         result["verdict"] = "DERLENDİ(test yok)"
