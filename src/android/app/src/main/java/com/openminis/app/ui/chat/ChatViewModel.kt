@@ -16379,7 +16379,7 @@ class ChatViewModel(
                 val stored = board.find(task.id) ?: task
                 com.openminis.app.agent.team.CouncilLiveRegistry.taskAdded(member.runId, stored)
                 ToolExecutionResult(
-                    "Opened task [${stored.id}] "${stored.title}" (${stored.state.wire}" +
+                    "Opened task [${stored.id}] \"${stored.title}\" (${stored.state.wire}" +
                         (if (stored.owner.isNotBlank()) ", ${stored.owner}" else "") + ").",
                     true,
                     toolTitle = title,
