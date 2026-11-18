@@ -23,7 +23,8 @@ package com.openminis.app.policy
 object ApprovalPolicy {
 
     /** Onay kartını hak eden seviye. LOW sessiz geçer — gerekçesi aşağıda. */
-    const val ASK_FROM: RiskLevel = RiskLevel.MEDIUM
+    // `const val` yalnız ilkel/String olabilir; enum için `val` (derleme tuzağı).
+    val ASK_FROM: RiskLevel = RiskLevel.MEDIUM
 
     fun decide(verdict: RiskVerdict, book: GrantBook, nowMs: Long): GateDecision {
         if (verdict.ruleId.startsWith("deny:")) {
