@@ -417,12 +417,16 @@ class AndroidCouncilRuntime(
                 tools = member.tools,
                 peers = team.members.map { it.name }.filter { it != member.name },
                 sessionKey = spaceKeyFor(member.name),
+            ).also { cfg ->
                 // [37063] Carried forward, not recreated: this method runs once
                 // per round, and a takeover the user holds must survive the round
                 // boundary. Recreating it would hand the shell back to the agent
                 // the moment a new round started.
-                terminal = vm.memberConfig?.terminal ?: TerminalTakeover(),
-            )
+                // Assigned after construction because `terminal` sits outside the
+                // primary constructor — that placement is what keeps it out of
+                // `equals`, so a re-stamped config does not look different.
+                cfg.terminal = vm.memberConfig?.terminal ?: TerminalTakeover()
+            }
         }
     }
 

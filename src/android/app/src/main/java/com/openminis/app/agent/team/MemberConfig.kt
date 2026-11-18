@@ -66,6 +66,12 @@ data class MemberConfig(
      * re-stamping the marker on every round builds an equal config, and a user's
      * active takeover must survive that. The runtime carries the object forward
      * explicitly (`stampMemberConfig`).
+     *
+     * `var`, not `val`: being outside the primary constructor is what keeps it
+     * out of `equals`, and that is deliberate — but it also means it cannot be
+     * passed as a constructor argument, which is how `stampMemberConfig` handed
+     * it forward and why `:app:compileGithubDebugKotlin` failed with "No
+     * parameter with name 'terminal' found". Re-stamping is `.also { it.terminal = previous }`.
      */
-    val terminal: TerminalTakeover = TerminalTakeover()
+    var terminal: TerminalTakeover = TerminalTakeover()
 }

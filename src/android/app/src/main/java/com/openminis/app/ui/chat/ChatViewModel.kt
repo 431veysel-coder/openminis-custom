@@ -1781,7 +1781,11 @@ class ChatViewModel(
      * scope. That is the documented difference between "tidy my chat list" and
      * "give me a project".
      */
-    private fun loadProjectForSession(sessionId: String) {
+    // `suspend` because `folderOfSession` is one JOIN through the DAO: making it
+    // a blocking call here would either need runBlocking (illegal on the main
+    // thread this runs on) or a silent background hop that leaves the project
+    // chip empty for the first frame. Callers are already in a coroutine.
+    private suspend fun loadProjectForSession(sessionId: String) {
         val folder = runCatching { chatRepository.folderOfSession(sessionId) }.getOrNull()
         _projectId.value = folder?.id
         _projectName.value = folder?.name
@@ -1806,7 +1810,8 @@ class ChatViewModel(
      * which is why the UI shows a one-time note on the first move.
      */
     fun onSessionFolderChanged() {
-        activeSessionId.takeIf { it.isNotEmpty() }?.let { loadProjectForSession(it) }
+        val id = activeSessionId.takeIf { it.isNotEmpty() } ?: return
+        viewModelScope.launch { loadProjectForSession(id) }
     }
 
     /** [T-p2-background-helper] Delegate blocks written from OUTSIDE the agent

@@ -86,9 +86,15 @@ fun TaskHallScreen(
             // most visits, and it is one line.
             SettingsSection {
                 SettingsRow(
-                    title = TaskState.entries.joinToString(" · ") {
-                        "${stringResource(stateLabel(it))} ${counts[it] ?: 0}"
-                    },
+                    // `joinToString` is not inline, so `stringResource` (a
+                    // @Composable) cannot be called inside its transform — the
+                    // compiler rejects it with "@Composable invocations can only
+                    // happen from the context of a @Composable function".
+                    // `map` IS inline, so the label lookup happens there and the
+                    // join is a plain string operation.
+                    title = TaskState.entries
+                        .map { "${stringResource(stateLabel(it))} ${counts[it] ?: 0}" }
+                        .joinToString(" · "),
                     subtitle = stringResource(R.string.task_hall_hint),
                     showDivider = false,
                 )
