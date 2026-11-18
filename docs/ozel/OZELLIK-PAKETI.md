@@ -6,7 +6,12 @@ istasyon, notlar/kasa, çeviri paketleri, sağlayıcı testi, düzenleme modu)
 dokunmuyor; hepsi ayrı paketlerde ve ayrı commit'lerde.
 
 Durum kodları: **kod hazır** · **test hazır** · **derlendi** · **entegre** ·
-**yayında**. Bu tablodaki her dilim şu an yalnız ilk ikisinde.
+**yayında**.
+
+> **2026-11-18 · dilim kapısı ilk kez koştu: 11/11 geçti, 105 test yeşil.**
+> Her dilim ayrı `kotlinc` çağrısıyla derlendi, ayrı JUnit koşusuyla test
+> edildi, ayrı rapor üretti. Ayrıntı: [`DILIM-KAPISI.md`](DILIM-KAPISI.md).
+> Kimlik değişti: **Minis X / `com.veysel.minisx`**.
 
 ---
 
