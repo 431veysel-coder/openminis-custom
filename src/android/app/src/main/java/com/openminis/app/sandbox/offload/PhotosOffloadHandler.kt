@@ -538,7 +538,10 @@ class PhotosOffloadHandler(private val context: Context) : NativeOffloadHandler 
         // PRootKernel.resolveSessionHostPath, which use the same layout.
         val sandboxVisible = sessionId != null
         val outDir = if (sandboxVisible) {
-            File(context.filesDir, "minis-sessions/$sessionId/offloads").also { it.mkdirs() }
+            // [MINIS-OZEL 37070] Space key → host dir through FsSpace; in a
+            // project chat `sessionId` is `project:<folderId>`.
+            com.openminis.app.sandbox.FsSpace.subDir(context.filesDir, sessionId!!, "offloads")
+                .also { it.mkdirs() }
         } else {
             File(context.filesDir, "photos-export").also { it.mkdirs() }
         }

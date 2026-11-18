@@ -15,7 +15,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         WebAppShortcutEntity::class,
         FolderEntity::class,
     ],
-    version = 14,
+    version = 15,
     // [T-android-downgrade-compat] Kept ON so MigrationTestHelper and CI can
     // validate every migration (and its downgrade counterpart) against the
     // committed schema json. Without it the upgrade/downgrade chain has no
@@ -376,6 +376,77 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * [MINIS-OZEL 37071] Project fields on `folders`.
+         *
+         * Purely additive with NOT NULL defaults, so the `ALTER`s rewrite no
+         * rows and every existing group reads back as a project that owns an
+         * (empty) shared area. Empty is the safe default: nothing is moved,
+         * nothing is shown that the user did not have a moment ago.
+         *
+         * No index is created. The only new predicate in practice is
+         * `archived_at IS NULL`, and the `folders` table holds tens of rows —
+         * an index there would cost more to keep than it saves, and adding one
+         * would force a second schema step (Room validates expected indexes).
+         */
+        val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE folders ADD COLUMN space_scope TEXT NOT NULL DEFAULT 'project'",
+                )
+                db.execSQL(
+                    "ALTER TABLE folders ADD COLUMN memory_enabled INTEGER NOT NULL DEFAULT 1",
+                )
+                db.execSQL("ALTER TABLE folders ADD COLUMN memory_prompt TEXT")
+                db.execSQL("ALTER TABLE folders ADD COLUMN default_model_id TEXT")
+                db.execSQL("ALTER TABLE folders ADD COLUMN default_team_id TEXT")
+                db.execSQL("ALTER TABLE folders ADD COLUMN archived_at INTEGER")
+            }
+        }
+
+        /**
+         * [MINIS-OZEL 37071] Downgrade counterpart of [MIGRATION_14_15].
+         *
+         * The six columns are DROPPED, not left in place. Room validates the
+         * live schema against the entity on open and rejects a column it finds
+         * on disk but does not declare just as firmly as one that is missing —
+         * this is the same reason [MIGRATION_12_11] drops its two columns.
+         *
+         * SQLite refuses `DROP COLUMN` before 3.35, so the table is rebuilt
+         * through a shadow copy. `folders` holds only metadata (no blobs, no
+         * foreign keys point at it — `sessions.folder_id` carries no FK by
+         * design), which makes the copy cheap and total.
+         */
+        val MIGRATION_15_14 = object : Migration(15, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS folders_v14 (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        icon TEXT,
+                        color TEXT,
+                        origin TEXT NOT NULL DEFAULT 'manual',
+                        sort_index INTEGER NOT NULL DEFAULT 0,
+                        pinned_at INTEGER,
+                        description TEXT,
+                        created_at INTEGER NOT NULL,
+                        updated_at INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "INSERT OR REPLACE INTO folders_v14 " +
+                        "(id, name, icon, color, origin, sort_index, pinned_at, description, " +
+                        "created_at, updated_at) " +
+                        "SELECT id, name, icon, color, origin, sort_index, pinned_at, description, " +
+                        "created_at, updated_at FROM folders",
+                )
+                db.execSQL("DROP TABLE folders")
+                db.execSQL("ALTER TABLE folders_v14 RENAME TO folders")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -391,6 +462,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
                         MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_12, MIGRATION_12_11,
                         MIGRATION_13_14, MIGRATION_14_13,
+                        MIGRATION_14_15, MIGRATION_15_14,
                     )
                     .build()
                     .also { INSTANCE = it }

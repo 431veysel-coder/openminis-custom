@@ -3292,11 +3292,13 @@ internal fun resolveMdMediaFile(context: Context, url: String, sessionId: String
         return primary
     }
 
-    // Fallback: search every minis-sessions/<id>/{attachments,workspace,offloads,browser}
+    // Fallback: search every space's {attachments,workspace,offloads,browser}
     // subtree for a file whose basename matches. Handles leftover files from a
     // draft session whose bind mount has already switched over, and the case
     // where `resolveHostPath`'s global bindMounts map points at a different
     // session than the one owning this message.
+    // [MINIS-OZEL 37070] Both roots: `minis-sessions/` (chat) and
+    // `minis-spaces/` (project).
     if (!stripped.startsWith("minis://")) {
         android.util.Log.d("MdStream", "resolveMdMediaFile primary miss url=$url (non-minis scheme, no fallback)")
         return null
@@ -3304,8 +3306,9 @@ internal fun resolveMdMediaFile(context: Context, url: String, sessionId: String
     val decoded = java.net.URLDecoder.decode(stripped.removePrefix("minis://"), "UTF-8")
     val basename = decoded.substringAfterLast('/')
     val subdir = decoded.substringBefore('/', missingDelimiterValue = "").takeIf { it.isNotEmpty() } ?: "attachments"
-    val root = File(context.filesDir, "minis-sessions")
-    if (root.isDirectory) {
+    for (rootName in com.openminis.app.sandbox.FsSpace.roots()) {
+        val root = File(context.filesDir, rootName)
+        if (!root.isDirectory) continue
         root.listFiles()?.forEach { sessionDir ->
             val candidate = File(sessionDir, "$subdir/$basename")
             if (candidate.exists() && candidate.isFile) {

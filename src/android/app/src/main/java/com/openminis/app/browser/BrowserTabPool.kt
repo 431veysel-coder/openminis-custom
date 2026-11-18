@@ -224,7 +224,31 @@ class BrowserTabPool(private val context: Context) : BrowserTabPoolRegistry.Regi
     private val lastTabByOwner = mutableMapOf<String, Int>()
 
     /** Tabs one agent may hold at once. The chat itself keeps [MAX_TABS]. */
-    private val agentTabQuota = AGENT_TAB_QUOTA
+    private var agentTabQuota = AGENT_TAB_QUOTA
+
+    /**
+     * [MINIS-OZEL 11.5 · 37061] Shrink the per-agent quota for THIS pool.
+     *
+     * A council member gets its own pool ([ChatViewModel.browserTabPool] builds
+     * one per VM) and is the only agent in it, so a pool-level override is the
+     * smallest possible mechanism — no registry table, no owner bookkeeping.
+     *
+     * Why 1 and not the default 2: five members at two tabs each is ten requests
+     * against a process-wide `GLOBAL_TAB_CAP` of 8, and when that cap is hit the
+     * registry reclaims a tab from ANOTHER pool — so a member's page vanishes
+     * because a different member asked for a second tab. One tab per member makes
+     * the arithmetic fit (5 members + 2 sub agents + 1 user ≈ 8) and turns "you
+     * may have one page at a time" into a rule the member can plan around.
+     *
+     * Null restores the default. Clamped to at least 1: a quota of 0 would make
+     * `browser_use` unusable while still being advertised.
+     */
+    fun setAgentTabQuota(quota: Int?) {
+        agentTabQuota = (quota ?: AGENT_TAB_QUOTA).coerceAtLeast(1)
+    }
+
+    /** Current per-agent quota, for tests and for the member screen's badge. */
+    fun agentTabQuotaForTest(): Int = agentTabQuota
 
     /**
      * The chat that owns this pool, or a human (null) — full access.

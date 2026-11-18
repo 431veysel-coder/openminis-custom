@@ -64,6 +64,51 @@ class SessionIsolationTest {
         assertTrue(PRootKernel.bindMounts.keys.none { PRootKernel.isPerSessionPath(it) })
     }
 
+    // ── [MINIS-OZEL 37070] project spaces ────────────────────────────────
+
+    @Test
+    fun `a project key binds the SAME mount points to a minis-spaces host dir`() {
+        // The guest vocabulary must not change: inside a project chat the agent
+        // still sees /var/minis/workspace. Only the host side moves.
+        val built = SessionMounts.build(filesDir, "project:FID")
+        assertEquals(emptyList<String>(), built.skipped)
+        for (sub in SessionMounts.SESSION_SUBDIRS) {
+            val host = File(built.mounts.getValue("/var/minis/$sub"))
+            assertEquals(File(filesDir, "minis-spaces/FID/$sub").absolutePath, host.absolutePath)
+            assertTrue("$sub must exist before it is bound", host.isDirectory)
+        }
+        // Global dirs are unaffected by the project.
+        for (sub in SessionMounts.GLOBAL_SUBDIRS) {
+            assertEquals(
+                File(filesDir, "minis-global/$sub").absolutePath,
+                built.mounts["/var/minis/$sub"],
+            )
+        }
+    }
+
+    @Test
+    fun `two chats in one project share a workspace, a chat outside does not`() {
+        val a = SessionMounts.build(filesDir, FsSpace.spaceKey("chat-a", "FID")).mounts
+        val b = SessionMounts.build(filesDir, FsSpace.spaceKey("chat-b", "FID")).mounts
+        val outside = SessionMounts.build(filesDir, FsSpace.spaceKey("chat-c", null)).mounts
+        val project = SessionMounts.build(filesDir, "project:FID").mounts
+
+        // Same project → identical host dirs (that is the whole point).
+        for (sub in SessionMounts.SESSION_SUBDIRS) {
+            assertEquals(a["/var/minis/$sub"], b["/var/minis/$sub"])
+            assertEquals(project["/var/minis/$sub"], a["/var/minis/$sub"])
+            assertNotEquals(a["/var/minis/$sub"], outside["/var/minis/$sub"])
+        }
+    }
+
+    @Test
+    fun `a project workspace is never created under the session root`() {
+        SessionMounts.build(filesDir, "project:FID")
+        val sessionsRoot = File(filesDir, "minis-sessions")
+        val strays = sessionsRoot.listFiles().orEmpty().filter { it.isDirectory }
+        assertTrue("no directory may be created under minis-sessions for a project", strays.isEmpty())
+    }
+
     @Test
     fun `a shell with no session gets the global dirs only`() {
         val built = SessionMounts.build(filesDir, null)

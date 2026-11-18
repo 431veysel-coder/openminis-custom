@@ -141,6 +141,20 @@ object OzelFeatures {
          * schema, so the model is not even offered it.
          */
         ACCEPTANCE_CRITERIA("acceptance_criteria", true),
+
+        /**
+         * [MINIS-OZEL 11.5 · 37060] Council mode: the third agent kind and the
+         * per-member belt that comes with it.
+         *
+         * ON by default because it changes no existing behaviour: a team whose
+         * `mode` is `handoff` runs exactly as before, and TOP/HELPER belts are
+         * untouched. OFF hides the council entry points and — the load-bearing
+         * part — makes `TeamRunner` refuse a `council` run, so a saved team
+         * cannot start an argument the user has switched off. Stored teams,
+         * runs and memory are never deleted by this flag (rule 2 of
+         * ANA-BAGLAM).
+         */
+        COUNCIL("council", true),
         ;
 
         companion object {

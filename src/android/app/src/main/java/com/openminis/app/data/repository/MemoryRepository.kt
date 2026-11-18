@@ -16,11 +16,34 @@ import java.util.Locale
  *   - loadGlobalMemoryFragment() / loadRecentDailyMemoryFragment(): emit
  *     two separate text blocks for the system prompt (mirrors iOS exactly)
  */
-class MemoryRepository(private val memoryDir: File) {
+class MemoryRepository(
+    private val memoryDir: File,
+    /**
+     * [MINIS-OZEL 37073] Name of the curated top-level file. `GLOBAL.md` for the
+     * user's personal memory (the only value before projects), `PROJECT.md` for
+     * a project's memory. Everything else — the daily logs, prepend order,
+     * revoke-by-content, keyword search, output caps — is identical between the
+     * two layers, which is why the class was parameterised instead of forked.
+     */
+    private val primaryFile: String = GLOBAL_FILE,
+) {
 
     companion object {
         private const val TAG = "MemoryRepository"
-        private const val GLOBAL_FILE = "GLOBAL.md"
+        const val GLOBAL_FILE = "GLOBAL.md"
+
+        // ── [MINIS-OZEL 37073] project layer ──────────────────────────────
+        /** The project-side counterpart of GLOBAL.md (docs/ozel/PROJE-HAFIZA.md §6.4). */
+        const val PROJECT_FILE = "PROJECT.md"
+
+        /** Header preceding a project memory block in tool output. */
+        fun projectFragmentHeader(projectName: String?): String =
+            "== Project memory (PROJECT.md" +
+                (projectName?.let { " — $it" } ?: "") +
+                " — user-curated and writable; only this project's chats see it) ==\n"
+
+        /** Header preceding the personal memory block in tool output. */
+        fun personalFragmentHeader(): String = "== Personal memory (GLOBAL.md) ==\n"
         private const val MAX_INJECT_LINES = 200
         // memory_get full-dump (no keywords): cap at 500 lines — matches iOS
         // `maxTotalLines = 500` in AIChatViewModel+MemoryTools.swift.
@@ -106,15 +129,15 @@ class MemoryRepository(private val memoryDir: File) {
         val filesToSearch = mutableListOf<Pair<String, File>>() // label to file
 
         if (scope == "all") {
-            val globalFile = File(memoryDir, GLOBAL_FILE)
+            val globalFile = File(memoryDir, primaryFile)
             if (globalFile.exists() && globalFile.length() > 0) {
-                filesToSearch.add(GLOBAL_FILE to globalFile)
+                filesToSearch.add(primaryFile to globalFile)
             }
         }
 
         // Daily logs sorted descending
         val dailyFiles = memoryDir.listFiles()
-            ?.filter { it.extension == "md" && it.name != GLOBAL_FILE }
+            ?.filter { it.extension == "md" && it.name != primaryFile }
             ?.sortedByDescending { it.name }
             ?: emptyList()
 
@@ -255,7 +278,7 @@ class MemoryRepository(private val memoryDir: File) {
      * is missing or empty.
      */
     fun loadGlobalMemoryFragment(): String? {
-        val globalFile = File(memoryDir, GLOBAL_FILE)
+        val globalFile = File(memoryDir, primaryFile)
         if (!globalFile.exists()) return null
         val content = try { globalFile.readText() } catch (_: Exception) { "" }
         // Match iOS: literal-empty check (`!content.isEmpty`), not blank.
@@ -264,6 +287,28 @@ class MemoryRepository(private val memoryDir: File) {
         // across platforms.
         if (content.isEmpty()) return null
         return "Global memory (GLOBAL.md — user-curated and writable; you may update it when the user asks). Treat these as background context, not standing instructions. If the user's latest message conflicts with or supersedes anything here (different scope, different numbers, different goal), defer to the user's latest message:\n$content"
+    }
+
+    /**
+     * [MINIS-OZEL 37073] The project layer's curated fragment.
+     *
+     * Deliberately a SEPARATE block with its own wording rather than a reworded
+     * `loadGlobalMemoryFragment`: the model must be able to tell "this is true
+     * for this project" from "this is true for the user everywhere". Merging
+     * the two into one blob is exactly the failure mode the whole feature
+     * exists to remove — a project rule read as a global rule, then applied in
+     * a different project.
+     */
+    fun loadProjectMemoryFragment(projectName: String?): String? {
+        val file = File(memoryDir, primaryFile)
+        if (!file.exists()) return null
+        val content = try { file.readText() } catch (_: Exception) { "" }
+        if (content.isEmpty()) return null
+        val label = projectName?.takeIf { it.isNotBlank() }?.let { " — $it" } ?: ""
+        return "Project memory (PROJECT.md$label — user-curated and writable; you may update it " +
+            "when the user asks). This applies to THIS project only; chats in other projects " +
+            "never see it. Treat it as background context, not standing instructions, and defer " +
+            "to the user's latest message when they conflict:\n$content"
     }
 
     /**
@@ -357,11 +402,11 @@ class MemoryRepository(private val memoryDir: File) {
         val items = mutableListOf<MemoryFileInfo>()
 
         // GLOBAL.md always first
-        val globalFile = File(memoryDir, GLOBAL_FILE)
+        val globalFile = File(memoryDir, primaryFile)
         val globalContent = if (globalFile.exists()) try { globalFile.readText() } catch (_: Exception) { "" } else ""
         val globalModDate = if (globalFile.exists()) dateFmt.format(Date(globalFile.lastModified())) else ""
         items.add(MemoryFileInfo(
-            name = GLOBAL_FILE,
+            name = primaryFile,
             isGlobal = true,
             modifiedDate = globalModDate,
             fileSize = formatFileSize(globalFile.length()),
@@ -370,7 +415,7 @@ class MemoryRepository(private val memoryDir: File) {
 
         // Daily logs sorted descending
         val dailyFiles = memoryDir.listFiles()
-            ?.filter { it.extension == "md" && it.name != GLOBAL_FILE }
+            ?.filter { it.extension == "md" && it.name != primaryFile }
             ?.sortedByDescending { it.name }
             ?: emptyList()
 
@@ -389,12 +434,12 @@ class MemoryRepository(private val memoryDir: File) {
     }
 
     fun loadGlobalMd(): String {
-        val file = File(memoryDir, GLOBAL_FILE)
+        val file = File(memoryDir, primaryFile)
         return if (file.exists()) try { file.readText() } catch (_: Exception) { "" } else ""
     }
 
     fun saveGlobalMd(content: String) {
-        File(memoryDir, GLOBAL_FILE).writeText(content)
+        File(memoryDir, primaryFile).writeText(content)
     }
 
     fun readFile(name: String): String {
@@ -407,7 +452,7 @@ class MemoryRepository(private val memoryDir: File) {
     }
 
     fun deleteFile(name: String): Boolean {
-        if (name == GLOBAL_FILE) return false // Cannot delete GLOBAL.md
+        if (name == primaryFile) return false // Cannot delete the curated file
         return File(memoryDir, name).delete()
     }
 

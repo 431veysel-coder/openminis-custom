@@ -25,6 +25,13 @@ import java.io.File
  * path — it prints one WARNING and silently drops the binding — so the guest
  * would see the empty rootfs placeholder and "successfully" write files that
  * no reader will ever find. Deciding here makes the loss observable.
+ *
+ * [MINIS-OZEL 37070] The per-space directories are resolved through [FsSpace],
+ * so [sessionId] may be a chat-session id OR a `project:<folderId>` space key.
+ * The mount POINTS are identical either way (`/var/minis/workspace` and
+ * friends); only the host side differs. That is deliberate: the agent inside a
+ * project chat must not learn a second vocabulary of paths, and every tool,
+ * skill and offload stub keeps working untouched.
  */
 object SessionMounts {
     private const val TAG = "SessionMounts"
@@ -49,8 +56,15 @@ object SessionMounts {
         val skipped: List<String>,
     )
 
+    /**
+     * Host directory for one space's `workspace` / `attachments` / `offloads` /
+     * `browser`. [sessionId] is a *space key* since [MINIS-OZEL 37070]: a bare
+     * chat-session UUID or a `project:<folderId>` key — see [FsSpace]. The
+     * parameter keeps its old name because 40+ call sites pass a chat id and
+     * because the meaning ("whose files does this shell see") is unchanged.
+     */
     fun sessionDir(filesDir: File, sessionId: String, subdir: String): File =
-        File(filesDir, "minis-sessions/$sessionId/$subdir")
+        FsSpace.subDir(filesDir, sessionId, subdir)
 
     /**
      * Mounts for a shell. [sessionId] null means a shell tied to no chat (the

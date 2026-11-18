@@ -208,6 +208,24 @@ object Routes {
     const val TEAM_EDITOR = "team/{teamId}"
     fun teamEditor(teamId: String) = "team/$teamId"
 
+    /**
+     * [MINIS-OZEL 11.5 · 37064] Council runs: the list, and one run's screen.
+     *
+     * A top-level route rather than a tab inside the team editor, because a run
+     * outlives the editor and the user needs to reach a RUNNING one without
+     * navigating through the team it came from.
+     */
+    const val TEAM_RUNS = "team_runs"
+    const val TEAM_RUN = "team_run/{runId}"
+    fun teamRun(runId: String) = "team_run/$runId"
+
+    /** [MINIS-OZEL 11.5 · 37055] Every team's task board, one screen. */
+    const val TASK_HALL = "task_hall"
+
+    /** [37064] A member's live terminal, read-only until taken over. */
+    const val TEAM_MEMBER_TERMINAL = "team_member_terminal/{sessionId}"
+    fun teamMemberTerminal(sessionId: String) = "team_member_terminal/$sessionId"
+
     /** [MINIS-OZEL 11.4] Home toolbar › Projeler: session groups seen as projects. */
     const val PROJECTS = "projects"
     const val PROJECT_DETAIL = "project/{folderId}"
@@ -684,9 +702,21 @@ fun AppNavigation(
         // [MINIS-OZEL 11.4] Home toolbar › Ekip. A roster list that survives a
         // restart; the members and the run loop land on top of TeamStore.
         composable(Routes.TEAMS) {
+            // [37064] The council runs row appears only when the feature is on:
+            // a row that leads to a list which can never fill is worse than none.
+            val councilCtx = androidx.compose.ui.platform.LocalContext.current
+            val councilOn = com.openminis.app.data.OzelFeatures.isEnabled(
+                councilCtx, com.openminis.app.data.OzelFeatures.Feature.COUNCIL,
+            )
             com.openminis.app.ui.team.TeamsScreen(
                 onBack = { navController.safePopBackStack() },
                 onOpenTeam = { teamId -> navController.safeNavigate(Routes.teamEditor(teamId)) },
+                onOpenRuns = if (councilOn) {
+                    { navController.safeNavigate(Routes.TEAM_RUNS) }
+                } else {
+                    null
+                },
+                onOpenTasks = { navController.safeNavigate(Routes.TASK_HALL) },
             )
         }
 
@@ -698,6 +728,95 @@ fun AppNavigation(
             com.openminis.app.ui.team.TeamEditorScreen(
                 teamId = teamId,
                 onBack = { navController.safePopBackStack() },
+            )
+        }
+
+        // [MINIS-OZEL 11.5 · 37064] Council runs. The list is a sibling of the
+        // team list rather than a tab: a run outlives the editor and the user
+        // opens a running one directly from here.
+        composable(Routes.TASK_HALL) {
+            com.openminis.app.ui.team.TaskHallScreen(
+                onBack = { navController.safePopBackStack() },
+            )
+        }
+
+        composable(Routes.TEAM_RUNS) {
+            com.openminis.app.ui.team.CouncilRunsScreen(
+                onBack = { navController.safePopBackStack() },
+                onOpenRun = { runId -> navController.safeNavigate(Routes.teamRun(runId)) },
+            )
+        }
+
+        composable(
+            route = Routes.TEAM_RUN,
+            arguments = listOf(navArgument("runId") { type = NavType.StringType }),
+        ) { entry ->
+            val runId = entry.arguments?.getString("runId") ?: return@composable
+            com.openminis.app.ui.team.CouncilScreen(
+                runId = runId,
+                onBack = { navController.safePopBackStack() },
+                onOpenMember = { memberName ->
+                    // The member's own child session, through the read-only
+                    // transcript screen that already exists — a copy of the
+                    // conversation would drift from the live one.
+                    val sessionId = com.openminis.app.agent.team.CouncilLiveRegistry
+                        .runs.value[runId]?.members?.get(memberName)?.sessionId
+                    if (sessionId != null) navController.safeNavigate(Routes.agentTranscript(sessionId))
+                },
+            )
+        }
+
+        // [37064] A member's shell, read-only until the user takes it over. The
+        // takeover state lives in the member's config, so this screen only has to
+        // show the shell and mirror the button.
+        composable(
+            route = Routes.TEAM_MEMBER_TERMINAL,
+            arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
+        ) { entry ->
+            val sessionId = entry.arguments?.getString("sessionId") ?: return@composable
+            val ctx = androidx.compose.ui.platform.LocalContext.current
+            val takeover = remember(sessionId) {
+                com.openminis.app.debug.HeadlessChatRunner.existingViewModel(sessionId)
+                    ?.memberConfig?.terminal
+            }
+            var state by remember(sessionId) {
+                androidx.compose.runtime.mutableStateOf(
+                    takeover?.snapshot(agentBusy = false)?.state
+                        ?: com.openminis.app.agent.team.TerminalTakeover.State.AGENT,
+                )
+            }
+            // Poll twice a second: the agent's command boundary is not an event the
+            // UI can subscribe to, and a takeover button that only updates on
+            // recomposition would sit on "waiting…" after the command finished.
+            androidx.compose.runtime.LaunchedEffect(sessionId, takeover) {
+                while (true) {
+                    state = takeover?.snapshot(agentBusy = false)?.state
+                        ?: com.openminis.app.agent.team.TerminalTakeover.State.AGENT
+                    kotlinx.coroutines.delay(500)
+                }
+            }
+            val session = remember(sessionId) {
+                com.openminis.app.sandbox.TerminalSession(ctx.applicationContext)
+            }
+            // Releasing on dispose is what stops a takeover from outliving the
+            // screen: without it, backing out while holding the shell would lock
+            // the member out of `shell_execute` for the rest of the run.
+            androidx.compose.runtime.DisposableEffect(sessionId) {
+                onDispose {
+                    takeover?.release()
+                    session.stop()
+                }
+            }
+            com.openminis.app.ui.terminal.TerminalScreen(
+                terminalSession = session,
+                onBack = { navController.safePopBackStack() },
+                sessionId = sessionId,
+                readOnly = state != com.openminis.app.agent.team.TerminalTakeover.State.USER,
+                readOnlyNotice = when (state) {
+                    com.openminis.app.agent.team.TerminalTakeover.State.REQUESTED ->
+                        "Üye komutunu bitirsin…"
+                    else -> "Salt-okunur · üye çalışıyor"
+                },
             )
         }
 

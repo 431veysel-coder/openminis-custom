@@ -7,7 +7,9 @@ import com.openminis.app.data.model.ModelEntry
 import com.openminis.app.data.model.ThinkingLevel
 import com.openminis.app.data.team.Team
 import com.openminis.app.data.team.TeamMember
+import com.openminis.app.data.team.TeamMode
 import com.openminis.app.data.team.TeamStore
+
 import com.openminis.app.debug.HeadlessChatRunner
 import com.openminis.app.logging.AppLogger
 import com.openminis.app.provider.ProviderFactory
@@ -278,6 +280,31 @@ object TeamRunner {
                 output = "Team \"${team.name}\" has ${team.members.size} member(s). " +
                     "A team needs at least ${Team.MIN_MEMBERS}; add members on the Ekip screen.",
                 teamOutcome = null,
+            )
+        }
+
+        // [MINIS-OZEL 11.5 · 37060] The council entry point. Refused HERE, not
+        // only by hiding the tool, so a saved team plus a switched-off feature
+        // cannot start a run the user turned off. The refusal names the setting,
+        // because "not available" with no reason is what makes a user file a bug.
+        if (team.mode == TeamMode.COUNCIL) {
+            val enabled = com.openminis.app.data.OzelFeatures.isEnabled(
+                context, com.openminis.app.data.OzelFeatures.Feature.COUNCIL,
+            )
+            if (!enabled) {
+                return@withContext Outcome(
+                    ok = false,
+                    output = "Team \"${team.name}\" is set to council mode, but council is turned " +
+                        "off in Settings › Minis Özel. Turn it on, or switch the team back to " +
+                        "handoff on the Ekip screen.",
+                    teamOutcome = null,
+                )
+            }
+            return@withContext CouncilRunner.run(
+                context = context,
+                sessionId = sessionId,
+                team = team,
+                task = task,
             )
         }
 

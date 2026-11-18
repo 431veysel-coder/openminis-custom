@@ -3061,4 +3061,58 @@
     <string name="teams_pick_model">Choose model</string>
     <string name="teams_no_models">No models are available. Add a provider first.</string>
     <string name="teams_model_missing">Model missing — will fall back</string>
+    <!-- [MINIS-OZEL 11.5 · 37060] Council: mode, per-member role and belt. -->
+    <string name="teams_section_mode">How this team works</string>
+    <string name="teams_mode_handoff">Handoff</string>
+    <string name="teams_mode_handoff_desc">An orchestrator plans the work and hands one step at a time to the members, then checks the result. Best when the deliverable is an artefact: a file, a fix, a build.</string>
+    <string name="teams_mode_fanout">Compare</string>
+    <string name="teams_mode_fanout_desc">Every member answers the same task independently and the answers are shown side by side. No discussion. Best when you want to see what each model says.</string>
+    <string name="teams_mode_council">Council</string>
+    <string name="teams_mode_council_desc">Members answer independently, argue over numbered claims round by round, and one synthesised answer comes out with the dissent kept. Best for decisions, research and design.</string>
+    <string name="teams_mode_label">Mode</string>
+    <string name="teams_mode_current">%1$s</string>
+    <string name="teams_council_off">Council mode is switched off in Settings › Minis Özel, so a council run will be refused.</string>
+
+    <string name="teams_member_role_chip_researcher">Researcher</string>
+    <string name="teams_member_role_chip_engineer">Engineer</string>
+    <string name="teams_member_role_chip_reviewer">Reviewer</string>
+    <string name="teams_member_role_chip_critic">Critic</string>
+    <string name="teams_member_belt">Tool access</string>
+    <string name="teams_member_belt_hint">Leave empty to inherit the role’s default. A member never gets team_run — it is already inside a team.</string>
+    <string name="teams_member_belt_custom">Custom (%1$d tools)</string>
+    <string name="teams_member_belt_role">Role default (%1$d tools)</string>
+    <string name="teams_member_belt_allowed">Allowed for a member</string>
+    <string name="teams_member_belt_reset">Reset to role default</string>
+    <string name="teams_member_tools_empty">No tool selected</string>
+    <string name="teams_member_tool_count">%1$d tools</string>
+
+    <!-- [MINIS-OZEL 11.5 · 37064] Council run screen. -->
+    <string name="council_title">Konsey</string>
+    <string name="council_section_running">Running now</string>
+    <string name="council_section_past">Finished runs</string>
+    <string name="council_empty_title">No council runs yet</string>
+    <string name="council_empty_hint">Set a team to council mode, then run it with team_run.</string>
+    <string name="council_tab_floor">Floor</string>
+    <string name="council_tab_agenda">Agenda</string>
+    <string name="council_tab_decision">Decision</string>
+    <string name="council_member_absent">Sat this round out</string>
+    <string name="council_no_claims">No claims yet — the chair has not folded the positions.</string>
+    <string name="council_no_report">No report stored for this run.</string>
+    <string name="council_unverified">This report did not pass the citation check.</string>
+    <string name="council_dissent">Dissent</string>
+    <string name="council_run_gone">This run is no longer in memory</string>
+    <string name="council_run_gone_hint">It finished earlier in another session, or the app was restarted.</string>
+    <string name="council_row_member_session">Open live session</string>
+    <!-- [MINIS-OZEL 11.5 · 37050–37055] Task board and task hall. -->
+    <string name="task_hall_title">Görevler</string>
+    <string name="task_hall_hint">What the councils decided to do, across every team. A task only reaches "done" with evidence attached.</string>
+    <string name="task_hall_empty">Nothing here. A council run opens tasks as it goes.</string>
+    <string name="task_hall_run_header">Tasks from this run</string>
+    <string name="task_state_open">Open</string>
+    <string name="task_state_doing">Doing</string>
+    <string name="task_state_done">Done</string>
+    <string name="task_state_dropped">Dropped</string>
+    <string name="task_filter_all">All</string>
+    <string name="task_unassigned">unassigned</string>
+    <string name="task_tab">Tasks</string>
 </resources>

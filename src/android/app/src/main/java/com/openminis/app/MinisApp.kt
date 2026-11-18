@@ -596,6 +596,21 @@ class MinisApp : Application(), ImageLoaderFactory {
         memoryRepository = MemoryRepository(java.io.File(filesDir, "minis-global/memory"))
         webAppShortcutRepository = WebAppShortcutRepository(database.webAppShortcutDao())
 
+        // [MINIS-OZEL 37072] One-time "everything before projects is a project".
+        // Fired here, off the main thread, because it moves files: the UI must
+        // not wait for it, and the pre-migration state is perfectly usable — the
+        // personal memory is still the only layer until the move completes.
+        // Idempotent and self-guarded (see MemoryLegacyProjectMigration).
+        val migrationRepo = chatRepository
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            runCatching {
+                com.openminis.app.data.memory.MemoryLegacyProjectMigration
+                    .runIfDue(this@MinisApp, migrationRepo)
+            }.onFailure {
+                Log.w("MinisApp", "legacy memory migration failed: ${it.javaClass.simpleName}")
+            }
+        }
+
         // T-android-safemode-lateinit-crash: every repository the UI layer
         // reads is now assigned, so MainActivity may safely compose. Set
         // here rather than at the end of onCreate: the remaining work

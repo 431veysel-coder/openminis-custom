@@ -369,6 +369,41 @@ def scan_traps(root: Path) -> list[Finding]:
 WHILE_TRUE = re.compile(r"\bwhile\s*\(\s*true\s*\)")
 
 
+# ── CODE009: hand-built per-space host path ─────────────────────────────────
+# Incident: [MINIS-OZEL 37070] `fsSessionId` became a *space key* — a chat UUID
+# or `project:<folderId>` — and every site that built
+# `File(filesDir, "minis-sessions/$id/…")` by hand kept its old meaning while
+# looking identical. A missed site reads another project's directory and
+# nothing fails: the agent just writes into the wrong workspace. FsSpace is the
+# one translation; this rule keeps new raw concatenations from reappearing.
+#
+# Only a STRING LITERAL counts: prose in a doc comment that mentions the layout
+# is documentation, not a path. `FsSpace.kt` itself is exempt (it owns the
+# strings) and so is anything through `FsSpace.*`.
+RAW_SPACE_PATH = re.compile(r'"\s*(?:minis-sessions|minis-spaces)\s*/')
+FS_SPACE_FILE = "FsSpace.kt"
+
+def scan_raw_space_paths(root: Path) -> list[Finding]:
+    out: list[Finding] = []
+    for path in walk(root, KOTLIN_EXT, subdir=MAIN_JAVA):
+        if path.name == FS_SPACE_FILE:
+            continue
+        text = read(path)
+        lines = text.splitlines()
+        for i, line in enumerate(lines):
+            if not RAW_SPACE_PATH.search(line):
+                continue
+            if line.lstrip().startswith(("*", "//", "/*")):
+                continue
+            if suppressed(lines, i, "CODE009"):
+                continue
+            out.append(Finding(
+                rule="CODE009", severity=WARN, file=rel(path, root), line=i + 1,
+                message="hand-built per-space path — go through FsSpace.subDir/baseDir",
+                excerpt=line.strip(),
+            ))
+    return out
+
 def scan_loops(root: Path) -> list[Finding]:
     out: list[Finding] = []
     # Only the agent loop matters here: that is where a runaway iteration costs
@@ -412,6 +447,7 @@ def main() -> int:
     findings += scan_xml_escaping(root)
     findings += scan_elapsed_time(root)
     findings += scan_traps(root)
+    findings += scan_raw_space_paths(root)
     findings += scan_loops(root)
 
     if args.update_baseline:

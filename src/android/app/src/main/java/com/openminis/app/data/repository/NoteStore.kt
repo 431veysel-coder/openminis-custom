@@ -114,7 +114,12 @@ class NoteStore(private val context: Context) {
 
     /**
      * Where an entry belongs. Stored as text: `global`, `space:<id>`,
-     * `session:<id>`, or `screen` for edit-mode pins.
+     * `session:<id>`, `project:<folderId>`, or `screen` for edit-mode pins.
+     *
+     * [MINIS-OZEL 37073] `project:<folderId>` is the shared note scope of a
+     * project: every chat filed there sees the same notes, and `global` notes
+     * stay visible on top of them ([visibleTo]). Everything else is unchanged,
+     * which is why the project scope is one more string and not a new table.
      */
     data class Scope(val wire: String) {
         companion object {
@@ -122,6 +127,12 @@ class NoteStore(private val context: Context) {
             val SCREEN = Scope("screen")
             fun space(id: String) = Scope("space:$id")
             fun session(id: String) = Scope("session:$id")
+
+            /** Project-shared notes. Keyed by folder id, NOT by session id. */
+            fun project(folderId: String) = Scope("project:$folderId")
+
+            /** True when [wire] names a project's shared scope. */
+            fun isProject(wire: String) = wire.startsWith("project:")
         }
     }
 

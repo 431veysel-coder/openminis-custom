@@ -291,7 +291,15 @@ class BackupExporter(
 
                             // The session's whole on-disk tree: attachments /
                             // offloads / workspace / browser.
-                            val dir = File(context.filesDir, "minis-sessions/${session.id}")
+                            // [MINIS-OZEL 37070] Resolved through FsSpace so the
+                            // root rule lives in one place. A session INSIDE a
+                            // project has no tree of its own — the project space
+                            // is exported once at project level (37083), not
+                            // duplicated per chat, so this yields an empty dir
+                            // and exports nothing.
+                            val dir = com.openminis.app.sandbox.FsSpace.baseDir(
+                                context.filesDir, session.id
+                            )
                             val r = trees.export(
                                 dir, "chats/${session.id}", BackupCategory.CHATS, session.id
                             )

@@ -1349,7 +1349,8 @@ class ModelUseOffloadHandler(
             ?: return null
         val sub = m.groupValues[1]
         val rest = m.groupValues[2].removePrefix("/")
-        val base = File(context.filesDir, "minis-sessions/$sessionId/$sub")
+        // [MINIS-OZEL 37070] `sessionId` can be a `project:<folderId>` space key.
+        val base = com.openminis.app.sandbox.FsSpace.subDir(context.filesDir, sessionId, sub)
         return if (rest.isEmpty()) base else File(base, rest)
     }
 

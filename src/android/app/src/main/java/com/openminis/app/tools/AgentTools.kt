@@ -1,5 +1,7 @@
 package com.openminis.app.tools
 
+import com.openminis.app.agent.AgentKind
+import com.openminis.app.agent.team.MemberToolBelt
 import com.openminis.app.browser.BrowserAction
 import com.openminis.app.data.model.AgentToolDefinition
 import com.openminis.app.data.model.AgentToolParam
@@ -63,39 +65,85 @@ object AgentTools {
         // [MINIS-OZEL 11.4 S2] The runnable teams (names). Empty = the tool does
         // not exist. Same rule as notes/journal: absent, not offered-then-refused.
         teamNames: List<String> = emptyList(),
-    ): List<AgentToolDefinition> = buildList {
-        add(shellExecuteDefinition())
-        add(FileReadTool.definition())
-        add(FileWriteTool.definition())
-        add(FileEditTool.definition())
-        if (supportsImageInput || visionGroupConfigured) {
-            add(ReadImageTool.definition())
+        // [MINIS-OZEL 11.5 · 37060] The third kind. Defaults to the old two-value
+        // mapping so every existing call site keeps its exact belt; only the
+        // council runtime passes MEMBER.
+        agentKind: AgentKind = AgentKind.of(isHelper),
+        // [MINIS-OZEL 11.5 · 37060] A member's declared belt and role, from
+        // TeamMember. Ignored for TOP/HELPER.
+        memberRole: String = "",
+        memberTools: List<String> = emptyList(),
+        /** [37065] The other members' names, for `ask_teammate`'s enum. */
+        memberPeers: List<String> = emptyList(),
+    ): List<AgentToolDefinition> {
+        val all = buildList {
+            add(shellExecuteDefinition())
+            add(FileReadTool.definition())
+            add(FileWriteTool.definition())
+            add(FileEditTool.definition())
+            if (supportsImageInput || visionGroupConfigured) {
+                add(ReadImageTool.definition())
+            }
+            if (browserEnabled) add(browserUseDefinition())
+            if (memoryEnabled) {
+                // [37060] A member DOES keep long-term memory — its own scope.
+                // Only a helper has none (design §4.3), because a helper is one
+                // focused step with no tomorrow.
+                if (agentKind != AgentKind.HELPER) add(memoryWriteDefinition())
+                add(memoryGetDefinition())
+            }
+            if (agentKind != AgentKind.HELPER && delegateEnabled) {
+                add(subAgentTaskDefinition(rosterNames))
+            }
+            if (userAskExposed && agentKind != AgentKind.HELPER) {
+                add(com.openminis.app.agent.userask.UserAskPromptText.definition())
+            }
+            // [MINIS-OZEL 11.1] Available to helpers too: a sub agent that cannot
+            // keep a note is a sub agent that re-explores the same thing next time.
+            if (notesEnabled) add(com.openminis.app.tools.NoteTool.definition())
+            // [MINIS-OZEL 11.3.1] The journal is offered to helpers too: a sub agent
+            // that cannot see what the main run already changed is the one most
+            // likely to undo it by accident.
+            if (journalEnabled) add(com.openminis.app.tools.JournalTool.definition())
+            // [MINIS-OZEL 11.3.1] Available to helpers as well: a sub agent that
+            // cannot state what finished looks like is the one that returns "done"
+            // with nothing done.
+            if (acceptanceEnabled) add(com.openminis.app.tools.VerifyTool.definition())
+            // [MINIS-OZEL 11.4 S2] Teams. Offered only when at least one runnable
+            // team exists, for the same reason notes/journal are gated: a tool the
+            // model can see but that cannot succeed is worse than no tool — it
+            // burns a turn and teaches nothing.
+            if (!isHelper && teamNames.isNotEmpty()) add(teamRunDefinition(teamNames))
+            // [MINIS-OZEL 11.5 · 37065] Only a member has teammates. Offered from
+            // the peer list rather than from a setting: a member with an empty
+            // peer list is a council of one, and a tool that cannot resolve a
+            // name would burn a turn teaching nothing.
+            if (agentKind == AgentKind.MEMBER && memberPeers.isNotEmpty()) {
+                add(com.openminis.app.agent.team.AskTeammateTool.definition(memberPeers))
+            }
+            // [MINIS-OZEL 11.5 · 37050] The task board. A member reads its own
+            // tasks and writes their state; there is no delete, because a wrong
+            // task is dropped with a reason rather than erased.
+            if (agentKind == AgentKind.MEMBER) {
+                add(com.openminis.app.agent.team.TaskTools.listDefinition())
+                add(com.openminis.app.agent.team.TaskTools.updateDefinition())
+                // [37051] The live hand-over. Only with peers: assigning work to
+                // nobody is a refusal waiting to burn a turn.
+                if (memberPeers.isNotEmpty()) {
+                    add(com.openminis.app.agent.team.AssignTaskTool.definition(memberPeers))
+                }
+            }
         }
-        if (browserEnabled) add(browserUseDefinition())
-        if (memoryEnabled) {
-            if (!isHelper) add(memoryWriteDefinition())
-            add(memoryGetDefinition())
-        }
-        if (!isHelper && delegateEnabled) {
-            add(subAgentTaskDefinition(rosterNames))
-        }
-        if (userAskExposed && !isHelper) add(com.openminis.app.agent.userask.UserAskPromptText.definition())
-        // [MINIS-OZEL 11.1] Available to helpers too: a sub agent that cannot
-        // keep a note is a sub agent that re-explores the same thing next time.
-        if (notesEnabled) add(com.openminis.app.tools.NoteTool.definition())
-        // [MINIS-OZEL 11.3.1] The journal is offered to helpers too: a sub agent
-        // that cannot see what the main run already changed is the one most
-        // likely to undo it by accident.
-        if (journalEnabled) add(com.openminis.app.tools.JournalTool.definition())
-        // [MINIS-OZEL 11.3.1] Available to helpers as well: a sub agent that
-        // cannot state what finished looks like is the one that returns "done"
-        // with nothing done.
-        if (acceptanceEnabled) add(com.openminis.app.tools.VerifyTool.definition())
-        // [MINIS-OZEL 11.4 S2] Teams. Offered only when at least one runnable
-        // team exists, for the same reason notes/journal are gated: a tool the
-        // model can see but that cannot succeed is worse than no tool — it
-        // burns a turn and teaches nothing.
-        if (!isHelper && teamNames.isNotEmpty()) add(teamRunDefinition(teamNames))
+        if (agentKind != AgentKind.MEMBER) return all
+        // [37060] The member ceiling is an ALLOW-list, applied last and in one
+        // place: everything above is the general belt, and a member only keeps
+        // what its kind, role and declared tools permit. Filtering at the end
+        // rather than gating each `add` is deliberate — a new tool added above
+        // is then denied to members by default, which is the failure mode we
+        // want (a member missing one tool still works; a member holding
+        // `team_run` does not).
+        val belt = MemberToolBelt.resolve(agentKind, memberRole, memberTools)
+        return all.filter { it.name in belt }
     }
 
     /**

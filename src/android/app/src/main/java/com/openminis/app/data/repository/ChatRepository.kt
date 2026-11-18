@@ -185,6 +185,9 @@ class ChatRepository(internal val dao: ChatDao) {
         name: String,
         description: String? = null,
         origin: String = FolderEntity.ORIGIN_MANUAL,
+        // [MINIS-OZEL 37071] A new group is a real project by default (it owns
+        // a workspace + memory). Callers that only want a label pass SCOPE_SESSION.
+        spaceScope: String = FolderEntity.SCOPE_PROJECT,
     ): FolderEntity {
         val now = System.currentTimeMillis()
         val folder = FolderEntity(
@@ -194,6 +197,9 @@ class ChatRepository(internal val dao: ChatDao) {
             description = description?.trim()?.take(FolderEntity.DESC_MAX_CHARS)?.ifBlank { null },
             createdAt = now,
             updatedAt = now,
+            spaceScope = spaceScope.takeIf {
+                it == FolderEntity.SCOPE_PROJECT || it == FolderEntity.SCOPE_SESSION
+            } ?: FolderEntity.SCOPE_PROJECT,
         )
         dao.insertFolder(folder)
         return folder
@@ -247,6 +253,74 @@ class ChatRepository(internal val dao: ChatDao) {
     }
 
     suspend fun sessionIdsInFolder(folderId: String): List<String> = dao.sessionIdsInFolder(folderId)
+
+    /**
+     * [MINIS-OZEL 37072] Sessions filed nowhere — what the legacy migration
+     * adopts into its "everything before projects" group. Child sessions are
+     * excluded by the query (see [ChatDao.sessionIdsWithNoFolder]).
+     */
+    suspend fun sessionIdsWithNoFolder(): List<String> = dao.sessionIdsWithNoFolder()
+
+    // ── [MINIS-OZEL 37071] projects (a group that owns an area) ────────────
+
+    /**
+     * The group a session is filed into, or null.
+     *
+     * Reads through to a JOIN rather than listing folders: this runs on every
+     * session load (the chat view model needs its space key before the first
+     * tool call), and a session that is in no group must cost one indexed
+     * lookup, not a table scan.
+     */
+    suspend fun folderOfSession(sessionId: String): FolderEntity? = dao.folderOfSession(sessionId)
+
+    /** Non-archived groups, for the session list and the project pickers. */
+    fun observeActiveFolders(): Flow<List<FolderEntity>> = dao.observeActiveFolders()
+
+    suspend fun listActiveFolders(): List<FolderEntity> = dao.listActiveFolders()
+
+    /**
+     * Turn a group into a real project, or back into a plain label.
+     *
+     * This is a MODE switch, not a data move: switching to `session` does not
+     * delete the project's workspace or memory — they simply stop being
+     * mounted/injected, and switching back finds everything where it was. The
+     * user's files are never the price of changing their mind.
+     */
+    suspend fun setSpaceScope(folderId: String, scope: String) {
+        if (scope != FolderEntity.SCOPE_PROJECT && scope != FolderEntity.SCOPE_SESSION) return
+        dao.setFolderSpaceScope(folderId, scope, System.currentTimeMillis())
+    }
+
+    /** Project memory on/off. A chat inside can still switch its own memory off. */
+    suspend fun setFolderMemoryEnabled(folderId: String, enabled: Boolean) {
+        dao.setFolderMemoryEnabled(folderId, if (enabled) 1 else 0, System.currentTimeMillis())
+    }
+
+    /** Project steer text; blank collapses to null so "no note" has one value. */
+    suspend fun setFolderMemoryPrompt(folderId: String, prompt: String?) {
+        dao.setFolderMemoryPrompt(folderId, prompt?.trim()?.ifBlank { null }, System.currentTimeMillis())
+    }
+
+    /**
+     * Defaults for chats created inside the project.
+     *
+     * null LEAVES the stored value alone (COALESCE in the query); an empty
+     * string clears it. Callers that always pass the field through must seed it
+     * from the current value — the same contract [renameFolder] documents.
+     */
+    suspend fun setFolderDefaults(folderId: String, modelId: String?, teamId: String?) {
+        dao.setFolderDefaults(folderId, modelId, teamId, System.currentTimeMillis())
+    }
+
+    /**
+     * Archive / restore. Archiving hides the project's chats from the session
+     * list and stops its memory and `@`-mentions resolving; nothing on disk is
+     * touched, so restore is total. Contrast [deleteProject].
+     */
+    suspend fun setFolderArchived(folderId: String, archived: Boolean) {
+        val now = System.currentTimeMillis()
+        dao.setFolderArchived(folderId, if (archived) now else null, now)
+    }
 
     /** [T-autogroup-folder-titles] Group id → newest member activity and newest-first titles. */
     internal suspend fun recentSessionTitlesByFolder(

@@ -33,6 +33,36 @@ data class TeamMember(
     val scope: String = "",
 )
 
+/**
+ * [MINIS-OZEL 11.5 · 37060] How a team works, as a saved choice.
+ *
+ * Three modes, not a settings grid, because the user's question is one
+ * question: *do I want an object made, a comparison, or a decision?*
+ *
+ *  - [HANDOFF] — the 11.4 loop: an orchestrator plans, hands single steps to
+ *    members, verifies. Best when the deliverable is an artefact (a file, a
+ *    fix, a build).
+ *  - [FANOUT] — the same task to every member, independently, results side by
+ *    side, no conversation. Best for "what do the models each say".
+ *  - [COUNCIL] — the debate: independent positions, canonical claims, argument
+ *    rounds, one synthesised answer with dissent preserved.
+ *
+ * [HANDOFF] is the default so an existing saved team keeps its exact behaviour
+ * after the update — a team that suddenly started debating would spend ten
+ * times the tokens without being asked.
+ */
+enum class TeamMode(val wire: String) {
+    HANDOFF("handoff"),
+    FANOUT("fanout"),
+    COUNCIL("council"),
+    ;
+
+    companion object {
+        fun parse(raw: String?): TeamMode =
+            entries.firstOrNull { it.wire.equals(raw?.trim(), ignoreCase = true) } ?: HANDOFF
+    }
+}
+
 data class Team(
     val id: String,
     val name: String,
@@ -40,6 +70,14 @@ data class Team(
     val orchestratorModelId: String? = null,
     val members: List<TeamMember> = emptyList(),
     val createdAt: Long = System.currentTimeMillis(),
+    /** [37060] Defaults to the pre-existing behaviour. */
+    val mode: TeamMode = TeamMode.HANDOFF,
+    /**
+     * [37060] Language the council must write its report in. Null = follow the
+     * device. A council of five models writing in five languages produces a
+     * report nobody can read, so this is a team property, not per member.
+     */
+    val language: String? = null,
 ) {
     companion object {
         /** Mirrors the reference designs: below 2 there is nothing to coordinate. */
@@ -123,6 +161,11 @@ object TeamStore {
             team.orchestratorModelId?.let { put("orchestratorModelId", it) }
             put("members", members)
             put("createdAt", team.createdAt)
+            // Written only when NOT the default, so a team saved by 11.4 and
+            // re-saved by 11.5 is byte-identical unless the user changed
+            // something. That keeps diffs and backups readable.
+            if (team.mode != TeamMode.HANDOFF) put("mode", team.mode.wire)
+            team.language?.takeIf { it.isNotBlank() }?.let { put("language", it) }
         }.toString(2)
     }
 
@@ -149,6 +192,8 @@ object TeamStore {
             orchestratorModelId = o.optString("orchestratorModelId").ifBlank { null },
             members = members,
             createdAt = o.optLong("createdAt", System.currentTimeMillis()),
+            mode = TeamMode.parse(o.optString("mode").ifBlank { null }),
+            language = o.optString("language").ifBlank { null },
         )
     }
 }

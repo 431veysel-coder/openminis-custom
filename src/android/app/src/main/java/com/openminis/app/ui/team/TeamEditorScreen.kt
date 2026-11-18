@@ -1,6 +1,8 @@
 package com.openminis.app.ui.team
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -30,8 +32,10 @@ import androidx.compose.ui.unit.dp
 import com.openminis.app.MinisApp
 import com.openminis.app.R
 import com.openminis.app.data.model.ModelEntry
+import com.openminis.app.data.OzelFeatures
 import com.openminis.app.data.team.Team
 import com.openminis.app.data.team.TeamMember
+import com.openminis.app.data.team.TeamMode
 import com.openminis.app.data.team.TeamStore
 import com.openminis.app.ui.settings.SettingsRow
 import com.openminis.app.ui.settings.SettingsScaffold
@@ -40,12 +44,14 @@ import com.openminis.app.ui.settings.SettingsSection
 /**
  * [MINIS-OZEL 11.4 S2] One team: its name and its roster.
  *
- * The editor is deliberately the whole story of a member — a name, a role
- * sentence, and a model. Nothing about tools, because a member's tool belt is
- * inherited from the app (shell, browser, files, MCP): a per-member checkbox
- * grid would be a security surface nobody would read, and it would also be a
- * promise the runner does not yet honour per member. The `TeamMember.tools`
- * field exists in storage for the day it does.
+ * [37060] The screen now also carries the team's MODE and each member's BELT.
+ *
+ * 11.4 deliberately showed no tools: "a per-member checkbox would be a promise
+ * the runner does not yet honour". That was true — `TeamMember.tools` was stored
+ * and read by nobody. 37060 makes the belt real at three layers (schema, tool
+ * dispatcher, `team_run` guard), so the setting can be shown without lying. The
+ * role comes first and the checkboxes are the exception, because the user's
+ * model is "this member is a researcher", not "this member has nine tools".
  *
  * The model picker lists only ENABLED providers' visible models, and each row
  * shows its provider — the two things a user needs to avoid picking a
@@ -61,6 +67,13 @@ fun TeamEditorScreen(
     var dirty by remember(teamId) { mutableStateOf(false) }
     var memberDialog by remember { mutableStateOf<TeamMember?>(null) }
     var editingMemberIndex by remember { mutableStateOf(-1) }
+    // [37060] The mode picker. A dialog rather than a dropdown because each mode
+    // needs a sentence of explanation — a row that says only "Council" leaves the
+    // user guessing whether it costs ten times the tokens.
+    var modeDialog by remember { mutableStateOf(false) }
+    val councilEnabled = remember {
+        OzelFeatures.isEnabled(context, OzelFeatures.Feature.COUNCIL)
+    }
 
     val current = team
     if (current == null) {
@@ -102,6 +115,29 @@ fun TeamEditorScreen(
                 )
             }
 
+            // [37060] The mode is the most expensive decision on this screen, so
+            // it sits above the roster: a user who picks "council" and five
+            // members should meet the cost question before the roster, not after.
+            SettingsSection(
+                header = stringResource(R.string.teams_section_mode),
+                footer = when (current.mode) {
+                    TeamMode.HANDOFF -> stringResource(R.string.teams_mode_handoff_desc)
+                    TeamMode.FANOUT -> stringResource(R.string.teams_mode_fanout_desc)
+                    TeamMode.COUNCIL -> stringResource(R.string.teams_mode_council_desc)
+                },
+            ) {
+                SettingsRow(
+                    title = stringResource(R.string.teams_mode_label),
+                    subtitle = when (current.mode) {
+                        TeamMode.HANDOFF -> stringResource(R.string.teams_mode_handoff)
+                        TeamMode.FANOUT -> stringResource(R.string.teams_mode_fanout)
+                        TeamMode.COUNCIL -> stringResource(R.string.teams_mode_council)
+                    },
+                    showDivider = false,
+                    onClick = { modeDialog = true },
+                )
+            }
+
             SettingsSection(
                 header = stringResource(R.string.teams_section_members),
                 footer = if (current.members.size < Team.MIN_MEMBERS) {
@@ -120,7 +156,18 @@ fun TeamEditorScreen(
                     current.members.forEachIndexed { index, member ->
                         SettingsRow(
                             title = member.name,
-                            subtitle = memberSubtitle(context, member),
+                            subtitle = memberSubtitle(
+                                context = context,
+                                member = member,
+                                toolCountLabel = stringResource(
+                                    R.string.teams_member_tool_count,
+                                    com.openminis.app.agent.team.MemberToolBelt.resolve(
+                                        com.openminis.app.agent.AgentKind.MEMBER,
+                                        member.role,
+                                        member.tools,
+                                    ).size,
+                                ),
+                            ),
                             minHeight = 64.dp,
                             onClick = {
                                 editingMemberIndex = index
@@ -158,6 +205,18 @@ fun TeamEditorScreen(
         }
     }
 
+    if (modeDialog) {
+        TeamModeDialog(
+            current = current.mode,
+            councilEnabled = councilEnabled,
+            onDismiss = { modeDialog = false },
+            onPick = { mode ->
+                persist(current.copy(mode = mode))
+                modeDialog = false
+            },
+        )
+    }
+
     memberDialog?.let { draft ->
         MemberDialog(
             initial = draft,
@@ -191,11 +250,21 @@ private fun NameField(value: String, label: String, onValueChange: (String) -> U
 }
 
 @Composable
-private fun memberSubtitle(context: android.content.Context, member: TeamMember): String {
+private fun memberSubtitle(
+    context: android.content.Context,
+    member: TeamMember,
+    /** [37060] Already-resolved tool count, formatted by the caller: this is not
+     *  a @Composable, so it cannot call stringResource itself. */
+    toolCountLabel: String,
+): String {
     val parts = mutableListOf<String>()
     if (member.role.isNotBlank()) parts += member.role
     val label = modelLabel(context, member)
     if (label != null) parts += label
+    // The tool count, because a member with no shell and a member with a shell
+    // look identical on this row otherwise — and that difference is the one that
+    // decides whether a run can install something.
+    parts += toolCountLabel
     return parts.joinToString(" · ")
 }
 
@@ -228,6 +297,10 @@ private fun MemberDialog(
     var role by remember { mutableStateOf(initial.role) }
     var providerInstanceId by remember { mutableStateOf(initial.providerInstanceId) }
     var modelId by remember { mutableStateOf(initial.modelId) }
+    // [37060] Empty = "the role decides". That is the same convention
+    // `TeamMember.tools` already documented, so a team saved by 11.4 opens with
+    // its role's belt rather than "no tools at all".
+    var tools by remember { mutableStateOf(initial.tools) }
     var picking by remember { mutableStateOf(false) }
 
     val app = context.applicationContext as? MinisApp
@@ -257,7 +330,10 @@ private fun MemberDialog(
             )
         },
         text = {
-            Column {
+            // verticalScroll: with the belt section the dialog is taller than a
+            // short screen, and a clipped dialog with no scroll is a dead end
+            // (the Save button is still outside, but the last tool row is gone).
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it.take(40) },
@@ -296,6 +372,20 @@ private fun MemberDialog(
                         chosenLabel ?: stringResource(R.string.teams_pick_model),
                     )
                 }
+                // [37060] The belt, finally honest. Role first (the user's mental
+                // model), checkboxes as the exception.
+                MemberBeltSection(
+                    role = role,
+                    tools = tools,
+                    onRoleChange = { picked ->
+                        role = picked
+                        // Picking a role resets a custom belt: a stale custom set
+                        // from "engineer" silently becoming a "researcher"'s belt
+                        // is how a reviewer ends up with a shell.
+                        tools = emptyList()
+                    },
+                    onToolsChange = { tools = it },
+                )
             }
         },
         confirmButton = {
@@ -308,6 +398,7 @@ private fun MemberDialog(
                             role = role.trim(),
                             providerInstanceId = providerInstanceId,
                             modelId = modelId,
+                            tools = tools,
                         ),
                     )
                 },
