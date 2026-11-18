@@ -38,7 +38,7 @@ class MemoryLayerTest {
         return resolver
     }
 
-    private fun projectId(n: String) = "folder-$n"
+    private fun projectId(n: Int) = "folder-$n"
 
     private fun write(tool: String, project: MemoryRepository?, projectName: String? = null): String {
         val out = MemoryTools.executeMemoryWrite(
