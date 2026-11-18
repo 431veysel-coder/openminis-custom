@@ -344,6 +344,16 @@ jobs:
     # debug runs too — a debug APK is never published, but it exists to be
     # inspected, and inspecting a tree whose tests fail is work done twice.
     # "Nothing is built unless everything is green" is one rule, not two.
+    #
+    # [MINIS-OZEL] ...with one exception, and it is not a loosening of that rule:
+    # `version-gate` is SKIPPED on a debug dispatch (it only asks "may this run
+    # publish"). A skipped entry in `needs` skips the dependent job by default,
+    # so a `build_type=debug` dispatch could never produce an APK at all — the
+    # job appeared as a skipped "Android APK" entry at 0s,
+    # and looked like an unrelated GitHub quirk. The explicit `if` below says
+    # what was always meant: run unless something FAILED or was CANCELLED.
+    # A red `tests` still stops the build, which is the rule that matters.
+    if: ${{ !cancelled() && !failure() }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
