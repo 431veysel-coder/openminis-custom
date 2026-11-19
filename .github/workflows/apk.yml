@@ -41,6 +41,15 @@ concurrency:
   group: apk-${{ github.ref }}
   cancel-in-progress: true
 
+# [MINIS-X run-logs 37094] Every `run:` block is a bash script, and every long
+# command in this file is piped into `tee` so the log survives the runner.
+# Without `-o pipefail` a pipe swallows the exit code: `gradlew | tee` returns
+# tee's 0 even when gradle failed, and the job goes green on a failed build.
+# Setting it once here is what makes the tees below safe rather than a trap.
+defaults:
+  run:
+    shell: bash -eo pipefail {0}
+
 env:
   # [MINIS-X ci-cache] Pinned so the Go cache key does not churn on a toolchain
   # bump that was not intended.
@@ -227,7 +236,24 @@ jobs:
         working-directory: src/android
         run: |
           chmod +x gradlew
-          ./gradlew :app:compileGithubDebugKotlin --build-cache --stacktrace
+          # [37094] Same tee contract as the other Gradle steps: the file is
+          # uploaded with `if: always()`, so a red compile can be read back
+          # after the artifact expires from the Actions UI.
+          LOG="$GITHUB_WORKSPACE/build/logs/compile.log"
+          mkdir -p "$(dirname "$LOG")"
+          ./gradlew :app:compileGithubDebugKotlin --build-cache --stacktrace 2>&1 | tee -a "$LOG"
+
+      # [37094] `if: always()` is the whole point: without it the upload step is
+      # skipped exactly when the compile failed, i.e. when the log is the only
+      # thing worth having. 90 days is the ceiling on a public repo.
+      - name: Upload run logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-logs-compile
+          path: build/logs/**
+          retention-days: 90
+          if-no-files-found: warn
 
   tests:
     name: Unit tests
@@ -311,7 +337,23 @@ jobs:
         working-directory: src/android
         run: |
           chmod +x gradlew
-          ./gradlew :app:testGithubDebugUnitTest --tests 'com.openminis.app.ozel.*' --stacktrace
+          LOG="$GITHUB_WORKSPACE/build/logs/tests.log"
+          mkdir -p "$(dirname "$LOG")"
+          ./gradlew :app:testGithubDebugUnitTest --tests 'com.openminis.app.ozel.*' --stacktrace 2>&1 | tee -a "$LOG"
+
+      # [37094] A red test is the case where the HTML report and the raw console
+      # log matter most, so both are uploaded unconditionally.
+      - name: Upload run logs and test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-logs-tests
+          path: |
+            build/logs/**
+            src/android/app/build/reports/tests/**
+            src/android/app/build/test-results/**
+          retention-days: 90
+          if-no-files-found: warn
 
       # Upstream's 721 test files are NOT run here any more. They took 612 s of
       # the old pipeline to produce a result that could not fail anything
@@ -414,19 +456,23 @@ jobs:
         # this would cost more in restore than it saves — hence uncached, on
         # purpose, and this comment is why that is not an oversight.
         run: |
-          ./deps/build_proot.sh
-          ./scripts/prepare_android_sandbox.sh
-          ls -la src/android/app/src/main/jniLibs/arm64-v8a/
-          ls -la src/android/app/src/main/assets/ | head -10
+          LOG="$GITHUB_WORKSPACE/build/logs/native.log"
+          mkdir -p "$(dirname "$LOG")"
+          ./deps/build_proot.sh 2>&1 | tee -a "$LOG"
+          ./scripts/prepare_android_sandbox.sh 2>&1 | tee -a "$LOG"
+          ls -la src/android/app/src/main/jniLibs/arm64-v8a/ | tee -a "$LOG"
+          ls -la src/android/app/src/main/assets/ | head -10 | tee -a "$LOG"
 
       - name: Build rclone.aar
         if: steps.rclone-cache.outputs.cache-hit != 'true'
         run: |
           chmod +x deps/build_rclone_android.sh
-          ./deps/build_rclone_android.sh
+          LOG="$GITHUB_WORKSPACE/build/logs/native.log"
+          mkdir -p "$(dirname "$LOG")"
+          ./deps/build_rclone_android.sh 2>&1 | tee -a "$LOG"
           mkdir -p src/android/app/libs
           cp deps/build/rclone/rclone.aar src/android/app/libs/
-          ls -la src/android/app/libs/
+          ls -la src/android/app/libs/ | tee -a "$LOG"
 
       - name: Upload the native layer
         uses: actions/upload-artifact@v4
@@ -441,6 +487,17 @@ jobs:
             src/android/app/src/main/jniLibs/arm64-v8a/libproot-loader32.so
           retention-days: 7
           if-no-files-found: error
+
+      # [37094] The native layer is where "it downloaded everything again" shows
+      # up. The log says which cache failed to restore and why.
+      - name: Upload run logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-logs-native
+          path: build/logs/**
+          retention-days: 90
+          if-no-files-found: warn
 
 
   build:
@@ -651,12 +708,15 @@ jobs:
         working-directory: src/android
         run: |
           chmod +x gradlew
+          LOG="$GITHUB_WORKSPACE/build/logs/assemble.log"
+          mkdir -p "$(dirname "$LOG")"
           BT="${{ inputs.build_type || 'release' }}"
           if [ "$BT" = "debug" ]; then
-            ./gradlew :app:assembleGithubDebug --build-cache --parallel --stacktrace
+            TASK=":app:assembleGithubDebug"
           else
-            ./gradlew :app:assembleGithubRelease --build-cache --parallel --stacktrace
+            TASK=":app:assembleGithubRelease"
           fi
+          ./gradlew $TASK --build-cache --parallel --stacktrace 2>&1 | tee -a "$LOG"
 
       - name: Verify APK contents
         working-directory: src/android
@@ -873,3 +933,16 @@ jobs:
           body: ${{ steps.notes.outputs.body }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # [37094] Last step in the job, and unconditional. If PUBLISHING failed,
+      # this is the only artifact a later reader gets — including the reason.
+      - name: Upload run logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-logs-build
+          path: |
+            build/logs/**
+            build/reports/**
+          retention-days: 90
+          if-no-files-found: warn
