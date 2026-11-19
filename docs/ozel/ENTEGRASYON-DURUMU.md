@@ -9,23 +9,23 @@ Testlerin ve sınıfın kendi paketinin çağrı sayılmadığı bir tarama.
 
 ---
 
-## Ölçülen durum: 5/11 bağlı
+## Ölçülen durum: 9/11 bağlı
 
 | # | Dilim | Durum | Kullanıcı nasıl görür |
 |---|---|---|---|
 | 37080 | Onay kapısı | ✅ **BAĞLI** | Tehlikeli komutta **kart** (5 satır). Ayarlar › Güvenlik |
-| 37081 | Bütçe tavanı | ⏳ sınıf+test | Anahtar var, **tavan okunmuyor** |
+| 37081 | Bütçe tavanı | ✅ **BAĞLI** | Tavanda tur başlamaz + bildirim |
 | 37082 | Otomatik yedek | ✅ **BAĞLI** | Ayarlar › Otomatik yedek (kapalı gelir) |
-| 37083 | Plan önizleme | ⏳ sınıf+test | Anahtar var, tahmin bağlanmadı |
-| 37084 | Tur özeti | ⏳ sınıf+test | Anahtar var, özet satırı yok |
+| 37083 | Plan önizleme | ✅ **BAĞLI** | Uzun işte kart (mevcut onay kartı) |
+| 37084 | Tur özeti | ✅ **BAĞLI** | Tur sonunda snackbar: kaç dosya |
 | 37085 | Araç kapısı | ✅ **BAĞLI** | Görünmez; şema daralır (kapalı gelir) |
-| 37086 | Ders defteri | ✅ **BAĞLI** | Sinyal toplanıyor; **kart yok** |
-| 37087 | Kanıtlı bitti | ⏳ sınıf+test | Anahtar var, tur sonu kancası yok |
+| 37086 | Ders defteri | ✅ **BAĞLI** | Sinyal toplanıyor; kart ayrı dilim |
+| 37087 | Kanıtlı bitti | ✅ **BAĞLI** | Kanıtsız "bitti"de sonraki tura hatırlatıcı |
 | 37088 | Yazma niyeti | ✅ **BAĞLI** | Görünmez; çakışma günlüğe yazılır |
 | 37089 | Yeniden oynatma | ⏳ sınıf+test | Geliştirici aleti, ekran yok |
 | 37090 | Uzaktan konsol | ⛔ **yalnız model** | Ürün kararı bekliyor, uygulama yok |
 
-**Neden 5 de 11 değil:** her dilim bir sınıf + test + anahtar olarak hazır, ama
+**Neden 9 da 11 değil:** her dilim bir sınıf + test + anahtar olarak hazır, ama
 "çalışıyor" için üretim kodundan çağrı gerekiyor. Sırayla yapıldı: en yüksek
 riskli olan (onay) ve en bağımsız olan (yedek) önce.
 
@@ -135,11 +135,7 @@ eklendi.
 
 | Dilim | Eksik olan tek şey |
 |---|---|
-| 37081 bütçe | sağlayıcı yanıtında `Spend` kaydı + tur başında `mayStartTurn` |
-| 37083 plan | ajandan `estimate` alanı (yoksa `subagent_task.max_minutes`'tan türet) |
-| 37084 tur özeti | `ActionJournal.recent()` → sohbet sonu satırı + "turu geri al" |
-| 37087 kanıt | tur kapanışında "bitti" beyanı → `Proof` eşlemesi |
-| 37089 replay | Ayarlar › Geliştirici ekranı + kayıt üretimi |
+| 37089 replay | **kayıt/oynatma ekranı** — kayıt üretimi ve oynatma düğmesi ayrı dilim |
 | 37090 uzaktan | **ürün kararı** — "hayır" ise `remote/RemotePolicy.kt` silinmeli |
 
 Her biri kendi başına 1-2 saatlik iş; hiçbiri diğerine bağlı değil.
