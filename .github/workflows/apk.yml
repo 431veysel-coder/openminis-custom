@@ -746,8 +746,15 @@ jobs:
           # The checkout above is depth=1 (the build does not need history),
           # so fetch just what the notes need. Shallow-fetching tags alongside
           # the branch is enough to find the previous version tag.
-          git fetch --tags --depth=50 origin main >/dev/null 2>&1 || \
-            git fetch --tags origin main >/dev/null 2>&1 || true
+          # [MINIS-X release-notes] `origin main` was the wrong ref: the release
+          # is built from whatever branch the run targets, and its commits are
+          # usually NOT on main yet. On a shallow checkout that made the previous
+          # tag unreachable, the range fell back to HEAD~20..HEAD, and a depth-1
+          # clone could not even supply that — the notes came out with one line.
+          # Fetch the tags (any depth) and unshallow just enough of THIS branch.
+          git fetch --tags origin >/dev/null 2>&1 || true
+          git fetch --deepen=200 origin "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
+            git fetch origin "$GITHUB_REF_NAME" >/dev/null 2>&1 || true
 
           # Group the commits since the previous version tag by type, so the
           # release reads as "what changed" rather than GitHub's default list
