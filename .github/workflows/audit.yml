@@ -47,6 +47,24 @@ jobs:
       # A scanner that has stopped matching reports "clean" forever. The
       # self-test plants one defect per rule and one correct sample per rule
       # that must NOT fire; audit_all refuses to report a verdict without it.
+      # [37091 sozlesme] Sözleşme kapısı AYRI adım ve BLOKLAYICI.
+      #
+      # Neden bloklayıcı: `continue-on-error: true` ile eklemek, kapıyı "var ama
+      # hiçbir şeyi durdurmuyor" hâline getirirdi — bu depoda o hata bir kez
+      # yapıldı (upstream testleri 612 s koşup hiçbir şeyi durdurmadı). Defter
+      # gerçek bir hata üretiyorsa (çelişki, kanıtsız kapanış, bağ eksikliği)
+      # push kırmızı olmalı.
+      #
+      # Belge/kayıt ayrışması da burada yakalanır: `--check` üretilmiş .md ve
+      # sozlesmeler.json güncel değilse düşer. Belge ile kapı ayrışırsa belge
+      # yalan söyler.
+      - name: Sozlesme kapi
+        run: |
+          set -e
+          python3 scripts/sozlesme_uret.py --check
+          python3 scripts/sozlesme.py denetle
+          python3 -m pytest scripts/tests/test_sozlesme.py -q
+
       - name: Run the auditors
         run: python3 scripts/audit/audit_all.py --report audit-report.json
 

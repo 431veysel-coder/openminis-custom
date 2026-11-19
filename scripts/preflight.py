@@ -371,6 +371,42 @@ def l0_workflow_pipes(wf_dir: Path = WF_DIR) -> list[Problem]:
                             f"SIGPIPE ile öldürür — `sed -n '1p'` ya da bash `case` kullan"))
     return out
 
+
+# ────────────────────────────────────────────────────────────────────────────
+# L0 — sözleşme defteri
+# ────────────────────────────────────────────────────────────────────────────
+
+def l0_sozlesmeler() -> list[Problem]:
+    """Sözleşme defterindeki GERÇEK hatalar (uyarılar değil).
+
+    Neden `preflight`ta: sözleşme ancak sorulursa işe yarar. Bugün `denetle`'yi
+    kimse çağırmazsa defter yazılır ama kimse bakmaz — bu depoda tam olarak bu
+    oldu (`schemas/15.json` üç sürüm boyunca "bilinen borç" listesindeydi).
+
+    Yalnız hatalar kapıyı tutar. Uyarılar (kardeş sözleşme eksik, alan boş)
+    basılmaz: gürültülü kapıyı insan kapatır ve o zaman gerçek hatayı da
+    kaçırırız. Kapanış sırasında sıkı denetim `sozlesme.py kapat` içinde.
+    """
+    defter = ROOT / ".ozel/sozlesmeler"
+    script = ROOT / "scripts/sozlesme.py"
+    if not defter.exists() or not script.exists():
+        return []
+    import subprocess as _sp
+    r = _sp.run([sys.executable, str(script), "denetle", "--json"],
+                cwd=ROOT, capture_output=True, text=True, timeout=30)
+    if r.returncode == 0:
+        return []
+    try:
+        data = json.loads(r.stdout or "{}")
+    except ValueError:
+        return [Problem("sozlesme", ".ozel/sozlesmeler", 0,
+                        "denetle çıktısı okunamadı: " + (r.stderr or r.stdout)[:120])]
+    out: list[Problem] = []
+    for h in data.get("hata", []):
+        out.append(Problem("sozlesme", ".ozel/sozlesmeler", 0, h))
+    return out
+
+
 # ────────────────────────────────────────────────────────────────────────────
 # L0 — XML metin kaçışı + sürüm
 # ────────────────────────────────────────────────────────────────────────────
@@ -659,6 +695,7 @@ def run(staged_only: bool, deadline_s: float, verbose: bool) -> tuple[list[Probl
     layer("L0 version", lambda: l0_version(ctx))
     layer("L0 ci-shell", l0_workflow_pipes)
     layer("L0 ci-expr", l0_run_comment_expr)
+    layer("L0 sozlesme", l0_sozlesmeler)
     layer("L1 R.string", lambda: l1_string_refs(ctx, parsed))
     layer("L2 import", lambda: l2_unimported(parsed, ctx.targets))
     layer("L2 enum", lambda: l2_enum(parsed, ctx.targets))
