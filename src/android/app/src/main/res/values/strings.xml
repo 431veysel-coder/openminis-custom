@@ -2985,6 +2985,26 @@
     <string name="mx_replay_result">Result</string>
     <string name="mx_feature_replay">Replay a past run</string>
     <string name="mx_feature_replay_subtitle">Runs a recorded conversation again with its tool outputs frozen, so two models can be compared on the same task. Developer tool.</string>
+    <!-- [37095] Sohbet sağlık göstergesi. Sayılar biçimlendirilmiş gelir
+         ("820ms", "2/3"); burada yalnız etiket ve erişilebilirlik metni var. -->
+    <string name="mx_health_idle">Ready</string>
+    <string name="mx_health_waiting">Waiting for the reply</string>
+    <string name="mx_health_streaming">Replying</string>
+    <string name="mx_health_retrying">Retrying %1$d/%2$d</string>
+    <string name="mx_health_error">Failed: %1$s</string>
+    <string name="mx_health_offline">Provider unreachable</string>
+    <string name="mx_health_chip_desc">Response health: %1$s</string>
+    <string name="mx_health_sheet_title">Response health</string>
+    <string name="mx_health_median">Median first byte</string>
+    <string name="mx_health_p90">Slowest 10%</string>
+    <string name="mx_health_last_total">Last reply</string>
+    <string name="mx_health_rate">Output speed</string>
+    <string name="mx_health_samples">Samples</string>
+    <string name="mx_health_probe">Measure now</string>
+    <string name="mx_health_probe_running">Measuring…</string>
+    <string name="mx_health_empty">No measurement yet. Send a message or tap “Measure now”.</string>
+    <string name="mx_feature_chat_health">Response health indicator</string>
+    <string name="mx_feature_chat_health_subtitle">Small chip in the chat header: time to first byte, retries and error codes. Read-only — it changes no request.</string>
     <string name="ozel_features_section_station">Station and edit mode</string>
     <string name="ozel_features_station_footer">The Station runs several providers and models on one task side by side, each in its own space with its own terminal and browser tabs.</string>
     <string name="ozel_feature_station">Station</string>
