@@ -15,6 +15,13 @@ import com.openminis.app.data.model.SubAgentDefinition
 object AgentTools {
 
     fun makeAgentTools(
+        /**
+         * [37085] The user's request, when tool routing is on. Null = no routing
+         * (upstream behaviour). Routing is a FILTER applied after the member
+         * belt, never a replacement for it: a belt-denied tool stays denied even
+         * if the router would have picked it.
+         */
+        intentText: String? = null,
         supportsImageInput: Boolean = true,
         // [T-android-vision-group / GH#182] When the main model can't natively
         // see images but the user has bound a Vision Group, still expose
@@ -143,7 +150,15 @@ object AgentTools {
         // want (a member missing one tool still works; a member holding
         // `team_run` does not).
         val belt = MemberToolBelt.resolve(agentKind, memberRole, memberTools)
-        return all.filter { it.name in belt }
+        val afterBelt = all.filter { it.name in belt }
+        if (agentKind == AgentKind.MEMBER) return afterBelt
+        // [37085] Routing narrows the schema the model sees; it never widens the
+        // belt. Applied to the TOP agent only — a member already has a small,
+        // role-shaped list, and narrowing it further would hide the tools its
+        // role exists to use.
+        val intent = intentText?.takeIf { it.isNotBlank() } ?: return afterBelt
+        val allowed = com.openminis.app.agent.router.ToolRouter.candidates(intent).toSet()
+        return afterBelt.filter { it.name in allowed }
     }
 
     /**

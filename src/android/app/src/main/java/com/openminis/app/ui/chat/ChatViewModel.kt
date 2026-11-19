@@ -2690,6 +2690,15 @@ class ChatViewModel(
     private val agentHistory = mutableListOf<LLMMessage>()
 
     /**
+     * [37085] The last thing the user asked for, used only to narrow the tool
+     * schema. Deliberately NOT persisted and not part of the transcript: it is
+     * an input to schema construction, not a fact about the conversation. A
+     * sub agent or a resumed run starts with "" and therefore gets the full
+     * schema, which is the safe default.
+     */
+    internal var lastUserIntent: String = ""
+
+    /**
      * All agent tool definitions, recomputed on each read so the memory
      * toggle gate (see [_memoryEnabled]) takes effect immediately when
      * the user flips /memory mid-session without forcing a VM rebuild.
@@ -2698,6 +2707,18 @@ class ChatViewModel(
      */
     private val agentTools: List<AgentToolDefinition>
         get() = AgentTools.makeAgentTools(
+            // [37085] Off by default: routing changes what the model can see, and
+            // a quality change measured on nothing is a guess. When on, the
+            // intent narrows the list; a member's belt is still applied first.
+            intentText = if (com.openminis.app.data.OzelFeatures.isEnabled(
+                    context,
+                    com.openminis.app.data.OzelFeatures.Feature.TOOL_ROUTER,
+                )
+            ) {
+                lastUserIntent
+            } else {
+                null
+            },
             // [T-android-vision-group / GH#182] The main model's own vision
             // capability. When false but a Vision Group is configured, read_image
             // is still exposed and routes through the group (see
@@ -9740,6 +9761,8 @@ class ChatViewModel(
     }
 
     fun sendMessage(text: String) {
+        // [37085] Remember the request for schema construction (see lastUserIntent).
+        if (text.isNotBlank()) lastUserIntent = text
         // [T-android-stop-sibling-subagent] New work in this session lifts the
         // stop: delegations from here on may drive the turn again.
         com.openminis.app.agent.jobs.AgentJobRegistry.clearDelegationMute(activeSessionId)
@@ -14011,6 +14034,16 @@ class ChatViewModel(
                         // result so the model sees it on its next turn. No block here —
                         // CRITICAL only fires from check() and we already returned above.
                         val errMsgForDetector = if (!result.success) result.output else null
+                        // [37086] Feed the lesson detector. Best-effort and
+                        // gated by its own flag: a note-taking failure must never
+                        // fail the tool call it is describing.
+                        if (!result.success) {
+                            runCatching {
+                                com.openminis.app.ozel.LessonRecorder.noteToolError(
+                                    context, activeSessionId, name, result.output, turn,
+                                )
+                            }
+                        }
                         val postRecord = toolLoopDetector.record(
                             toolName = name,
                             params = paramsMap,
