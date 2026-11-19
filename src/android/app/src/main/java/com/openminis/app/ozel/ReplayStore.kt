@@ -13,6 +13,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -128,7 +129,11 @@ object ReplayStore {
                 val repo = app.chatRepositoryOrNull ?: return@launch
                 // One-shot read: the flow is infinite, so take its first
                 // emission rather than collecting it forever in a job.
-                val sessions = kotlinx.coroutines.flow.first(repo.observeSessions())
+                // `first` is an EXTENSION on Flow, not a top-level function: the
+                // call has to read as `flow.first()`. Written the other way it
+                // does not resolve, and every use of `sessions` below then fails
+                // as "unresolved reference" — eight errors from one mistake.
+                val sessions = repo.observeSessions().first()
                 val session = sessions.firstOrNull() ?: return@launch
                 val messages = repo.loadMessages(session.id)
                 if (messages.isEmpty()) return@launch
