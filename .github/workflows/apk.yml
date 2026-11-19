@@ -166,7 +166,12 @@ jobs:
   # once, in two minutes, instead of twice, in nine.
   compile:
     name: Compile gate (fast)
-    needs: preflight
+    # `native` is in `needs` because rclone.aar is a Gradle dependency: without
+    # the artifact the compile cannot resolve its classpath and fails on
+    # "Could not find :rclone:" — the slowest possible way to say nothing was
+    # wrong with the Kotlin. Native runs in parallel with preflight, so the
+    # cheap gate still starts ~90 s in.
+    needs: [preflight, native]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
