@@ -1,6 +1,7 @@
 package com.openminis.app.agent.team
 
 import android.content.Context
+import com.openminis.app.data.team.Team
 import com.openminis.app.logging.AppLogger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers

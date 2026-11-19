@@ -1,6 +1,7 @@
 # SIRADAKİ SÜRÜM — 37091 / 1.15-ozel.14 · iş listesi
 
-`37090` yakıldı (v1.15-ozel.13 yayında). Sıradaki numara **37091**.
+`37090` yakıldı (v1.15-ozel.13 yayında). Sıradaki numara **37091**. Yeni kimlik:
+`com.minis.x` / **Minis X**. `1.15-ozel.14` bu paket adıyla ilk sürüm olacak.
 
 Bu liste uydurulmadı: her madde ya `integration_audit.py`, ya `DENETIM-BASLIKLARI.md`
 ölçümünden, ya da bugün yaptığım aramadan çıktı. "Olmalı" değil, "şu an şu".
