@@ -59,5 +59,8 @@ jobs:
           # download lands flat — the CMP012 trap does not apply here.
           name: audit-report
           path: audit-report.json
-          retention-days: 14
+          # [37094] Reports are the durable half of a run: the log expires
+          # from the Actions UI, the report is what a later reader opens.
+          # 90 days is the ceiling on a public repo — same as run-logs.
+          retention-days: 90
           if-no-files-found: ignore

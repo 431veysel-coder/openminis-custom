@@ -243,6 +243,85 @@ def load(staged_only: bool) -> Ctx:
 
 
 # ────────────────────────────────────────────────────────────────────────────
+# L0 — CI kabuğu
+# ────────────────────────────────────────────────────────────────────────────
+
+WF_DIR = ROOT / ".github/workflows"
+
+#: Erken çıkan boru tüketicileri. pipefail açıkken geçen bir kontrolü kırmızıya
+#: çevirebilirler; bkz. l0_workflow_pipes.
+_BAD_PIPE = ("| head", "| grep -q")
+
+#: Bir YAML adımının başlangıcı. Bloklar bu satırlarda bölünür; pipefail
+#: tespiti adım adım yapılır (dosya düzeyi varsayılan + adım içi `set -o pipefail`).
+_STEP_START = re.compile(r"^(\s*)-\s+(name|uses|run|id|if):")
+_SHELL_LINE = re.compile(r"^\s{0,4}shell:\s*(.+)$")
+
+def _strip_comment(lines: list[str]) -> list[str]:
+    return [ln for ln in lines if not ln.strip().startswith("#")]
+
+def l0_workflow_pipes(wf_dir: Path = WF_DIR) -> list[Problem]:
+    """pipefail açık bir adımdaki `| head` / `| grep -q` kullanımları.
+
+    `apk.yml` kabuğu `bash --noprofile --norc -eo pipefail {0}`. Bu ayarla
+    `komut | head -1` şunu yapar: `head` ilk satırdan sonra çıkar, boruyu
+    kapatır, üretici SIGPIPE alır (141), pipefail onu adımın çıkış kodu yapar.
+    Sonuç: **geçen bir kontrol başarısız görünür**. 37094'te bu turap, APK
+    doğrulama adımında `aapt2 dump badging | grep -q "package: name=..."`
+    biçiminde duruyordu — yani her yayında, ama ancak yayın anında patlayacak.
+
+    `rollback.yml` aynı tuzağı adım içinde `set -euo pipefail` ile taşıyordu:
+    `git tag --list 'v*' | head -50`. Bugün 13 etiket var, 50'de kırılacaktı.
+
+    Kapsam bilerek dar: pipefail YOKSA kural susar. `set -e` tek başına SIGPIPE
+    yüzünden adımı düşürmez; oradaki `| head`i işaretlemek yanlış pozitif olur
+    ve yanlış pozitif bu depoda kapatılan bir kapı demek.
+    """
+    out: list[Problem] = []
+    for path in sorted(wf_dir.glob("*.y*ml")):
+        text = _read(path)
+        if not text:
+            continue
+        lines = text.splitlines()
+
+        # Dosya düzeyi varsayılan kabuk (yalnız üst düzey `defaults:` içindeki)
+        file_pipefail = False
+        for ln in _strip_comment(lines):
+            m = _SHELL_LINE.match(ln)
+            if m and "pipefail" in m.group(1):
+                file_pipefail = True
+                break
+
+        # Adımlara böl
+        blocks: list[tuple[int, list[str]]] = []
+        start, buf = 1, []
+        for lineno, ln in enumerate(lines, 1):
+            if _STEP_START.match(ln) and buf:
+                blocks.append((start, buf))
+                start, buf = lineno, [ln]
+            else:
+                buf.append(ln)
+        if buf:
+            blocks.append((start, buf))
+
+        for start, block in blocks:
+            body = _strip_comment(block)
+            pipefail = file_pipefail or any("pipefail" in b for b in body)
+            if not pipefail:
+                continue
+            for offset, ln in enumerate(block):
+                stripped = ln.strip()
+                if stripped.startswith("#"):
+                    continue
+                for bad in _BAD_PIPE:
+                    if bad in stripped:
+                        out.append(Problem(
+                            "ci-shell", _rel(path), start + offset,
+                            f"`{bad.strip()}` erken çıkar: pipefail altında üreticiyi "
+                            f"SIGPIPE ile öldürür — `sed -n '1p'` ya da bash `case` kullan"))
+    return out
+
+# ────────────────────────────────────────────────────────────────────────────
 # L0 — XML metin kaçışı + sürüm
 # ────────────────────────────────────────────────────────────────────────────
 
@@ -528,6 +607,7 @@ def run(staged_only: bool, deadline_s: float, verbose: bool) -> tuple[list[Probl
 
     layer("L0 strings", lambda: l0_strings(ctx))
     layer("L0 version", lambda: l0_version(ctx))
+    layer("L0 ci-shell", l0_workflow_pipes)
     layer("L1 R.string", lambda: l1_string_refs(ctx, parsed))
     layer("L2 import", lambda: l2_unimported(parsed, ctx.targets))
     layer("L2 enum", lambda: l2_enum(parsed, ctx.targets))
@@ -599,6 +679,37 @@ def selftest() -> int:
         good = v / "s2.xml"
         good.write_text("<resources><string name=\"x\">Güncelle\\'ye</string></resources>", encoding="utf-8")
         want("xml doğru kaçış", l0_strings(Ctx(strings_files=[good])), "strings", expect=False)
+
+        # CI kabuğu: pipefail altında erken çıkan tüketici geçen kontrolü kırar
+        wf = root / "wf"; wf.mkdir()
+        (wf / "ok.yml").write_text(
+            "run: |\n  PREV=$(git tag --list 'v*' | sed -n '1p')\n"
+            "  case \"$X\" in *foo*) : ;; esac\n", encoding="utf-8")
+        want("ci-shell temiz", l0_workflow_pipes(wf), "ci-shell", expect=False)
+
+        # pipefail YOKSA susmalı: `set -e` tek başına SIGPIPE'tan düşmez.
+        (wf / "nopipefail.yml").write_text(
+            "run: |\n  set -e\n  find x -name 'a.apk' | head -1\n", encoding="utf-8")
+        want("ci-shell pipefail yok", l0_workflow_pipes(wf), "ci-shell", expect=False)
+        (wf / "nopipefail.yml").unlink()
+
+        (wf / "bad.yml").write_text(
+            "defaults:\n  run:\n    shell: bash -eo pipefail {0}\n"
+            "jobs:\n  a:\n    steps:\n      - run: |\n"
+            "          APK=$(find x -name 'a.apk' | head -1)\n", encoding="utf-8")
+        want("ci-shell head", l0_workflow_pipes(wf), "ci-shell")
+        (wf / "bad2.yml").write_text(
+            "jobs:\n  a:\n    steps:\n      - run: |\n          set -euo pipefail\n"
+            "          aapt2 dump badging \"$APK\" | grep -q \"name='x'\"\n",
+            encoding="utf-8")
+        want("ci-shell grep -q", l0_workflow_pipes(wf), "ci-shell")
+        (wf / "comment.yml").write_text(
+            "run: |\n  set -euo pipefail\n  # `| head -1` burada yalnızca anlatılıyor\n"
+            "  true\n", encoding="utf-8")
+        # Önceki iki örnek aynı dizinde duruyor; yalnız yorumu sınamak için silinir.
+        (wf / "bad.yml").unlink()
+        (wf / "bad2.yml").unlink()
+        want("ci-shell yorum", l0_workflow_pipes(wf), "ci-shell", expect=False)
 
         # Yorumdaki tip adı referans değildir (674 yanlışın kaynağı)
         a = root / "a"; b = root / "b"

@@ -130,5 +130,7 @@ jobs:
         with:
           name: slice-report
           path: build/slice-report/
-          retention-days: 14
+          # [37094] Same lifetime as run-logs: a slice report is a report,
+          # not a build intermediate, and it is the only per-slice record.
+          retention-days: 90
           if-no-files-found: warn
