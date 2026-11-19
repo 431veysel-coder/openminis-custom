@@ -14477,7 +14477,7 @@ class ChatViewModel(
             )
         ) {
             runCatching {
-                com.openminis.app.policy.PolicyGate.gate(
+                com.openminis.app.ozel.PolicyGate.gate(
                     ctx = context,
                     sessionId = activeSessionId,
                     folderId = _projectId.value,

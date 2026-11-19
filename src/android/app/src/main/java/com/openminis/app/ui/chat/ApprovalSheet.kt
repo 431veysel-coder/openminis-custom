@@ -25,11 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.openminis.app.policy.ApprovalPolicy
+import com.openminis.app.ozel.PolicyGate
 import com.openminis.app.policy.ApprovalRequest
 import com.openminis.app.policy.ApprovalScope
 import com.openminis.app.policy.Decision
-import com.openminis.app.policy.PolicyGate
 import com.openminis.app.policy.Recovery
 import com.openminis.app.policy.RiskLevel
 
