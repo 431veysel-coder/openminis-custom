@@ -33,6 +33,7 @@ on:
       - 'src/android/app/src/main/java/com/openminis/app/agent/router/**'
       - 'src/android/app/src/main/java/com/openminis/app/agent/lesson/**'
       - 'src/android/app/src/main/java/com/openminis/app/agent/evidence/**'
+      - 'src/android/app/src/main/java/com/openminis/app/ozel/health/**'
       - 'src/android/app/src/main/java/com/openminis/app/ui/chat/diff/**'
       - 'src/android/app/src/main/java/com/openminis/app/data/journal/**'
       - 'src/android/app/src/main/java/com/openminis/app/backup/AutoBackupPolicy.kt'
@@ -42,6 +43,11 @@ on:
       - '.github/workflows/slice-gate.yml'
   pull_request:
   workflow_dispatch:
+    inputs:
+      persist:
+        description: "Raporları docs/ozel/slice-report/ altına commit et"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -96,7 +102,7 @@ jobs:
         # JUnitCore invocation are the whole harness.
         run: |
           set -e
-          D=build/slice-report/jars
+          D=docs/ozel/slice-report/jars
           mkdir -p "$D"
           curl -fsSL -o "$D/junit.jar" \
             "https://repo1.maven.org/maven2/junit/junit/${JUNIT_VERSION}/junit-${JUNIT_VERSION}.jar"
@@ -118,8 +124,8 @@ jobs:
       - name: Job summary
         if: always()
         run: |
-          if [ -f build/slice-report/SUMMARY.md ]; then
-            cat build/slice-report/SUMMARY.md >> "$GITHUB_STEP_SUMMARY"
+          if [ -f docs/ozel/slice-report/SUMMARY.md ]; then
+            cat docs/ozel/slice-report/SUMMARY.md >> "$GITHUB_STEP_SUMMARY"
           else
             echo "Rapor üretilmedi — kapı erken düştü." >> "$GITHUB_STEP_SUMMARY"
           fi
@@ -129,8 +135,29 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: slice-report
-          path: build/slice-report/
+          path: docs/ozel/slice-report/
           # [37094] Same lifetime as run-logs: a slice report is a report,
           # not a build intermediate, and it is the only per-slice record.
           retention-days: 90
           if-no-files-found: warn
+
+      # [37094] The artifact dies after 90 days and the runner is ephemeral, so
+      # "the report survives" needs the report in GIT. Committing from CI on
+      # every push would loop (the commit is a push, the push runs this job), so
+      # this is opt-in: a manual dispatch with persist=true. `[skip ci]` closes
+      # the loop even then — GitHub honours it for push-triggered workflows.
+      - name: Persist reports to git (manual dispatch only)
+        if: always() && inputs.persist
+        run: |
+          set -e
+          D=docs/ozel/slice-report
+          [ -d "$D" ] || { echo "no report dir — nothing to persist"; exit 0; }
+          git add -A "$D"
+          if git diff --cached --quiet; then
+            echo "reports unchanged — nothing to commit"
+            exit 0
+          fi
+          git -c user.name="minis-ci" -c user.email="ci@localhost" \
+            commit -q -m "chore(slice): raporlar $(date -u +%Y-%m-%dT%H:%MZ) [skip ci]"
+          git push
+          echo "persisted: $(git show --stat --oneline HEAD | head -1)"

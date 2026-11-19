@@ -297,6 +297,22 @@ jobs:
           retention-days: 90
           if-no-files-found: warn
 
+      # [G2 37094] Room's schema JSON is a BUILD OUTPUT: KSP writes it to
+      # `src/android/app/schemas/<db>/<version>.json` and it is not in the repo
+      # for version 15. Without it, `MigrationTestHelper` cannot compare 14→15
+      # and the next DB change has no baseline. Uploading it from the job that
+      # already pays for KSP is the only way to obtain it without a local JDK
+      # (this device has none — PRoot cannot mark pages executable).
+      - name: Upload Room schemas
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: room-schemas
+          path: src/android/app/schemas/**
+          retention-days: 90
+          if-no-files-found: warn
+
   tests:
     name: Unit tests
     # `needs: native`, and not just for the wall clock: rclone.aar is a Gradle
