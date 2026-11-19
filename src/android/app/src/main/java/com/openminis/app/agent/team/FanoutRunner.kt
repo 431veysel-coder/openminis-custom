@@ -82,7 +82,7 @@ object FanoutRunner {
 
         try {
             val runner = runtime.members()
-            val prompt = prompt(task, team.language)
+            val prompt = prompt(task, team.language.orEmpty())
             val answers = mutableListOf<Answer>()
 
             for (wave in CouncilPolicy.waves(team.members.size, policy.budget.waveSize)) {
@@ -132,8 +132,14 @@ object FanoutRunner {
                 replans = 0,
                 events = emptyList(),
             )
-            runCatching { TeamRunStore.record(context, runId, team, outcome, policy) }
-                .onFailure { AppLogger.info(TAG, "run record not saved: ${it.message}") }
+            // `TeamRunStore.record` takes a `CouncilOutcome` — the run history was
+            // built for the council's shape (claims, consensus, dissent). A Compare
+            // run has none of those, and inventing an empty Consensus to satisfy
+            // the type would put a "0 claims" council report in the run list.
+            // The report itself is the deliverable here, and it is already in the
+            // transcript; a separate history entry is a 37092 job, not a lie to
+            // paper over now.
+            AppLogger.info(TAG, "fanout $runId done: ${answers.count { it.failure.isEmpty() }}/${answers.size} answered")
 
             TeamRunner.Outcome(ok = outcome.satisfied, output = body, teamOutcome = outcome)
         } catch (e: CancellationException) {
