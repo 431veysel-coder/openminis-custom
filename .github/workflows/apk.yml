@@ -951,6 +951,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Release gate — never reuse a published versionCode
+        id: release_gate
         # [MINIS-OZEL] The tag is derived from versionName, and the release
         # action UPSERTS: a second build of the same version replaces the
         # first one's APK under the same tag. Two consequences, both silent:
@@ -969,9 +970,25 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
-          TAG="v${MINIS_VERSION_NAME}"
-          CODE="${{ env.MINIS_VERSION_CODE }}"
+          # [37094] Read the version from the SHELL environment, not from
+          # `${{ env.… }}`. "Collect artifacts" exports these through
+          # $GITHUB_ENV, and that is guaranteed to reach the shell of the next
+          # step; whether it also lands in the `env` expression context is a
+          # detail of the runner. The shell form has no such question, and the
+          # gate now publishes the tag itself as a step OUTPUT, so the release
+          # action never depends on the env context either.
+          TAG="v${MINIS_VERSION_NAME:-}"
+          CODE="${MINIS_VERSION_CODE:-}"
+          [ -n "${MINIS_VERSION_NAME:-}" ] || { echo "::error::MINIS_VERSION_NAME is empty — Collect artifacts did not run"; exit 1; }
           [ -n "$CODE" ] || { echo "::error::MINIS_VERSION_CODE is empty — Collect artifacts did not run"; exit 1; }
+          # A tag of bare "v" would publish a release that every later build
+          # tries to replace; refuse before anything is created.
+          if [ "$TAG" = "v" ]; then
+            echo "::error::versionName resolved to nothing — refusing to publish tag 'v'"
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "name=$MINIS_VERSION_NAME" >> "$GITHUB_OUTPUT"
           echo "gate: tag=$TAG versionCode=$CODE"
           # [37094] Same fail-open fix as the version gate: a failed query is
           # not an empty release. Publishing is irreversible (the updater
@@ -1027,8 +1044,13 @@ jobs:
         # v2 commit, replace the SHA, keep the comment.
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
-          tag_name: v${{ env.MINIS_VERSION_NAME }}
-          name: Minis X ${{ env.MINIS_VERSION_NAME }}
+          # [37094] From the gate's OUTPUT, not `${{ env.… }}`. The gate already
+          # proved the name is non-empty and refused a bare "v"; reading the
+          # same value here through a different mechanism was how a release
+          # tagged "v" could slip through on a runner that does not mirror
+          # $GITHUB_ENV into the env context.
+          tag_name: ${{ steps.release_gate.outputs.tag }}
+          name: Minis X ${{ steps.release_gate.outputs.name }}
           files: out/*.apk
           # Stable channel: UpdatePolicy.STABLE refuses a prerelease, so publishing
           # our own builds as prereleases would hide them from the in-app updater.
