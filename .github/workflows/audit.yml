@@ -58,6 +58,13 @@ jobs:
       # Belge/kayıt ayrışması da burada yakalanır: `--check` üretilmiş .md ve
       # sozlesmeler.json güncel değilse düşer. Belge ile kapı ayrışırsa belge
       # yalan söyler.
+      - name: Install test runner
+        # Yalnız pytest. `requirements.txt` yok ve olmayacak: bu depo Python
+        # tarafında kasıtlı olarak bağımlılıksız (stdlib) yazılıyor, test
+        # çalıştırıcısı tek istisna. Sürüm sabit — `pytest` serbest bırakılırsa
+        # bir gün testler habersiz davranış değiştirir.
+        run: python3 -m pip install --quiet "pytest==8.3.4"
+
       - name: Sozlesme kapi
         run: |
           set -e
