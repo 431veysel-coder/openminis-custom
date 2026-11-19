@@ -44,7 +44,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
-APPLICATION_ID = "com.veysel.minisx"
+APPLICATION_ID = "com.minis.x"
 NAMESPACE = "com.openminis.app"
 RELEASE_REPO = "431veysel-coder/openminis-custom"
 APP_NAME = "Minis X"

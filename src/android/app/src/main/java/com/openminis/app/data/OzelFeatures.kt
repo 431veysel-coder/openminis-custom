@@ -106,16 +106,22 @@ object OzelFeatures {
         /**
          * [MINIS-OZEL 11.1] The Station: several providers/models working the
          * same task side by side, each with its own terminal and browser tabs.
+         *
+         * [37091] OFF, and it was ON with a subtitle promising "two to four
+         * agents on one task". The module (`ui/station/`) was never written and
+         * nothing in production code reads this flag — measured: 0 call sites.
+         * A switch that does nothing is not a placeholder, it is a broken
+         * promise: the user turns it on and concludes the app is buggy. It goes
+         * back to ON when the panels exist (planned 37093).
          */
-        STATION("station", true),
+        STATION("station", false),
 
-        /**
-         * [MINIS-OZEL 11.1] Edit mode: a floating pen that lets the user pin a
-         * note onto whatever is on screen; the note lands in Notes for the
-         * agent to act on. Default OFF — a persistent overlay on top of every
-         * screen is intrusive unless the user asks for it.
-         */
-        EDIT_MODE("edit_mode", false),
+        // [37091] `EDIT_MODE` removed, not disabled. Its row promised "a pen in
+        // the middle of every screen: tap it, mark what should change, and the
+        // note lands in Notes" — no overlay, no pen, no capture existed, and no
+        // code read the flag (0 call sites). A disabled switch still advertises
+        // the feature; deleting it is the honest version. Comes back with the
+        // feature, not before.
 
         /**
          * [MINIS-OZEL 11.3.1] The action journal: every file an agent changed,

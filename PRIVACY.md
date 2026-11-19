@@ -1,6 +1,6 @@
 # Gizlilik — hangi veri nereye gidiyor
 
-Bu belge **Minis X** (`com.veysel.minisx`) uygulamasının veri akışını
+Bu belge **Minis X** (`com.minis.x`) uygulamasının veri akışını
 açıklar. Kısa cevap: **uygulamanın kendi sunucusu yok.** Hiçbir veri bu depoya
 veya bakımcısına gitmez; her şey ya cihazında kalır ya da **senin seçtiğin**
 yapay zekâ sağlayıcısına gider.

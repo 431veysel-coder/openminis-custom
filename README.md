@@ -12,7 +12,7 @@
 >
 > | | |
 > |---|---|
-> | Paket | `com.veysel.minisx` — resmî uygulamayla yan yana kurulur |
+> | Paket | `com.minis.x` — resmî uygulamayla yan yana kurulur |
 > | Sürüm | `1.15-ozel.7` (37007) |
 > | Durum | upstream v1.15 tabanı + **19 commit özel geliştirme** |
 >

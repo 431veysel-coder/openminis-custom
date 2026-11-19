@@ -287,6 +287,19 @@ object TeamRunner {
         // only by hiding the tool, so a saved team plus a switched-off feature
         // cannot start a run the user turned off. The refusal names the setting,
         // because "not available" with no reason is what makes a user file a bug.
+        // [37091] FANOUT gets its own path. Before this, Compare fell through to
+        // TeamLoop (a sequential orchestrator) while the editor described it as
+        // "every member answers independently, side by side". The screen
+        // promised one shape and the engine ran another.
+        if (team.mode == TeamMode.FANOUT) {
+            return@withContext FanoutRunner.run(
+                context = context,
+                sessionId = sessionId,
+                team = team,
+                task = task,
+            )
+        }
+
         if (team.mode == TeamMode.COUNCIL) {
             val enabled = com.openminis.app.data.OzelFeatures.isEnabled(
                 context, com.openminis.app.data.OzelFeatures.Feature.COUNCIL,

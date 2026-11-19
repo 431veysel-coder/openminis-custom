@@ -64,7 +64,7 @@ class DebugServer(
          * in-app CLI client reads it (they share the app's uid, so no
          * permission is involved), and a developer can read it from a host
          * with:
-         *   adb shell run-as com.veysel.minisx cat files/debug_server_token
+         *   adb shell run-as com.minis.x cat files/debug_server_token
          */
         fun tokenFile(context: android.content.Context): java.io.File =
             java.io.File(context.filesDir, "debug_server_token")
@@ -79,7 +79,7 @@ class DebugServer(
      * [T-android-debugserver-auth] Per-install token required from
      * non-loopback clients. Generated once, persisted in filesDir so the
      * developer can read it with:
-     *   adb shell run-as com.veysel.minisx cat files/debug_server_token
+     *   adb shell run-as com.minis.x cat files/debug_server_token
      * Also logged at startup (logcat is adb-only — not readable remotely).
      */
     private val authToken: String by lazy {
@@ -229,7 +229,7 @@ class DebugServer(
                 val isLoopback = s.inetAddress?.isLoopbackAddress == true
                 if (!isAuthorized(isLoopback, providedToken, authToken)) {
                     Log.w(TAG, "401 unauthorized ${if (isLoopback) "loopback" else s.inetAddress?.hostAddress ?: "?"} (missing/wrong token)")
-                    sendResponse(writer, 401, rpcHandler.errorJSON(-32000, "Unauthorized — send X-Minis-Token (see `adb shell run-as com.veysel.minisx cat files/debug_server_token`)"))
+                    sendResponse(writer, 401, rpcHandler.errorJSON(-32000, "Unauthorized — send X-Minis-Token (see `adb shell run-as com.minis.x cat files/debug_server_token`)"))
                     return
                 }
 

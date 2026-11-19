@@ -1,5 +1,20 @@
 #!/usr/bin/env python3
-"""Kimlik değişikliği: Minis Özel -> Minis X, applicationId -> com.veysel.minisx.
+"""Kimlik değişikliği: applicationId -> com.minis.x (isim: Minis X).
+
+## Neden `com.minis.x`
+
+Kullanıcı istedi: paket adında kişi adı ("veysel") olmasın. `com.minis.x`
+aapt2 ile **doğrulandı** (tek harfli son bölüm geçerli). Namespace DEĞİŞMİYOR,
+çünkü o sınıf adı önekidir — gerekçesi aşağıda.
+
+## Bu değişikliğin bedeli (önemli)
+
+applicationId değişince Android bunu **yeni bir uygulama** sayar:
+- cihazdaki `com.veysel.minisx` kurulumu GÜNCELLENMEZ, yanına ikinci uygulama
+  olarak kurulur; eskisini kullanıcı elle kaldırır,
+- erişilebilirlik / Shizuku izinleri yeniden verilir,
+- veri taşınmaz (yeni uygulama, yeni `filesDir`).
+
 
 Neden namespace DEĞİŞMİYOR:
   `namespace = "com.openminis.app"` sınıf adı önekidir. AppIconRepository
@@ -22,8 +37,9 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
-OLD_PKG = "com.veysel.minis"
-NEW_PKG = "com.veysel.minisx"
+OLD_PKG = "com.veysel.minisx"
+NEW_PKG = "com.minis.x"
+# Isim zaten "Minis X"; ikinci bir geçişte kimseyi bulmaz.
 OLD_NAME = "Minis Özel"
 NEW_NAME = "Minis X"
 

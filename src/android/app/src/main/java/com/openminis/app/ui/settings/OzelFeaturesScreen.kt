@@ -206,13 +206,8 @@ fun OzelFeaturesScreen(
                 checked = values[Feature.STATION] == true,
                 onCheckedChange = { set(Feature.STATION, it) },
             )
-            SettingsSwitchRow(
-                title = stringResource(R.string.ozel_feature_edit_mode),
-                subtitle = stringResource(R.string.ozel_feature_edit_mode_subtitle),
-                checked = values[Feature.EDIT_MODE] == true,
-                onCheckedChange = { set(Feature.EDIT_MODE, it) },
-                showDivider = false,
-            )
+            // [37091] The Edit-mode row is gone with the flag: the pen it
+            // described was never built. See OzelFeatures for the reasoning.
         }
 
         // ── Teams / council [11.5] ───────────────────────────────────────

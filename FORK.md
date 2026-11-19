@@ -10,7 +10,7 @@
 | Upstream | `OpenMinis/OpenMinis` — v1.15 (2026-10-26, `a91ff5b`) |
 | Lisans | GPL-3.0 (upstream ile aynı; türev çalışma da GPL-3.0'dır) |
 | Platform | Yalnız Android (iOS macOS/Xcode ister, kapsam dışı) |
-| Uygulama kimliği | `com.veysel.minisx` — resmî uygulamayla **yan yana** kurulur |
+| Uygulama kimliği | `com.minis.x` — resmî uygulamayla **yan yana** kurulur |
 | Görünen ad | Minis X |
 | Mevcut sürüm | `1.15-ozel.10.1` / `versionCode 37016` |
 | Durum | Upstream'e göre **19 commit ileride, 0 geride** |
@@ -81,7 +81,7 @@ Bu depoya dokunan herkesin (gelecekteki ben dahil) uyduğu kurallar:
 
 | Alan | Upstream | Bu çatal |
 |---|---|---|
-| `applicationId` | `com.openminis.app` | `com.veysel.minisx` |
+| `applicationId` | `com.openminis.app` | `com.minis.x` |
 | `namespace` | `com.openminis.app` | **aynı bırakıldı** (bkz. §5'teki tuzak) |
 | Uygulama adı | Minis | Minis X |
 | `versionCode` | 37 | 37014 |
@@ -358,7 +358,7 @@ değeri alması gerektiğini doğrular.
 
 | Dosya | Sabit | Olması gereken |
 |---|---|---|
-| `accessibility/MinisAccessibilityService.kt` | `SERVICE_ID` | **applicationId** (`com.veysel.minisx`) |
+| `accessibility/MinisAccessibilityService.kt` | `SERVICE_ID` | **applicationId** (`com.minis.x`) |
 | `diagnostics/ResourceWatermark.kt` | `/data/user/0/<id>/` | **applicationId** |
 | `res/xml/shortcuts.xml` (×3) | `targetPackage` | **applicationId** |
 | `res/values/strings.xml` | `app_name` | Minis X |
@@ -466,7 +466,7 @@ maliyet şeffaflığı (§3.11), upstream nöbeti (§4.1), sürüm notu otomasyo
 
 | Tarih | Sürüm | Ne |
 |---|---|---|
-| 2026-11-12 | `1.15-ozel.1` | Temiz 1.15 tabanı, kendi kimliği (`com.veysel.minisx`), kendi imzası. CI hattı kuruldu (JVM heap, çift NDK 27+r28, kimlik muhafızı `rg`siz, APK testlerden önce yüklenir). `AppIconRepository.PACKAGE_NAME` tuzağı düzeltildi. |
+| 2026-11-12 | `1.15-ozel.1` | Temiz 1.15 tabanı, kendi kimliği (`com.minis.x`), kendi imzası. CI hattı kuruldu (JVM heap, çift NDK 27+r28, kimlik muhafızı `rg`siz, APK testlerden önce yüklenir). `AppIconRepository.PACKAGE_NAME` tuzağı düzeltildi. |
 | 2026-11-13 | `1.15-ozel.2` | Evren API preset'i. Düşünme bloğu çevirisi + Çeviri ayarları ekranı. Araç zinciri ekranı (7 grup). Kendi repodan güncelleme. İncelemesi yapılabilir release derlemeleri. Canlı Görevler paneli. Markdown'da son render-başına regex kaldırıldı (#426). Türkçe string kaçış hatası düzeltildi. |
 | 2026-11-13 | `1.15-ozel.3` | Sürüm damgası (build 37003). |
 | 2026-11-14 | `1.15-ozel.4` | Canlı Görevler: arka plan izin kapıları (`BackgroundGates`). |

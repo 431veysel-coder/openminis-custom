@@ -55,7 +55,9 @@ class OzelFeaturesTest {
         // ON state costs something the user did not ask for:
         //  - DEV_SERVER opens a local socket that can read provider keys;
         //  - VAULT_AGENT_READ sends a stored secret to the model provider;
-        //  - EDIT_MODE draws an overlay on top of every screen.
+        //  - (EDIT_MODE was here until 37091; the flag is gone because the
+        //    overlay it described was never built. A removed flag needs no
+        //    exception — the set is about flags that EXIST and default off.)
         // A new flag that defaults to OFF belongs in this set WITH a reason;
         // anything else defaulting to off is the regression this test exists for.
         //
@@ -71,11 +73,14 @@ class OzelFeaturesTest {
         //  - REPLAY is a developer measurement tool with no place in a normal
         //    conversation;
         //  - REMOTE_CONSOLE has no implementation yet (permission model only),
-        //    and a switch for a surface that is not built would be a lie.
+        //    and a switch for a surface that is not built would be a lie;
+        //  - STATION is in the same position since 37091: the switch existed,
+        //    defaulted ON, and no production code read it (measured: 0 call
+        //    sites). OFF until the panels ship in 37093.
         val deliberateOff = setOf(
             OzelFeatures.Feature.DEV_SERVER,
             OzelFeatures.Feature.VAULT_AGENT_READ,
-            OzelFeatures.Feature.EDIT_MODE,
+            OzelFeatures.Feature.STATION,
             OzelFeatures.Feature.AUTO_BACKUP,
             OzelFeatures.Feature.TOOL_ROUTER,
             OzelFeatures.Feature.EVIDENCE_GATE,
