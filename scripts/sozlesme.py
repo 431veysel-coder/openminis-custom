@@ -169,28 +169,50 @@ def _norm(s: str) -> str:
     return "".join(ch for ch in s.translate(tr).lower() if ch.isalnum())
 
 
+def _dosyalarda_ara(igne: str, kok: pathlib.Path) -> list[pathlib.Path]:
+    """Kaynak ağacında düz metin arama — rg varsa hızlı, yoksa saf Python.
+
+    Neden iki yol: CI runner'ında `rg` kurulu değil. İlk sürüm `rg` yoksa
+    `return True` diyordu, yani **uydurma test kontrolü CI'da sessizce
+    kapanıyordu** ve testi yalnız yerelde (rg varken) yakalıyordu. Kanıt
+    uydurmayı yakalamayan bir kapı, kapı değil — bu depoda aynı sınıf hata
+    üçüncü kez çıkıyor (selftest "9 vaka", `ci-shell` pipefail, şimdi bu).
+    """
+    try:
+        r = subprocess.run(["rg", "-l", "-F", igne, str(kok)],
+                           capture_output=True, text=True)
+        if r.returncode in (0, 1):
+            return [pathlib.Path(l) for l in r.stdout.splitlines() if l.strip()]
+    except OSError:
+        pass
+    # Saf Python yedeği: yavaş ama ortamdan bağımsız.
+    out: list[pathlib.Path] = []
+    for p in kok.rglob("*"):
+        if not p.is_file() or p.suffix not in (".kt", ".kts", ".py", ".java", ".md"):
+            continue
+        try:
+            if igne in p.read_text(encoding="utf-8", errors="ignore"):
+                out.append(p)
+        except OSError:
+            continue
+    return out
+
+
 def _test_var(sinif: str, metot: str) -> bool:
     """Test adı gerçekten repoda var mı — uydurma kanıtı yakalar."""
-    try:
-        r = subprocess.run(["rg", "-l", "-F", sinif, str(ROOT / "src")],
-                           capture_output=True, text=True)
-        if r.returncode != 0:
-            return False
-        dosyalar = [l for l in r.stdout.splitlines() if l.strip()]
-        if not dosyalar:
-            return False
-        if metot.strip() in ("*", ""):
-            return True
-        hedef = _norm(metot)
-        for d in dosyalar:
-            try:
-                if hedef in _norm(pathlib.Path(d).read_text(encoding="utf-8", errors="ignore")):
-                    return True
-            except OSError:
-                continue
+    dosyalar = _dosyalarda_ara(sinif, ROOT / "src")
+    if not dosyalar:
         return False
-    except OSError:
-        return True  # rg yoksa kanıtı engellemeyiz; yanlış pozitif kapıyı kapatır
+    if metot.strip() in ("*", ""):
+        return True
+    hedef = _norm(metot)
+    for d in dosyalar:
+        try:
+            if hedef in _norm(d.read_text(encoding="utf-8", errors="ignore")):
+                return True
+        except OSError:
+            continue
+    return False
 
 
 def denetle(rids: list[str], kapanis: bool = False) -> tuple[list[str], list[str]]:
