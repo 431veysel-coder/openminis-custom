@@ -51,6 +51,7 @@ fun ReplayScreen(onBack: () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val recordings by ReplayStore.recordings.collectAsState()
     val outcomes by ReplayStore.outcomes.collectAsState()
+    val lastError by ReplayStore.lastError.collectAsState()
     var selected by remember { mutableStateOf<String?>(null) }
 
     SettingsScaffold(
@@ -67,6 +68,19 @@ fun ReplayScreen(onBack: () -> Unit) {
                 onClick = { ReplayStore.recordCurrentChat(context) },
                 showDivider = recordings.isNotEmpty(),
             )
+        }
+
+        // A recording that was refused ("no tool calls in this chat") must say
+        // so. Otherwise the button looks broken — it happened to work, and the
+        // user has no way to tell the difference.
+        lastError?.let { msg ->
+            SettingsCardBlock {
+                Text(
+                    msg,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
         }
 
         if (recordings.isEmpty()) {

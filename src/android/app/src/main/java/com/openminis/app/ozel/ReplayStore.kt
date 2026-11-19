@@ -146,7 +146,7 @@ object ReplayStore {
                 if (steps.isEmpty()) {
                     // No tool calls: nothing to replay. Saying so is better than
                     // saving an empty recording that later reads as "0 misses".
-                    lastError.value = "Bu sohbette araç çağrısı yok — yeniden oynatılacak bir şey yok."
+                    _lastError.value = "Bu sohbette araç çağrısı yok — yeniden oynatılacak bir şey yok."
                     return@launch
                 }
                 var turn = 0
@@ -169,7 +169,7 @@ object ReplayStore {
                     entries = entries,
                     originalTurns = turn,
                 )
-                lastError.value = null
+                _lastError.value = null
                 save(ctx, rec)
             }
         }
