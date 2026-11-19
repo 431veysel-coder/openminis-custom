@@ -3778,6 +3778,8 @@ fun ChatScreen(
         // the whole screen no matter which pane opened it, and survives a
         // scroll. Empty when nothing is pending: a zero-cost call.
         ApprovalSheet()
+        // [37086] One lesson proposal at a time, same placement reason.
+        LessonSheet(sessionId = sessionId)
         // [T-android-scroll-fab-content-inset] The chat pane's own width, used
         // below to inset the scroll buttons to the capped content column.
         var chatPaneWidthPx by remember { mutableStateOf(0) }

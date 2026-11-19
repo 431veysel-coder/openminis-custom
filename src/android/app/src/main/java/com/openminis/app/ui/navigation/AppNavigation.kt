@@ -198,6 +198,12 @@ object Routes {
     /** [MINIS-OZEL 11.3.1] Settings › Minis X › Action journal. */
     const val ACTION_JOURNAL = "action_journal"
 
+    /** [37081] Spending limits: chat / day / month token caps. */
+    const val BUDGET_LIMITS = "ozel_budget_limits"
+
+    /** [37089] Replay: record a chat, run it again with frozen tool outputs. */
+    const val REPLAY = "ozel_replay"
+
     /** [MINIS-OZEL 11.3.1] Settings › Minis X › Agent scope. */
     const val AGENT_SCOPE = "agent_scope"
 
@@ -1775,6 +1781,23 @@ fun AppNavigation(
                 onOpenNotes = { navController.safeNavigate(Routes.NOTES_PAGE) },
                 onOpenJournal = { navController.safeNavigate(Routes.ACTION_JOURNAL) },
                 onOpenScope = { navController.safeNavigate(Routes.AGENT_SCOPE) },
+                onOpenBudget = { navController.safeNavigate(Routes.BUDGET_LIMITS) },
+                onOpenReplay = { navController.safeNavigate(Routes.REPLAY) },
+            )
+        }
+        composable(Routes.BUDGET_LIMITS) {
+            com.openminis.app.ui.settings.BudgetLimitsScreen(
+                onBack = { navController.safePopBackStack() },
+            )
+        }
+        composable(Routes.REPLAY) {
+            // Recording list is a file read, not a query: load once per entry.
+            val ctx = androidx.compose.ui.platform.LocalContext.current
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                com.openminis.app.ozel.ReplayStore.load(ctx)
+            }
+            com.openminis.app.ui.settings.ReplayScreen(
+                onBack = { navController.safePopBackStack() },
             )
         }
         composable(Routes.AGENT_SCOPE) {

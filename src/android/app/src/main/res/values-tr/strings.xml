@@ -2168,6 +2168,10 @@
     <string name="ozel_notes_open_subtitle">Oku, yaz, düzenle — ve kasa</string>
     <string name="ozel_feature_provider_test">Bağlantı testi</string>
     <!-- [37080-37090] Özellik paketi -->
+    <string name="mx_section_teams">Ekip</string>
+    <string name="mx_teams_footer">Ekip, tek bir görevi devredebileceğiniz bir model listesidir. Konsey modunda sırayla çalışmak yerine tek bir cevap için tartışırlar.</string>
+    <string name="mx_feature_council">Konsey modu</string>
+    <string name="mx_feature_council_subtitle">Üyeler bağımsız cevap verir, sonra iddia listesi oturana kadar tartışır. Kapalıyken yeni konsey koşusu reddedilir; kayıtlı ekipler, koşular ve raporlar diskte kalır.</string>
     <string name="mx_section_safety">Güvenlik ve maliyet</string>
     <string name="mx_safety_footer">Ajan, geri alınamayan bir şeye kalkışmadan önce sorar. Her onay seçtiğiniz kapsamda hatırlanır: bu sohbet, bu proje ya da her yerde.</string>
     <string name="mx_section_agent">Ajan kalitesi</string>
@@ -2192,6 +2196,29 @@
     <string name="mx_feature_tool_router_subtitle">Yalnız isteğe uyan araçları gönderir, gerisi bir çağrı ötede. Bağlam ve yanlış seçim kazandırır ama modelin gördüğünü değiştirir: açık tutmadan önce ölçün.</string>
     <string name="mx_feature_evidence_gate">\"Bitti\" demeden önce kanıt</string>
     <string name="mx_feature_evidence_gate_subtitle">Tamamlandı iddiası son turlardan bir sonuç ister: test koşusu, derleme, dosya, ekran görüntüsü. Bazı işler kanıtlanamadığı için varsayılan kapalı.</string>
+    <string name="mx_budget_title">Harcama tavanı</string>
+    <string name="mx_budget_open_subtitle">Sayıların girildiği yer</string>
+    <string name="mx_budget_header">Token tavanları</string>
+    <string name="mx_budget_footer">Boş = sınır yok. Tavan dolduğunda YENİ tur başlamaz — ortada kesilen tur yarım bir araç çağrısı bırakır.</string>
+    <string name="mx_budget_chat">Bu sohbet</string>
+    <string name="mx_budget_day">Bugün</string>
+    <string name="mx_budget_month">Bu ay</string>
+    <string name="mx_budget_saved">Kaydedildi.</string>
+    <string name="mx_budget_state">Şu anki kullanım</string>
+    <string name="mx_budget_save">Kaydet</string>
+    <string name="mx_budget_clear">Tüm tavanları temizle</string>
+    <string name="mx_budget_usd">Dolar tavanı (henüz değil)</string>
+    <string name="mx_budget_usd_reason">Her model için fiyat gerekir; katalog bunu tüm sağlayıcılar için taşımıyor. Hiçbir şey yapmayan bir alan daha kötü olurdu.</string>
+    <string name="mx_budget_usd_note">Token tavanı bugün her sağlayıcıda çalışıyor; bu sürüm onu getiriyor.</string>
+    <string name="mx_replay_title">Yeniden oynatma</string>
+    <string name="mx_replay_open_subtitle">Sohbeti kaydet, araç çağrılarını tekrar koş</string>
+    <string name="mx_replay_header">Kayıtlar</string>
+    <string name="mx_replay_footer">Kayıt, araç çıktılarını dondurur; böylece bir koşu ağa ve dosyalarınıza dokunmadan tekrarlanabilir.</string>
+    <string name="mx_replay_record_current">Son sohbeti kaydet</string>
+    <string name="mx_replay_record_current_sub">Araç çağrılarının ve sonuçlarının kopyasını alır. Sohbette hiçbir şey değişmez.</string>
+    <string name="mx_replay_empty">Henüz kayıt yok.</string>
+    <string name="mx_replay_run">Yeniden koş</string>
+    <string name="mx_replay_result">Sonuç</string>
     <string name="mx_feature_replay">Geçmiş koşuyu yeniden oynat</string>
     <string name="mx_feature_replay_subtitle">Kayıtlı bir sohbeti araç çıktıları dondurulmuş hâlde yeniden koşturur; iki model aynı işte karşılaştırılır. Geliştirici aleti.</string>
     <string name="ozel_features_section_station">İstasyon ve düzenleme modu</string>

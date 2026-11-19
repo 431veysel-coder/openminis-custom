@@ -53,6 +53,10 @@ fun OzelFeaturesScreen(
     onOpenJournal: () -> Unit = {},
     // [MINIS-OZEL 11.3.1] How much the agent may do without asking.
     onOpenScope: () -> Unit = {},
+    // [37081] Where the token caps are typed.
+    onOpenBudget: () -> Unit = {},
+    // [37089] Record a chat and replay it.
+    onOpenReplay: () -> Unit = {},
 ) {
     val context = LocalContext.current
 
@@ -211,6 +215,25 @@ fun OzelFeaturesScreen(
             )
         }
 
+        // ── Teams / council [11.5] ───────────────────────────────────────
+        // The switch existed since 37060 but had NO row, so the only way to turn
+        // council off was to edit preferences. `AndroidTeamRuntime` refuses a
+        // council run when this is off, which makes the missing row a real
+        // functional gap and not a cosmetic one: a team stuck in council mode
+        // could not be rescued from the UI.
+        SettingsSection(
+            header = stringResource(R.string.mx_section_teams),
+            footer = stringResource(R.string.mx_teams_footer),
+        ) {
+            SettingsSwitchRow(
+                title = stringResource(R.string.mx_feature_council),
+                subtitle = stringResource(R.string.mx_feature_council_subtitle),
+                checked = values[Feature.COUNCIL] == true,
+                onCheckedChange = { set(Feature.COUNCIL, it) },
+                showDivider = false,
+            )
+        }
+
         // ── Safety, money, agent quality [37080–37090] ───────────────────
         SettingsSection(
             header = stringResource(R.string.mx_section_safety),
@@ -227,6 +250,16 @@ fun OzelFeaturesScreen(
                 subtitle = stringResource(R.string.mx_feature_budget_cap_subtitle),
                 checked = values[Feature.BUDGET_CAP] == true,
                 onCheckedChange = { set(Feature.BUDGET_CAP, it) },
+            )
+            // The caps are useless without a place to type them; the row is right
+            // under the switch rather than in a submenu, because "where do I set
+            // the number" is the first question the switch raises.
+            SettingsRow(
+                title = stringResource(R.string.mx_budget_title),
+                subtitle = stringResource(R.string.mx_budget_open_subtitle),
+                icon = Icons.Outlined.Shield,
+                iconColor = Color(0xFF34C759),
+                onClick = if (values[Feature.BUDGET_CAP] == true) onOpenBudget else null,
             )
             SettingsSwitchRow(
                 title = stringResource(R.string.mx_feature_auto_backup),
@@ -284,6 +317,13 @@ fun OzelFeaturesScreen(
                 subtitle = stringResource(R.string.mx_feature_replay_subtitle),
                 checked = values[Feature.REPLAY] == true,
                 onCheckedChange = { set(Feature.REPLAY, it) },
+            )
+            SettingsRow(
+                title = stringResource(R.string.mx_replay_title),
+                subtitle = stringResource(R.string.mx_replay_open_subtitle),
+                icon = Icons.Outlined.Restore,
+                iconColor = Color(0xFF8E8E93),
+                onClick = if (values[Feature.REPLAY] == true) onOpenReplay else null,
                 showDivider = false,
             )
         }

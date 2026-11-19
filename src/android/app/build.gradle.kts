@@ -71,8 +71,8 @@ android {
         // 37033: the parser fix (a satisfied ledger no longer needs a speaker)
         // plus the release gate. 37032 was published WITH a red test job — the
         // exact failure the new `needs: tests` removes — so it stays spent.
-        versionCode = 37072
-        versionName = "1.15-ozel.12.2"
+        versionCode = 37090
+        versionName = "1.15-ozel.13"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
