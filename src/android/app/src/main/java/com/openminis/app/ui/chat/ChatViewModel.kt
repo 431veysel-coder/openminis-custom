@@ -2690,6 +2690,23 @@ class ChatViewModel(
     private val agentHistory = mutableListOf<LLMMessage>()
 
     /**
+     * [37084] When the current turn began. The turn diff and the undo plan are
+     * "everything the journal recorded after this instant", so the value must be
+     * stamped BEFORE the first tool call, not after the model answers.
+     */
+    private var turnStartedAtMs: Long = 0L
+
+    /**
+     * [37081/37084] One-off notices for the user: budget stop, turn summary.
+     * A SharedFlow (not StateFlow) because a notice is an event: the same
+     * "3 dosya değişti" must not reappear on every recomposition.
+     */
+    private val _ozelNotice = kotlinx.coroutines.flow.MutableSharedFlow<String>(
+        extraBufferCapacity = 4,
+    )
+    val ozelNotice: kotlinx.coroutines.flow.SharedFlow<String> = _ozelNotice.asSharedFlow()
+
+    /**
      * [37085] The last thing the user asked for, used only to narrow the tool
      * schema. Deliberately NOT persisted and not part of the transcript: it is
      * an input to schema construction, not a fact about the conversation. A
@@ -9763,6 +9780,22 @@ class ChatViewModel(
     fun sendMessage(text: String) {
         // [37085] Remember the request for schema construction (see lastUserIntent).
         if (text.isNotBlank()) lastUserIntent = text
+        // [37081] Budget stop. Checked HERE, before anything is queued or
+        // streamed: a turn that starts and is cut in the middle leaves a
+        // half-finished tool call and a file that is neither version. Not
+        // starting is the clean failure.
+        if (com.openminis.app.data.OzelFeatures.isEnabled(
+                context, com.openminis.app.data.OzelFeatures.Feature.BUDGET_CAP,
+            )
+        ) {
+            val st = com.openminis.app.ozel.BudgetStore.mayStartTurn(context, activeSessionId)
+            if (st.blocksNewTurn) {
+                _ozelNotice.tryEmit(st.message())
+                return
+            }
+        }
+        // [37084] Turn boundary for the diff summary.
+        turnStartedAtMs = System.currentTimeMillis()
         // [T-android-stop-sibling-subagent] New work in this session lifts the
         // stop: delegations from here on may drive the turn again.
         com.openminis.app.agent.jobs.AgentJobRegistry.clearDelegationMute(activeSessionId)
@@ -11261,6 +11294,46 @@ class ChatViewModel(
         return turn
     }
 
+    /**
+     * [37084/37087] Turn-end work: the diff line and the evidence check.
+     *
+     * Both are best-effort and both are gated by their own flags. Neither can
+     * fail the turn: the answer is already written, and a bookkeeping error must
+     * not turn a finished answer into an error bubble.
+     */
+    private suspend fun onTurnComplete() {
+        val since = turnStartedAtMs
+        if (since <= 0L) return
+
+        // [37084] Summary line for the user.
+        runCatching {
+            com.openminis.app.ozel.TurnSummaryBridge
+                .summarizeTurn(context, activeSessionId, since)
+                ?.let { _ozelNotice.tryEmit(it) }
+        }
+
+        // [37087] Did the answer claim completion without proof?
+        runCatching {
+            // The last assistant text of the turn, straight from the canonical
+            // list — no separate copy to keep in sync.
+            val claim = _messages.value.lastOrNull { it.role == "assistant" }?.content.orEmpty()
+            if (claim.isNotBlank()) {
+                val result = com.openminis.app.ozel.EvidenceRecorder.checkTurnEnd(
+                    ctx = context,
+                    sessionId = activeSessionId,
+                    claimText = claim,
+                    turnIndex = (turnStartedAtMs / 1000L).toInt(),
+                )
+                if (result is com.openminis.app.agent.evidence.ClaimCheck.Rejected) {
+                    AppLogger.info(
+                        TAG,
+                        "[evidence] claim without proof: ${result.reason}",
+                    )
+                }
+            }
+        }
+    }
+
     private suspend fun runAgentLoop(
         provider: LLMProvider,
         systemPrompt: String?,
@@ -11277,6 +11350,9 @@ class ChatViewModel(
         val turnGen = liveTurn.begin()
         try {
             runAgentLoopBody(provider, systemPrompt, fallbackProviders, fallbackStrategy, prefill, turnGen)
+            // [37084] What changed this turn, as one line. Never throws: a
+            // summary that breaks a finished turn is worse than no summary.
+            runCatching { onTurnComplete() }
         } catch (ce: kotlinx.coroutines.CancellationException) {
             // [stop-diag] Logged and rethrown; behaviour unchanged.
             AppLogger.info(TAG_STREAM, "[stop-diag] runAgentLoop EXIT reason=cancelled sid=$activeSessionId cause=${ce.message}")
@@ -14043,6 +14119,28 @@ class ChatViewModel(
                                     context, activeSessionId, name, result.output, turn,
                                 )
                             }
+                        } else {
+                            // [37087] Proof for a later "done" claim. The subject
+                            // is the thing the claim would be about: the command
+                            // that ran, or the file that was written.
+                            runCatching {
+                                // paramsMap is Map<String, Any?>: cast at the use
+                                // site rather than widening the helper's type.
+                                val subject = when (name) {
+                                    "shell_execute" -> (paramsMap["command"] as? String)?.take(60).orEmpty()
+                                    else -> (paramsMap["path"] as? String)
+                                        ?: (paramsMap["file_path"] as? String).orEmpty()
+                                }
+                                com.openminis.app.ozel.EvidenceRecorder.note(
+                                    ctx = context,
+                                    sessionId = activeSessionId,
+                                    tool = name,
+                                    success = true,
+                                    output = result.output,
+                                    turnIndex = turn,
+                                    subjectHint = subject,
+                                )
+                            }
                         }
                         val postRecord = toolLoopDetector.record(
                             toolName = name,
@@ -14505,8 +14603,12 @@ class ChatViewModel(
         // may not run shell_execute must hear that reason, not an approval
         // prompt) and before every executor, so no path can start a command the
         // policy has not seen. `null` = this tool is not classified at all.
+        // Gated on either flag: the approval card needs APPROVAL_GATE, the plan
+        // card needs PLAN_PREVIEW, and PolicyGate decides per call which applies.
         if (com.openminis.app.data.OzelFeatures.isEnabled(
                 context, com.openminis.app.data.OzelFeatures.Feature.APPROVAL_GATE,
+            ) || com.openminis.app.data.OzelFeatures.isEnabled(
+                context, com.openminis.app.data.OzelFeatures.Feature.PLAN_PREVIEW,
             )
         ) {
             runCatching {
@@ -17151,6 +17253,23 @@ class ChatViewModel(
         // request passes through with its usage attached — the streaming path,
         // the retry path and the tool-loop path all end up writing a turn.
         recordFreeTierUsage(usage)
+        // [37081] Same funnel, same reason: every finished request with usage
+        // passes through here. Real `usage` only — an estimate recorded as fact
+        // would let the user believe the cap is respected when it is guessed.
+        usage?.let { u ->
+            runCatching {
+                com.openminis.app.ozel.BudgetStore.record(
+                    ctx = context,
+                    sessionId = realSessionId.ifEmpty { sessionId },
+                    tokens = u.inputTokens.toLong() + u.outputTokens.toLong() +
+                        (u.cacheReadInputTokens?.toLong() ?: 0L) +
+                        (u.cacheCreationInputTokens?.toLong() ?: 0L),
+                    usd = null,
+                    estimated = false,
+                    modelId = currentModelSnapshot()?.modelId,
+                )
+            }
+        }
         val entity = chatRepository.appendMessage(
             realSessionId.ifEmpty { sessionId }, "assistant", partsJson, tokenJson,
             reasoningContent = reasoningContent,

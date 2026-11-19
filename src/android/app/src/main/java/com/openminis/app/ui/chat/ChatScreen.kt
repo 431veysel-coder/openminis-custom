@@ -2655,6 +2655,15 @@ fun ChatScreen(
     // [T-silence-auto-notices] Compression is not surfaced any more (only the
     // ViewModel's "[ImageBudget] compose" log): it changes nothing the user
     // has to act on, and iOS never showed it.
+    // [37081/37084] Ozel notices: budget stop, turn summary. One-off events, so
+    // a SharedFlow — the same "3 dosya değişti" must not reappear on every
+    // recomposition.
+    LaunchedEffect(Unit) {
+        viewModel.ozelNotice.collect { msg ->
+            snackbarHostState.showSnackbar(msg)
+        }
+    }
+
     LaunchedEffect(Unit) {
         viewModel.imageBudgetEvent.collect { ev ->
             if (ev.droppedCount > 0) {

@@ -9,6 +9,11 @@ import com.openminis.app.policy.GateDecision
 import com.openminis.app.policy.Grant
 import com.openminis.app.policy.GrantBook
 import com.openminis.app.policy.RiskClassifier
+import com.openminis.app.policy.RiskReason
+import com.openminis.app.policy.RiskVerdict
+import com.openminis.app.policy.Reach
+import com.openminis.app.policy.Recovery
+import com.openminis.app.policy.RiskLevel
 import com.openminis.app.data.OzelFeatures
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,6 +58,9 @@ object PolicyGate {
 
     const val TIMEOUT_MS: Long = 5 * 60 * 1000
 
+    /** planVerdict'in Context'e ihtiyacı var; gate() girişinde set edilir. */
+    private var appContext: Context? = null
+
     /**
      * Kapı. `null` dönerse araç hiç sınıflandırılmadı (alakasız araç) — geçer.
      * Dönen [GateDecision.Deny] ise çağrı yapılmamalı.
@@ -64,8 +72,37 @@ object PolicyGate {
         toolName: String,
         argsJson: String,
     ): GateDecision? {
-        if (!OzelFeatures.isEnabled(ctx, OzelFeatures.Feature.APPROVAL_GATE)) return null
+        appContext = ctx
+        if (!OzelFeatures.isEnabled(ctx, OzelFeatures.Feature.APPROVAL_GATE)
+            && !OzelFeatures.isEnabled(ctx, OzelFeatures.Feature.PLAN_PREVIEW)
+        ) {
+            return null
+        }
         val args = flatArgs(argsJson)
+
+        // [37083] Plan preview for a long run — reuses this queue on purpose.
+        // A second card type would mean a second waiting mechanism, a second
+        // persistence story and a second "remember this" rule; the difference
+        // here is only WHAT the card says, not how the answer is obtained.
+        planVerdict(toolName, args)?.let { v ->
+            val book = bookFor(ctx, sessionId, folderId)
+            val decided = ApprovalPolicy.decide(v, book, System.currentTimeMillis())
+            if (decided is GateDecision.Silent) return decided
+            if (decided is GateDecision.Deny) return decided
+            val request = (decided as GateDecision.Ask).request
+            val answer = ask(request)
+                ?: return GateDecision.Deny(v.ruleId, "plan onaylanmadı; iş başlatılmadı")
+            val grant = ApprovalPolicy.grantFor(
+                request, answer.scope ?: ApprovalScope.Session(sessionId),
+                answer.decision, System.currentTimeMillis(), answer.note,
+            )
+            book.put(grant)
+            persist(ctx, book)
+            if (answer.decision != Decision.ALLOW) {
+                return GateDecision.Deny(v.ruleId, "kullanıcı planı onaylamadı; iş başlatılmadı")
+            }
+        }
+
         val verdict = when (toolName) {
             "shell_execute" -> {
                 val cmd = args["command"] ?: return null
@@ -128,6 +165,64 @@ object PolicyGate {
     }
 
     // ---------------------------------------------------------------- iç
+
+    /**
+     * [37083] A long-run estimate from arguments that already exist.
+     *
+     * `subagent_task.max_minutes` is a real declared bound, and `team_run`'s
+     * `max_rounds` bounds the rounds — both are honest inputs, unlike a guess
+     * derived from the prompt's length. With no number to read, no card is
+     * shown: inventing an estimate would make the card a decoration.
+     */
+    private fun planVerdict(toolName: String, args: Map<String, String>): RiskVerdict? {
+        val ctx = this.appContext ?: return null
+        if (!OzelFeatures.isEnabled(ctx, OzelFeatures.Feature.PLAN_PREVIEW)) return null
+        val minutes: Int
+        val tokens: Long
+        when (toolName) {
+            "subagent_task" -> {
+                if (args["action"] != null && args["action"] != "delegate") return null
+                minutes = args["max_minutes"]?.toIntOrNull() ?: com.openminis.app.agent.jobs.HelperRunner.DEFAULT_MINUTES
+                tokens = 0L
+            }
+            "team_run" -> {
+                val rounds = args["max_rounds"]?.toIntOrNull() ?: 12
+                minutes = rounds * 2 // one council round is two model passes
+                tokens = 0L
+            }
+            else -> return null
+        }
+        val estimate = com.openminis.app.plan.RunEstimate(
+            minutes = minutes,
+            tokens = tokens,
+            rounds = if (toolName == "team_run") (args["max_rounds"]?.toIntOrNull() ?: 12) else 1,
+            models = if (toolName == "team_run") 5 else 1,
+            steps = listOf(
+                if (toolName == "team_run") "Ekip koşusu: ${args["team"].orEmpty()}" else "Alt ajan: ${args["agent"].orEmpty()}",
+                args["tool_title"].orEmpty(),
+            ).filter { it.isNotBlank() },
+        )
+        val reason = com.openminis.app.plan.PlanGate.shouldPreview(estimate, com.openminis.app.plan.PlanThresholds())
+            ?: return null
+        return RiskVerdict(
+            level = RiskLevel.MEDIUM,
+            reach = Reach.SANDBOX,
+            recovery = Recovery.UNDOABLE,
+            ruleId = "plan:long-run",
+            targetPrefix = toolName,
+            reasons = listOf(
+                com.openminis.app.policy.RiskReason(
+                    com.openminis.app.policy.RiskReason.Kind.EFFECT,
+                    "$reason — plan: ${estimate.steps.firstOrNull().orEmpty()}",
+                ),
+                com.openminis.app.policy.RiskReason(
+                    com.openminis.app.policy.RiskReason.Kind.TARGET,
+                    "${estimate.rounds} tur · ${estimate.models} model",
+                ),
+            ),
+            segment = args["tool_title"].orEmpty(),
+        )
+    }
 
     private fun classifier(sessionId: String): RiskClassifier {
         val root = "/var/minis/minis-sessions/$sessionId"
