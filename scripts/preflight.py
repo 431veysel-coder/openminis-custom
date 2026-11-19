@@ -257,6 +257,56 @@ _BAD_PIPE = ("| head", "| grep -q")
 _STEP_START = re.compile(r"^(\s*)-\s+(name|uses|run|id|if):")
 _SHELL_LINE = re.compile(r"^\s{0,4}shell:\s*(.+)$")
 
+#: `run:` gövdesi içinde, yorum satırında geçen GitHub ifadesi.
+_EXPR_ANY = re.compile(r"\$\{\{")
+
+def l0_run_comment_expr(wf_dir: Path = WF_DIR) -> list[Problem]:
+    """`run:` betiğinin YORUM satırındaki `${{ ... }}`.
+
+    GitHub, `run:` gövdesini tek bir metin olarak alır ve **içindeki her
+    `${{ }}` ifadesini** değerlendirir — betiğin yorum satırı olması onu
+    durdurmaz. Sonuç iki türlü olur:
+
+    1. İfade ayrıştırılamazsa (ör. içinde `…`, `->` gibi bir sembol varsa)
+       **iş akışının TAMAMI geçersiz** sayılır: `Invalid workflow file: failed
+       to parse workflow: Unexpected symbol`. Ne iş kurulur ne log üretilir;
+       koşu 0 saniyede düşer ve adı dosya yoluna düşer.
+    2. Ayrıştırılabiliyorsa yorum, değeri **gerçekten okur** — yani bir yoruma
+       "örnek" diye yazılan ifade, o adımı bozabilir.
+
+    37094'te bu tam olarak oldu: bir `run:` yorumuna `${{ env.… }}` yazıldı,
+    actionlint 0 hata verdi (yorumları ifade olarak taramıyor), PyYAML temiz
+    dedi, `bash -n` temiz dedi — ama GitHub dosyayı reddetti. Doğru cevabı
+    yalnızca GitHub'ın kendi doğrulayıcısı verdi.
+    """
+    out: list[Problem] = []
+    for path in sorted(wf_dir.glob("*.y*ml")):
+        text = _read(path)
+        if not text:
+            continue
+        in_run = False
+        run_indent = 0
+        for lineno, line in enumerate(text.splitlines(), 1):
+            stripped = line.strip()
+            indent = len(line) - len(line.lstrip())
+            if not stripped:
+                continue
+            # `run: |` ya da `- run: |` — ikisi de blok başlatır
+            m = re.match(r"^(?:-\s+)?run:", stripped)
+            if m:
+                in_run, run_indent = True, indent
+                continue
+            # `run:` gövdesinden çıkış: daha az girintili, yorum olmayan satır
+            if in_run and not stripped.startswith("#") and indent <= run_indent:
+                in_run = False
+            if in_run and stripped.startswith("#") and _EXPR_ANY.search(stripped):
+                out.append(Problem(
+                    "ci-expr", _rel(path), lineno,
+                    "`run:` betiğinin yorumunda `${{ }}` var: GitHub yorumu da "
+                    "ifade olarak değerlendirir ve geçersizse TÜM iş akışını "
+                    "reddeder — ifadeyi yorumdan çıkar"))
+    return out
+
 def _strip_comment(lines: list[str]) -> list[str]:
     return [ln for ln in lines if not ln.strip().startswith("#")]
 
@@ -608,6 +658,7 @@ def run(staged_only: bool, deadline_s: float, verbose: bool) -> tuple[list[Probl
     layer("L0 strings", lambda: l0_strings(ctx))
     layer("L0 version", lambda: l0_version(ctx))
     layer("L0 ci-shell", l0_workflow_pipes)
+    layer("L0 ci-expr", l0_run_comment_expr)
     layer("L1 R.string", lambda: l1_string_refs(ctx, parsed))
     layer("L2 import", lambda: l2_unimported(parsed, ctx.targets))
     layer("L2 enum", lambda: l2_enum(parsed, ctx.targets))
@@ -663,7 +714,13 @@ def selftest() -> int:
 
     fails: list[str] = []
 
+    # Sayaç elle yazılmaz: bir vaka eklendiğinde özetin yalan söylememesi
+    # için `want` kendisi sayar. (Önce sabit "9 vaka" yazıyordu ve 3 vaka
+    # eklendikten sonra da 9 demeye devam etti.)
+    seen: list[tuple[str, str]] = []
+
     def want(name: str, got: list[Problem], check: str, expect: bool = True) -> None:
+        seen.append((name, check))
         hit = any(p.check == check for p in got)
         if hit != expect:
             fails.append(f"{name}: '{check}' {'tetiklenmedi' if expect else 'yanlış tetiklendi'}")
@@ -711,6 +768,25 @@ def selftest() -> int:
         (wf / "bad2.yml").unlink()
         want("ci-shell yorum", l0_workflow_pipes(wf), "ci-shell", expect=False)
 
+        # run: betiğinin yorumundaki ${{ }} — GitHub onu da ifade sanar
+        (wf / "expr.yml").write_text(
+            "jobs:\n  a:\n    steps:\n      - run: |\n"
+            "          # ornek: ${{ env.GIZLI }}\n"
+            "          echo ok\n", encoding="utf-8")
+        want("ci-expr yorumda", l0_run_comment_expr(wf), "ci-expr")
+        (wf / "expr.yml").unlink()
+        (wf / "expr_ok.yml").write_text(
+            "jobs:\n  a:\n    steps:\n      - run: |\n"
+            "          # yalniz env baglami, ifade yok\n"
+            "          echo \"$GIZLI\"\n", encoding="utf-8")
+        want("ci-expr temiz", l0_run_comment_expr(wf), "ci-expr", expect=False)
+        (wf / "expr_ok.yml").unlink()
+        # run: disindaki YAML yorumu serbest (concurrency aciklamasi gibi)
+        (wf / "expr_top.yml").write_text(
+            "# concurrency: apk-${{ github.ref }} boyle bir sey\n"
+            "jobs:\n  a:\n    steps:\n      - run: echo ok\n", encoding="utf-8")
+        want("ci-expr ust duzey", l0_run_comment_expr(wf), "ci-expr", expect=False)
+
         # Yorumdaki tip adı referans değildir (674 yanlışın kaynağı)
         a = root / "a"; b = root / "b"
         a.mkdir(); b.mkdir()
@@ -755,7 +831,8 @@ def selftest() -> int:
         for f in fails:
             print("  ", f)
         return 2
-    print("selftest geçti: 9 vaka (5 denetim + watchdog)")
+    checks = sorted({c for _, c in seen})
+    print(f"selftest geçti: {len(seen)} vaka ({len(checks)} denetim) · {', '.join(checks)}")
     return 0
 
 

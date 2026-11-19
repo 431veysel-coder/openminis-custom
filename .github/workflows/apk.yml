@@ -971,7 +971,7 @@ jobs:
         run: |
           set -e
           # [37094] Read the version from the SHELL environment, not from
-          # `${{ env.… }}`. "Collect artifacts" exports these through
+          # the env expression context. "Collect artifacts" exports these through
           # $GITHUB_ENV, and that is guaranteed to reach the shell of the next
           # step; whether it also lands in the `env` expression context is a
           # detail of the runner. The shell form has no such question, and the
@@ -1044,7 +1044,7 @@ jobs:
         # v2 commit, replace the SHA, keep the comment.
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
-          # [37094] From the gate's OUTPUT, not `${{ env.… }}`. The gate already
+          # [37094] From the gate's OUTPUT, not the env expression context. The gate already
           # proved the name is non-empty and refused a bare "v"; reading the
           # same value here through a different mechanism was how a release
           # tagged "v" could slip through on a runner that does not mirror
