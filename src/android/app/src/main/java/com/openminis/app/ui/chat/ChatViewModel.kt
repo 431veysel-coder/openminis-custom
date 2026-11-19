@@ -14468,6 +14468,29 @@ class ChatViewModel(
         }
         val toolTitle = try { JSONObject(argsJson).optString("tool_title", name) } catch (_: Exception) { name }
 
+        // [OZEL 37080] Onay kapısı. Placed after the member belt (a member that
+        // may not run shell_execute must hear that reason, not an approval
+        // prompt) and before every executor, so no path can start a command the
+        // policy has not seen. `null` = this tool is not classified at all.
+        if (com.openminis.app.data.OzelFeatures.isEnabled(
+                context, com.openminis.app.data.OzelFeatures.Feature.APPROVAL_GATE,
+            )
+        ) {
+            runCatching {
+                com.openminis.app.policy.PolicyGate.gate(
+                    ctx = context,
+                    sessionId = activeSessionId,
+                    folderId = _projectId.value,
+                    toolName = name,
+                    argsJson = argsJson,
+                )
+            }.getOrNull()?.let { decision ->
+                if (!decision.allowsRun()) {
+                    return ToolExecutionResult(decision.forAgent(), success = false, toolTitle = toolTitle)
+                }
+            }
+        }
+
         return when (name) {
             FileReadTool.NAME -> {
                 val result = FileReadTool.execute(argsJson, fsSessionId, context)

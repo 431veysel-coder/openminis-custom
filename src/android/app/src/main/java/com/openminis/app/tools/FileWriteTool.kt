@@ -145,6 +145,30 @@ object FileWriteTool {
             }
 
             try {
+                // [37088] A multi-step job holds a file for minutes, not for one
+                // write: read, edit, build, fix, write again. `FileLock` only
+                // serialises the write instant, so two agents can still take
+                // turns erasing each other's work and both report success. The
+                // claim is a non-blocking declaration — it never waits, it just
+                // makes the second agent aware.
+                if (com.openminis.app.data.OzelFeatures.isEnabled(
+                        context,
+                        com.openminis.app.data.OzelFeatures.Feature.WRITE_INTENT,
+                    )
+                ) {
+                    runCatching {
+                        val clashes = com.openminis.app.data.journal.WriteIntent.claim(
+                            sessionId, path, "file_write", System.currentTimeMillis(),
+                        )
+                        if (clashes.isNotEmpty()) {
+                            AppLogger.info(
+                                "FileWrite",
+                                com.openminis.app.data.journal.WriteIntent
+                                    .warningFor(clashes, System.currentTimeMillis()),
+                            )
+                        }
+                    }
+                }
                 // [MINIS-OZEL 11.3.1] One writer per path. Two agents writing
                 // the same file would otherwise interleave into a file that is
                 // neither result, with two successes reported in the transcript.

@@ -611,6 +611,14 @@ class MinisApp : Application(), ImageLoaderFactory {
             }
         }
 
+        // [37082] Automatic backup: decided by AutoBackupPolicy, applied here.
+        // After the memory migration above on purpose — measuring the change
+        // signature while a migration is moving files would take a backup of a
+        // half-moved tree.
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            com.openminis.app.ozel.AutoBackupTrigger.maybeRun(this@MinisApp)
+        }
+
         // T-android-safemode-lateinit-crash: every repository the UI layer
         // reads is now assigned, so MainActivity may safely compose. Set
         // here rather than at the end of onCreate: the remaining work

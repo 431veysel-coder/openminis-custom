@@ -211,6 +211,83 @@ fun OzelFeaturesScreen(
             )
         }
 
+        // ── Safety, money, agent quality [37080–37090] ───────────────────
+        SettingsSection(
+            header = stringResource(R.string.mx_section_safety),
+            footer = stringResource(R.string.mx_safety_footer),
+        ) {
+            SettingsSwitchRow(
+                title = stringResource(R.string.mx_feature_approval_gate),
+                subtitle = stringResource(R.string.mx_feature_approval_gate_subtitle),
+                checked = values[Feature.APPROVAL_GATE] == true,
+                onCheckedChange = { set(Feature.APPROVAL_GATE, it) },
+            )
+            SettingsSwitchRow(
+                title = stringResource(R.string.mx_feature_budget_cap),
+                subtitle = stringResource(R.string.mx_feature_budget_cap_subtitle),
+                checked = values[Feature.BUDGET_CAP] == true,
+                onCheckedChange = { set(Feature.BUDGET_CAP, it) },
+            )
+            SettingsSwitchRow(
+                title = stringResource(R.string.mx_feature_auto_backup),
+                subtitle = stringResource(R.string.mx_feature_auto_backup_subtitle),
+                checked = values[Feature.AUTO_BACKUP] == true,
+                onCheckedChange = { set(Feature.AUTO_BACKUP, it) },
+                showDivider = false,
+            )
+        }
+
+        SettingsSection(
+            header = stringResource(R.string.mx_section_agent),
+            footer = stringResource(R.string.mx_agent_footer),
+        ) {
+            SettingsSwitchRow(
+                title = stringResource(R.string.mx_feature_plan_preview),
+                subtitle = stringResource(R.string.mx_feature_plan_preview_subtitle),
+                checked = values[Feature.PLAN_PREVIEW] == true,
+                onCheckedChange = { set(Feature.PLAN_PREVIEW, it) },
+            )
+            SettingsSwitchRow(
+                title = stringResource(R.string.mx_feature_turn_diff),
+                subtitle = stringResource(R.string.mx_feature_turn_diff_subtitle),
+                checked = values[Feature.TURN_DIFF] == true,
+                onCheckedChange = { set(Feature.TURN_DIFF, it) },
+            )
+            SettingsSwitchRow(
+                title = stringResource(R.string.mx_feature_lesson_book),
+                subtitle = stringResource(R.string.mx_feature_lesson_book_subtitle),
+                checked = values[Feature.LESSON_BOOK] == true,
+                onCheckedChange = { set(Feature.LESSON_BOOK, it) },
+            )
+            SettingsSwitchRow(
+                title = stringResource(R.string.mx_feature_write_intent),
+                subtitle = stringResource(R.string.mx_feature_write_intent_subtitle),
+                checked = values[Feature.WRITE_INTENT] == true,
+                onCheckedChange = { set(Feature.WRITE_INTENT, it) },
+            )
+            // These two change what the model SEES, and the honest default is
+            // off until their effect has been measured on real conversations.
+            SettingsSwitchRow(
+                title = stringResource(R.string.mx_feature_tool_router),
+                subtitle = stringResource(R.string.mx_feature_tool_router_subtitle),
+                checked = values[Feature.TOOL_ROUTER] == true,
+                onCheckedChange = { set(Feature.TOOL_ROUTER, it) },
+            )
+            SettingsSwitchRow(
+                title = stringResource(R.string.mx_feature_evidence_gate),
+                subtitle = stringResource(R.string.mx_feature_evidence_gate_subtitle),
+                checked = values[Feature.EVIDENCE_GATE] == true,
+                onCheckedChange = { set(Feature.EVIDENCE_GATE, it) },
+            )
+            SettingsSwitchRow(
+                title = stringResource(R.string.mx_feature_replay),
+                subtitle = stringResource(R.string.mx_feature_replay_subtitle),
+                checked = values[Feature.REPLAY] == true,
+                onCheckedChange = { set(Feature.REPLAY, it) },
+                showDivider = false,
+            )
+        }
+
         // Only meaningful in a build that ships the server; a switch for a
         // capability this APK does not have would be a lie either way round.
         if (BuildConfig.DEV_TOOLS) {

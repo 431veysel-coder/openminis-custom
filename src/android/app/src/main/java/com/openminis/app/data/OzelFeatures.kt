@@ -155,6 +155,96 @@ object OzelFeatures {
          * ANA-BAGLAM).
          */
         COUNCIL("council", true),
+
+        // ── [37080–37090] Özellik paketi ─────────────────────────────────
+        // Her anahtar kapalıyken o dilimin **davranışı** kalkar; veri silinmez
+        // (ANA-BAĞLAM kural 2). Varsayılanlar tek tek gerekçeli: güvenliği
+        // artıran fiiller açık, davranışı değiştiren ya da ölçüm bekleyenler
+        // kapalı.
+
+        /**
+         * [37080] Tehlike sınıflandırması + onay kartı.
+         *
+         * ON: bu bir fren, hız değil. Kapalı bırakmak, Shizuku/erişilebilirlik
+         * açık bir cihazda ajanın `settings put` çalıştırmasını serbest bırakır.
+         * Yalnız MEDIUM ve üstü sorar; `ls`, `cat`, `rg` sessiz geçer.
+         */
+        APPROVAL_GATE("approval_gate", true),
+
+        /**
+         * [37081] Sohbet/gün/ay harcama tavanı.
+         *
+         * ON, ama tavan tanımlanmadıkça hiçbir şey engellemez — bu yüzden
+         * açık olması bedava. Tavanlar ayarlardan girilir.
+         */
+        BUDGET_CAP("budget_cap", true),
+
+        /**
+         * [37082] Kendiliğinden yedek.
+         *
+         * OFF: depolama ve pil harcayan bir iş, kullanıcı istemeden başlamaz.
+         */
+        AUTO_BACKUP("auto_backup", false),
+
+        /**
+         * [37083] Pahalı işten önce plan kartı.
+         *
+         * ON: eşiğin altındaki işte hiç görünmez, üstündeki işte tek kart.
+         */
+        PLAN_PREVIEW("plan_preview", true),
+
+        /**
+         * [37084] Tur sonunda "ne değişti" özeti.
+         *
+         * ON: yalnız dosya değiştiyse çıkar, hiçbir şeyi durdurmaz.
+         */
+        TURN_DIFF("turn_diff", true),
+
+        /**
+         * [37085] Araç şeması daraltma (niyet → 6-10 aday).
+         *
+         * OFF: ilk turda doğru araç oranını düşürebilir. Ölçüm olmadan açmak,
+         * sessiz bir kalite kaybı riski. Açmadan önce "araç seçimi" sayacına
+         * bakılmalı.
+         */
+        TOOL_ROUTER("tool_router", false),
+
+        /**
+         * [37086] Hata/düzeltme → ders önerisi.
+         *
+         * ON: kendiliğinden hafızaya yazmaz, yalnız öneri kartı çıkarır.
+         */
+        LESSON_BOOK("lesson_book", true),
+
+        /**
+         * [37087] "Bitti" beyanı için kanıt.
+         *
+         * OFF: doğrulanamayan işlerde (ör. "kullanıcı beğendi mi") turu
+         * gereksiz uzatır. Açıksa iki turdan sonra uyarıyla geçilir.
+         */
+        EVIDENCE_GATE("evidence_gate", false),
+
+        /**
+         * [37088] Çok adımlı iş boyunca yazma niyeti + çakışma sicili.
+         *
+         * ON: yalnız parallel ajan varken anlamlı; tek ajanda maliyeti sıfır.
+         */
+        WRITE_INTENT("write_intent", true),
+
+        /**
+         * [37089] Kayıtlı yeniden oynatma (model karşılaştırması).
+         *
+         * OFF: geliştirici ölçüm aleti, normal kullanıcı akışında yeri yok.
+         */
+        REPLAY("replay", false),
+
+        /**
+         * [37090] Uzaktan konsol.
+         *
+         * OFF ve **uygulaması yok**: yalnız jeton/yetki modeli yazıldı. Ürün
+         * kararı verilmeden kullanıcıya açılmaz.
+         */
+        REMOTE_CONSOLE("remote_console", false),
         ;
 
         companion object {

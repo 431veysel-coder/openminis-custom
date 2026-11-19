@@ -2931,6 +2931,33 @@
     <string name="ozel_feature_vault_read_subtitle">Off by default. Enabling it lets the assistant read a vault value when a task needs it — which means the secret is sent to your model provider.</string>
     <string name="ozel_notes_open">Open Notes</string>
     <string name="ozel_notes_open_subtitle">Read, write, edit — and the vault</string>
+    <!-- [37080-37090] Özellik paketi — "Minis X" adıyla. -->
+    <string name="mx_section_safety">Safety and cost</string>
+    <string name="mx_safety_footer">The agent asks before anything that cannot be undone. Each approval is remembered in the scope you choose: this chat, this project, or everywhere.</string>
+    <string name="mx_section_agent">Agent quality</string>
+    <string name="mx_agent_footer">These change how the agent plans, verifies and reports. Off is the upstream behaviour.</string>
+
+    <string name="mx_feature_approval_gate">Ask before destructive actions</string>
+    <string name="mx_feature_approval_gate_subtitle">Deleting files, force-pushing, changing device settings and uploading data show a card with the reason, whether it can be undone, and the scope it touches. Safe commands run without asking.</string>
+    <string name="mx_feature_budget_cap">Spending limits</string>
+    <string name="mx_feature_budget_cap_subtitle">Stop starting new turns once this chat, today or this month passes its limit. Nothing is limited until you set a number.</string>
+    <string name="mx_feature_auto_backup">Automatic backups</string>
+    <string name="mx_feature_auto_backup_subtitle">Takes a backup on its own when something changed, after the chosen hour, and keeps the newest few. Off by default: it uses battery and storage.</string>
+
+    <string name="mx_feature_plan_preview">Preview long runs</string>
+    <string name="mx_feature_plan_preview_subtitle">Shows one card before a job that will take minutes or spend a lot: what it will do, how many files, what cannot be undone. Short jobs do not ask.</string>
+    <string name="mx_feature_turn_diff">What changed this turn</string>
+    <string name="mx_feature_turn_diff_subtitle">A one-line summary after each turn: how many files, how many lines. Undo the whole turn in one tap instead of one edit at a time.</string>
+    <string name="mx_feature_lesson_book">Learn from mistakes</string>
+    <string name="mx_feature_lesson_book_subtitle">When the same tool fails twice or you correct the agent, it offers one note to remember. It never writes to memory without you.</string>
+    <string name="mx_feature_write_intent">Warn on shared files</string>
+    <string name="mx_feature_write_intent_subtitle">When two agents work on the same file, the second is told who else is there and that it must re-read before writing.</string>
+    <string name="mx_feature_tool_router">Fewer tool choices per turn</string>
+    <string name="mx_feature_tool_router_subtitle">Sends only the tools that fit the request, with the rest one call away. Saves context and wrong picks, but changes what the model sees: measure before keeping it on.</string>
+    <string name="mx_feature_evidence_gate">Proof before "done"</string>
+    <string name="mx_feature_evidence_gate_subtitle">A completion claim needs a result from the last few turns: a test run, a build, a file, a screenshot. Off by default because some work cannot be proven.</string>
+    <string name="mx_feature_replay">Replay a past run</string>
+    <string name="mx_feature_replay_subtitle">Runs a recorded conversation again with its tool outputs frozen, so two models can be compared on the same task. Developer tool.</string>
     <string name="ozel_features_section_station">Station and edit mode</string>
     <string name="ozel_features_station_footer">The Station runs several providers and models on one task side by side, each in its own space with its own terminal and browser tabs.</string>
     <string name="ozel_feature_station">Station</string>
