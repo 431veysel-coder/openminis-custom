@@ -1,5 +1,8 @@
 package com.openminis.app.ozel
 
+import com.openminis.app.policy.ApprovalRequest
+import com.openminis.app.policy.ApprovalScope
+import com.openminis.app.policy.Decision
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
