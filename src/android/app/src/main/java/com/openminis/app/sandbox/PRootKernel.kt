@@ -721,6 +721,29 @@ object PRootKernel {
         cmd.add("-w")
         cmd.add("/root")
 
+        // [37098] Termux katmanı: bionic yükleyicisi konukta görünmüyor.
+        //
+        // Ölçüldü: PRoot konuğunda `ls /system` → ENOENT. Termux ikilileri
+        // bionic'e bağlı ve ELF yorumlayıcıları /system/bin/linker64 (bazı
+        // imajlarda yalnız /apex altında). Katman KURULUYSA bu iki bölüm
+        // bağlanır; kurulu değilse hiçbir maliyet yok.
+        //
+        // Neden güvenli: /system ve /apex dm-verity ile salt-okunur. `-b` ile
+        // yazılabilir bağlansalar bile yazma EROFS döner, yani bağlama yeni bir
+        // yazma yüzeyi açmıyor. `/data` BİLEREK bağlanmıyor: bağlansaydı
+        // ajan gerçek uygulama verisine ulaşır ve onay kapısının sandbox
+        // sınırı anlamsızlaşırdı.
+        val termuxReady = com.openminis.app.sandbox.TermuxLayer.isInstalled(rootfsManager.rootfsDir)
+        if (termuxReady) {
+            for ((host, linux) in com.openminis.app.sandbox.TermuxLayer.requiredBinds()) {
+                if (java.io.File(host).exists()) {
+                    cmd.add("-b")
+                    cmd.add("$host:$linux")
+                }
+            }
+            Log.i(TAG, "termux layer active: binds=${com.openminis.app.sandbox.TermuxLayer.requiredBinds().size}")
+        }
+
         // User bind mounts
         for ((linuxPath, hostPath) in bindMounts) {
             cmd.add("-b")

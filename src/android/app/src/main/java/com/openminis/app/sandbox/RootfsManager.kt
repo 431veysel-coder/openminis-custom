@@ -830,6 +830,11 @@ class RootfsManager private constructor(private val context: Context) {
          */
         private val USER_TREES = listOf(
             "root", "home", "opt", "usr/local", "etc/apk/world", "var/lib/apk",
+            // [37098] Termux katmanı: 3 779 dosya, ~110 MB. Buraya girmezse bir
+            // sonraki Alpine imajı onu siler — `.10.1`'de aynı hata 1,4 GB'lık
+            // araç zincirini silmişti. Dizin adı kök içinde sıradan bir yol
+            // (gerçek Android /data bağlı değil), o yüzden çakışma yok.
+            "data/data/com.termux",
         )
         private const val ROOTFS_ASSET = "alpine-minirootfs.tar.gz"
         private const val ROOTFS_ASSET_TAR = "alpine-minirootfs.tar"

@@ -71,8 +71,50 @@ object TermuxLayer {
     const val BOOTSTRAP_ZIP_MB: Int = 32
     const val BOOTSTRAP_UNPACKED_MB: Int = 110
 
+    /**
+     * Sabitlenmiş sha256 — GitHub API'nin `digest` alanından alındı.
+     *
+     * Neden sabit: indirme sırasında GitHub'a "doğru özet ne" diye sormak,
+     * doğrulamayı doğrulanacak kaynağa bağlar. Özet burada durur; indirilen
+     * dosya bununla karşılaştırılır. Bootstrap sürümü değişirse ikisi birden
+     * değişir — bu yüzden URL ve özet aynı yorumda duruyor.
+     */
+    const val BOOTSTRAP_SHA256: String =
+        "388acf91cc247e7062d80cd8aa791fe72f360515fb78dc54ff45742120facae7"
+    const val BOOTSTRAP_BYTES: Long = 33_148_806L
+
     /** `apt update` sonrası liste + ilk kurulumlar için önerilen boş alan. */
     const val RECOMMENDED_FREE_MB: Int = 400
+
+    /**
+     * [37098] APK boyut bütçesi.
+     *
+     * ## Bu sürümün boyuta etkisi — ölçülmüş sınırlar
+     *
+     * Beyan: **bootstrap APK'ya gömülmez.** Gömülseydi APK +32 MB olurdu ve
+     * 43 MB'lık bir paket 75 MB'a çıkardı; telefondaki derleme (aapt2/dex/
+     * zipalign) ve CI'daki artefakt aktarımı bundan gerçekten etkilenir.
+     * Bu yüzden bootstrap **çalışma anında** indiriliyor: kullanmayan kullanıcı
+     * hiçbir bedel ödemiyor, kullanan 31,6 MB'ı bir kez indiriyor.
+     *
+     * ## Kodun kendisi ne kadar ekler
+     *
+     * Termux katmanının Kotlin kodu (TermuxLayer + Installer + Prompt + testler)
+     * DEX'e giren **~1 500 satır**. DEX sıkıştırılmış hâlde bu, APK'ya
+     * **tahmini 30–60 KB** ekler — ölçülecek, iddia edilmeyecek. Aşağıdaki
+     * bütçe bu yüzden var: sessiz büyüme, "küçük bir ekleme" diye başlayıp
+     * 5 MB'a çıkan onlarca eklemenin toplamıdır.
+     */
+    const val APK_BUDGET_KB: Int = 120
+
+    /**
+     * APK'ya girebilecek **en büyük tek dosya** sınırı.
+     *
+     * Bootstrap 31,6 MB, `alpine-minirootfs.tar.gz` ~3 MB. Bir gün biri
+     * "hazır olsun" diye bootstrap'ı `assets/`e koyarsa bu sabit onu yakalar:
+     * `TermuxLayerTest` ve CI'daki boyut kapısı bunu okuyor.
+     */
+    const val MAX_EMBEDDED_ASSET_KB: Int = 4 * 1024
 
     /** bionic yükleyicinin yaşadığı bilinen konumlar, sırayla. */
     private val LOADER_CANDIDATES = listOf(

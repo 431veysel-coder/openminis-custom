@@ -72,7 +72,33 @@ object ToolchainManager {
         val spec: ToolchainProbe.Spec get() = ToolchainProbe.Spec(id, requiredBinaries)
     }
 
+    /** [37098] Termux katmanının grup kimliği — `apk` gruplarından ayrı yol. */
+    const val TERMUX_GROUP_ID: String = "termux"
+
+    /**
+     * [37098] Termux katmanı, `apk` gruplarıyla aynı listede görünür.
+     *
+     * `packages` boş: bu grup `apk` ile kurulmaz. Neden yine de bir `Group`:
+     * arayüz tek bir liste çiziyor ve kullanıcı "Termux" satırını diğer
+     * grupların arasında görmeli — ayrı bir ekran, "bu nerede" sorusunu
+     * doğurur. Kurulum yolu `install()` içinde ayrılıyor.
+     *
+     * `sizeMb` bootstrap'in **indirme** boyutu (31,6 MB → 32). Kurulum
+     * sonrası disk 110 MB; iki sayı ayrı yerde yazılı ve kart ikisini de
+     * göstermeli, yoksa "32 MB dedin 110 MB yedi" şikâyeti haklı olur.
+     */
+    val termuxGroup: Group = Group(
+        id = TERMUX_GROUP_ID,
+        titleRes = com.openminis.app.R.string.toolchain_termux_title,
+        subtitleRes = com.openminis.app.R.string.toolchain_termux_subtitle,
+        packages = emptyList(),
+        sizeMb = TermuxLayer.BOOTSTRAP_ZIP_MB,
+        probe = "${TermuxLayer.GUEST_PREFIX}/bin/bash --version",
+        requiredBinaries = listOf("bash", "apt"),
+    )
+
     val groups: List<Group> = listOf(
+        termuxGroup,
         Group(
             id = "c",
             titleRes = com.openminis.app.R.string.toolchain_c_title,
@@ -441,11 +467,60 @@ object ToolchainManager {
      * Returns true when the group probes clean afterwards — apk's exit code
      * alone is not enough, since a partial install can succeed per-package.
      */
+    /**
+     * [37098] Termux katmanı kurulumu — `apk` yolunun karşılığı.
+     *
+     * Aynı `InstallState` makinesini kullanır: arayüz `Installing(line)` ile
+     * ilerlemeyi, `Failed(message)` ile nedeni, `Present` ile bitişi görür.
+     * Fark: ilerleme satırı `apk`'dan değil [TermuxInstaller]'ın adımlarından
+     * geliyor ("indirme 12,4/31,6 MB").
+     *
+     * Başarı ölçütü yine **iddia değil kanıt**: `TermuxInstaller` son adımda
+     * `bash --version` ve `apt --version` çalıştırır; o geçmeden `Present`
+     * denmez.
+     */
+    private suspend fun installTermux(context: Context, onLine: (String) -> Unit): Boolean {
+        set(TERMUX_GROUP_ID, InstallState.Installing(null))
+        AppLogger.info(TAG, "[install] termux layer start")
+        val result = runCatching {
+            TermuxInstaller.install(context) { p ->
+                val line = when {
+                    p.error != null -> "hata: ${p.error}"
+                    p.bytesTotal > 0 && p.stepId == "download" && !p.done ->
+                        "${p.title}: ${p.bytesDone / 1048576},${(p.bytesDone % 1048576) * 10 / 1048576} / " +
+                            "${p.bytesTotal / 1048576} MB"
+                    p.done -> "${p.title} ✓"
+                    else -> "${p.title}: ${p.message}"
+                }.trim()
+                set(TERMUX_GROUP_ID, InstallState.Installing(line))
+                onLine(line)
+            }
+        }.getOrElse { t ->
+            set(TERMUX_GROUP_ID, InstallState.Failed(t.message ?: t.javaClass.simpleName))
+            return false
+        }
+        if (!result.ok) {
+            set(TERMUX_GROUP_ID, InstallState.Failed(result.message))
+            AppLogger.info(TAG, "[install] termux layer FAILED: ${result.message}")
+            return false
+        }
+        set(TERMUX_GROUP_ID, InstallState.Present)
+        AppLogger.info(TAG, "[install] termux layer ok: ${result.message}")
+        return true
+    }
+
     suspend fun install(
         context: Context,
         groupId: String,
         onLine: (String) -> Unit = {},
     ): Boolean = withContext(Dispatchers.IO) {
+        // [37098] Termux katmanı bir `apk` grubu değil: kendi indirmesi,
+        // kendi sha256'sı, kendi symlink adımı var. `apk add` ile kurulamaz,
+        // o yüzden ayrı yola gider — ama **aynı state makinesini** kullanır
+        // ki arayüz iki farklı kurulum biçimi öğrenmek zorunda kalmasın.
+        if (groupId == TERMUX_GROUP_ID) {
+            return@withContext installTermux(context, onLine)
+        }
         val group = groups.firstOrNull { it.id == groupId } ?: return@withContext false
         set(groupId, InstallState.Installing(null))
         AppLogger.info(TAG, "[install] ${group.id} packages=${group.packages.joinToString(" ")}")

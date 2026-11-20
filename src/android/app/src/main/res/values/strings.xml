@@ -800,6 +800,11 @@
     <string name="toolchain_scripting_subtitle">Ruby, Perl, PHP — older scripts and CLI tooling</string>
     <string name="toolchain_android_title">Android build tools</string>
     <string name="toolchain_android_subtitle">adb (wireless debugging), gradle — build and drive APKs</string>
+    <!-- [37098] Termux katmanı. Alt yazı iki sayıyı da yazmak zorunda: indirme
+         32 MB, diskte 110 MB. Tek sayı vermek "32 MB dedin 110 MB yedi"
+         şikâyetini haklı çıkarır. -->
+    <string name="toolchain_termux_title">Termux layer</string>
+    <string name="toolchain_termux_subtitle">apt/pkg universe on bionic: openssh, python, node, clang — needs ~110 MB on disk (32 MB download)</string>
 
     <!-- [MINIS-OZEL] Quick Settings tile -->
     <string name="qs_tile_label">Minis</string>

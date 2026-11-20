@@ -1,6 +1,6 @@
 # TERMUX ENTEGRASYONU — tasarım, güvenlik, ön/arka yüz, etkiler
 
-**Sürüm hedefi:** `37098` / `1.15-ozel.17` · **Durum:** tasarım + çekirdek kod hazır, kurulum akışı bağlanmadı
+**Sürüm hedefi:** `37098` / `1.15-ozel.17` · **Durum:** P1 + P2 kod tamam (karar, kurulum, bağlar, istem); P3 arayüz sırada
 **Ölçüm tarihi:** 2026-11-20 · **Cihaz:** Infinix X6873, Android 16 (SDK 36), arm64-v8a
 
 Bu belge bir niyet beyanı değil. Her bölüm ya **ölçülmüş** bir gerçeğe, ya
@@ -207,16 +207,30 @@ hata yaşandı: rootfs yeniden çıkarılınca 1,4 GB'lık araç zinciri silinmi
 
 ### 6.1 Araç zincirleri ekranında yeni kart
 
+Grup listesinin **başında** (`ToolchainManager.groups[0]`), çünkü bir kez
+kurulur ve diğerlerinden bağımsızdır; sona koymak, sayfayı kaydırmayan
+kullanıcıdan gizlemek olurdu.
+
 ```
-┌──────────────────────────────────────────────┐
-│ Termux katmanı            [Kurulmadı]        │
-│ Termux paket evreni (apt): openssh, python,  │
-│ node, clang… Android'e bionic'ten bağlanır.  │
-│                                              │
-│ 110 MB · 3 779 dosya · bu cihazda kullanılabilir │
-│                              [ Kur (110 MB) ] │
-└──────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│ Termux layer                              [Kurulmadı]        │
+│ apt/pkg universe on bionic: openssh, python, node, clang —   │
+│ needs ~110 MB on disk (32 MB download)                       │
+│                                                              │
+│                     [ Kur (32 MB indirme) ]                  │
+└──────────────────────────────────────────────────────────────┘
 ```
+
+Kurulum sırasında aynı kart ilerlemeyi gösterir (`InstallState.Installing`):
+
+```
+│ Termux layer                                 [Kuruluyor]      │
+│ indirme: 12,4 / 31,6 MB                                      │
+└──────────────────────────────────────────────────────────────┘
+```
+
+Bittiğinde **çıktı** görünür, "başarılı" yazısı değil:
+`bash: GNU bash, version 5.2.37 … · apt: apt 3.1.6 …`
 
 Uygun değilse:
 
@@ -255,15 +269,93 @@ değil, gerçek sürüm satırı.
 - **Onay kartı:** `apt`/`sshd` komutlarında mevcut beş satırlık kart; `YETKİ`
   satırı "bu oturumun dosyaları" / "ağ" der.
 
-### 6.4 Kullanıcının "kullanacağı şekli"
+### 6.4 Sohbette kullanım — somut akış
 
-Üç kullanım biçimi, üçü de bugünkü akışın içinde:
+Kullanıcının sorduğu asıl soru bu. Üç senaryo, üçü de bugünkü sohbet akışının
+içinde; ayrı bir "Termux ekranı" yok.
 
-1. **Sohbette doğal dil:** *"openssh kur ve kendine bir ssh anahtarı üret"* →
-   ajan `apt install openssh` çağırır → kart → kurulum → çıktı.
-2. **Terminal:** kullanıcı doğrudan `pkg install` yazar (katman rozeti görünür).
-3. **Araç zincirleri ekranı:** tek dokunuşla hazır gruplar
-   (`ssh istemcisi`, `python + pip`, `node`), elle `apt` yazmadan.
+#### Senaryo A — katman kurulu değil, kullanıcı Termux'a özel paket istiyor
+
+> **Kullanıcı:** "termux-api kur, bildirim gönderebileyim"
+
+Ajan istemde `NOT_READY` bölümünü görüyor. Davranış:
+
+```
+Bu paket Termux katmanında; şu an yalnız Alpine (apk) var.
+Ayar → Minis X → Araç zincirleri → "Termux layer" ile kurulur.
+Maliyet: 32 MB indirme, diskte ~110 MB.
+```
+
+Model `apt install` **çalıştırmıyor**. Neden: 31 MB indirme kullanıcı onayı
+olmadan yapılmamalı ve başarısız bir `apt` çağrısı kullanıcıya "izin yok" gibi
+görünür — yanlış teşhis.
+
+#### Senaryo B — katman kurulu, normal iş
+
+> **Kullanıcı:** "openssh kur ve bir anahtar üret"
+
+```
+1. Ajan: shell_execute("apt install -y openssh")
+2. Onay kartı:  "Termux deposundan paket kurar/kaldırır"
+   NE           apt install -y openssh
+   GERİ DÖNÜŞ   geri alınabilir
+   YETKİ        yalnız ajanın çalışma alanı
+                [Bir kez izin ver] [Kalıcı…] [Hepsini reddet]
+3. "Kalıcı…" → "Bu projede hep"  → sonraki `apt install`'lar sessiz geçer
+   (MEDIUM + UNDOABLE → proje kapsamı verilir, tavan yok)
+4. Ajan: ssh-keygen -t ed25519 -f /var/minis/shared/anahtar
+   (bu yol HER İKİ katmanda da aynı — tek kök kuralının karşılığı)
+```
+
+#### Senaryo C — ret
+
+> Kullanıcı kartta "Hepsini reddet" der.
+
+Ajan gerekçeyi **aynen** alıyor (`GateDecision.forAgent()`): *"Reddedildi
+(termux:pkg): kullanıcı reddetti. Bu işlemi farklı yazarak tekrar denemeyin.
+Amacınız buysa kullanıcıya sorun ya da kapsamı daraltın."* Yani model aynı şeyi
+`pkg install` diye yeniden yazmıyor — bu, `.15`'e kadar açık olan döngü.
+
+### 6.5 Çalışma alanı — dosyalar nerede, kim görüyor
+
+| Yol | Kim yazar | İki katman da görür mü |
+|---|---|---|
+| `/var/minis/workspace` | ajan (oturum) | ✅ evet — PRoot bağı |
+| `/var/minis/attachments` | kullanıcı + ajan | ✅ |
+| `/var/minis/shared` | ikisi, kalıcı | ✅ |
+| `/var/minis/memory`, `/skills` | ajan | ✅ |
+| `/data/data/com.termux/files/usr` | `apt` | yalnız Termux (bionic lib'ler) |
+| `/data/data/com.termux/files/home` | iki katman | ✅ (Termux `$HOME`) |
+| `/system`, `/apex` | yalnız okuma (dm-verity) | ✅ bağlı (katman kuruluysa) |
+| **`/data` (gerçek Android)** | — | **❌ asla bağlanmaz** |
+
+**Kural:** kullanıcı dosyaları `/var/minis/*` altında kalır. Termux `$HOME`
+ayrı bir dünyadır ve **yedeklenmez** (yalnız `shared` yedeklenir). Bir dosya
+kalıcı olacaksa `/var/minis/shared`'a yazılmalı — istem bunu modelin bildiği
+tek yol olarak söylüyor.
+
+### 6.6 Erişim — ajan neye dokunabilir, neye dokunamaz
+
+| Yetki | Katman kurulu değil | Kurulu |
+|---|---|---|
+| Alpine `apk` | ✅ | ✅ |
+| `apt`/`pkg` (Termux) | ❌ komut yok | ✅ kart açar |
+| `/system` okuma | ❌ görünmez | ✅ |
+| Gerçek `/data` (uygulama verisi, anahtarlar) | ❌ | ❌ **hiçbir durumda** |
+| Ağ (`curl`, `ssh`) | ✅ | ✅ (kart açar) |
+| `sshd` dinleme | ❌ | ✅ HIGH kart, yalnız bu sohbet |
+| Kullanıcı dosyaları `/var/minis/*` | ✅ | ✅ |
+
+### 6.7 Entegrasyon — mevcut sistemle nerede birleşiyor
+
+| Sistem | Nasıl | Kod |
+|---|---|---|
+| Onay kapısı | 3 yeni kural, korpusta 9 satır | `RiskRules`, `risk-corpus.txt` |
+| Araç zincirleri ekranı | Liste başında "Termux layer" grup kartı | `ToolchainManager.termuxGroup` |
+| Sistem istemi | Kurulu/kurulu değil iki sabit metin | `TermuxPrompt.section()` |
+| Kabuk yürütme | `-b /system -b /apex`, `PATH` öneki | `PRootKernel.buildProotCommand` |
+| Rootfs güncelleme | `USER_TREES` koruması | `RootfsManager` |
+| Entegrasyon denetimi | 10/11 → katman bağlanınca 12/12 hedefi | `integration_audit.py` |
 
 ---
 
@@ -356,8 +448,8 @@ denmez.
 | Faz | İş | Neden bu sırada |
 |---|---|---|
 | **P1** ✅ | `TermuxLayer` + 3 kural + 13 test + korpus | Karar mantığı önce: kurulum yazmadan önce "çalışır mı" belli olsun |
-| **P2** | `PRootKernel` bind ekleme + `USER_TREES` + kurulum akışı | Gerçek kurulum; T1–T10 burada |
-| **P3** | `ToolchainScreen` kartı + terminal katman rozeti | Ön yüz; kurulum çalışmadan UI yazmak boş vaat |
+| **P2** ✅ | `TermuxInstaller` (10 adım, tekrar başlatılabilir) + `PRootKernel` bağları + `USER_TREES` + `TermuxPrompt` + `ToolchainManager.termuxGroup` | Gerçek kurulum ve **modelin haberi**: araç var, istem yok = özellik yok |
+| **P3** | `ToolchainScreen` ilerleme çubuğu + terminal katman rozeti | Kalan tek görünür iş; `install()` zaten `Installing(line)` yayıyor |
 | **P4** | `sshd` anahtar tabanlı, parola kapalı, otomatik kapanma (30 dk) | En riskli yüzey en sona |
 | **P5** | Ölçümler + `apt` önbellek temizliği + yedek dışlama | Maliyet kontrolü |
 

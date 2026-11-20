@@ -215,7 +215,12 @@ def update_index(out: Path) -> None:
         text = label.read_text(encoding="utf-8")
         def cell(key: str) -> str:
             m = re.search(rf"\|\s*\*\*{key}\*\*\s*\|\s*(.+?)\s*\|", text)
-            return m.group(1) if m else "—"
+            if not m:
+                return "—"
+            # DAMGA.md değerleri kendi kalın işaretlerini taşıyor
+            # (`**PUSH EDİLMEDİ**`); tabloda tekrar sarılınca `****metin****`
+            # oluyor ve Markdown onu düz metin gösteriyor. Temizle.
+            return m.group(1).replace("**", "").strip()
         rows.append(
             f"| `{d.name}` | {cell('Zaman').split(' (')[0]} | {cell('Sürüm')} | "
             f"{cell('Commit')} | **{cell('Push durumu').split(' ·')[0]}** | "
