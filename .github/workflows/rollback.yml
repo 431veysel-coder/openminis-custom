@@ -66,22 +66,22 @@ jobs:
 
           # The version we are restoring FROM (the target's own numbers) …
           OLD_CODE=$(git show "$SHA:src/android/app/build.gradle.kts" \
-            | sed -n 's/.*versionCode = \([0-9]*\).*/\1/p' | head -1)
+            | sed -n 's/.*versionCode = \([0-9]*\).*/\1/p' | sed -n '1p')
           OLD_NAME=$(git show "$SHA:src/android/app/build.gradle.kts" \
-            | sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' | head -1)
+            | sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' | sed -n '1p')
           echo "target version: $OLD_NAME ($OLD_CODE)"
 
           # … and the highest build number this repo has ever published, so the
           # rollback is unambiguously newer than the release it is undoing.
           # Both sources are consulted because a release can exist without its
           # tag being reachable from the shallow clone.
-          HIGHEST_TAG=$(git tag --list 'v*' --sort=-v:refname | head -50 \
+          HIGHEST_TAG=$(git tag --list 'v*' --sort=-v:refname | sed -n '1,50p' \
             | while read -r t; do
                 git show "$t:src/android/app/build.gradle.kts" 2>/dev/null \
-                  | sed -n 's/.*versionCode = \([0-9]*\).*/\1/p' | head -1
+                  | sed -n 's/.*versionCode = \([0-9]*\).*/\1/p' | sed -n '1p'
               done | sort -n | tail -1)
           CURRENT_CODE=$(sed -n 's/.*versionCode = \([0-9]*\).*/\1/p' \
-            src/android/app/build.gradle.kts | head -1)
+            src/android/app/build.gradle.kts | sed -n '1p')
           HIGHEST=$(printf '%s\n%s\n' "$OLD_CODE" "$HIGHEST_TAG" "$CURRENT_CODE" \
             | sort -n | tail -1)
           NEW_CODE=$((HIGHEST + 1))
@@ -126,7 +126,7 @@ jobs:
           F=src/android/app/build.gradle.kts
           sed -i "s/versionCode = [0-9]*/versionCode = ${{ steps.plan.outputs.new_code }}/" "$F"
           sed -i "s/versionName = \"[^\"]*\"/versionName = \"${{ steps.plan.outputs.new_name }}\"/" "$F"
-          grep -nE 'versionCode|versionName' "$F" | head -3
+          grep -nE 'versionCode|versionName' "$F" | sed -n '1,3p'
 
       - name: Identity guard (must pass before anything is published)
         run: bash scripts/check_identity.sh

@@ -251,6 +251,17 @@ object OzelFeatures {
          * kararı verilmeden kullanıcıya açılmaz.
          */
         REMOTE_CONSOLE("remote_console", false),
+
+        /**
+         * [37095] Sohbet üst çubuğundaki sağlık göstergesi (TTFB, tekrar
+         * deneme, hata kodu).
+         *
+         * ON: yalnız **okur** — hiçbir isteği, hiçbir modeli, hiçbir akışı
+         * değiştirmez. Ölçüm zaten yapılıyordu (`streamStartMs`,
+         * `firstChunkSeen`, `_autoRetryAttempt`), tek eksiği ekranda
+         * görünmemesiydi. Kapalıyken chip çizilmez ve sayacı da durur.
+         */
+        CHAT_HEALTH("chat_health", true),
         ;
 
         companion object {

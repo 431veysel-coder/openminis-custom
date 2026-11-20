@@ -1,0 +1,8 @@
+{"t": "2026-11-19T23:40:14Z", "id": "F-sozlesme-37091", "op": "ac", "tur": "F", "is": "sozlesme-37091", "oturum": "A", "taban": "ea17ff6", "kademe": "K1", "durma": "audit yesil", "butce": "", "kapsam": ["pytest kurulumu"], "disi": ["test icerigi"]}
+{"t": "2026-11-19T23:40:14Z", "id": "F-sozlesme-37091", "op": "alan", "alan": "hata", "deger": "/usr/bin/python3: No module named pytest (run 44638097929, 10s)"}
+{"t": "2026-11-19T23:40:14Z", "id": "F-sozlesme-37091", "op": "alan", "alan": "sinif", "deger": "CI"}
+{"t": "2026-11-19T23:40:15Z", "id": "F-sozlesme-37091", "op": "alan", "alan": "deneme", "deger": "1"}
+{"t": "2026-11-19T23:40:15Z", "id": "F-sozlesme-37091", "op": "alan", "alan": "onleyici", "deger": "audit.yml: Install test runner adimi (pytest==8.3.4 pinli)"}
+{"t": "2026-11-19T23:40:15Z", "id": "F-sozlesme-37091", "op": "kanit", "deger": "kosu:44639275217:audit"}
+{"t": "2026-11-19T23:41:25Z", "id": "F-sozlesme-37091", "op": "alan", "alan": "kanit", "deger": "kosu:44639275217:audit"}
+{"t": "2026-11-19T23:41:27Z", "id": "F-sozlesme-37091", "op": "kapat", "sonuc": "TAMAM"}

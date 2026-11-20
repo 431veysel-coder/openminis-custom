@@ -34,12 +34,39 @@ on:
       - 'docs/**'
 
 permissions:
-  # softprops/action-gh-release creates the release the in-app updater polls.
-  contents: write
+  # [MINIS-X least-privilege 37094] Was `contents: write` for the WHOLE
+  # workflow, which handed a write token to preflight, compile, tests and
+  # native — four jobs that only read code and run checks. Only the build job
+  # publishes a release, so only it gets write (see the job below). The
+  # actions/* artifact steps keep working: they use the runtime token, not this
+  # one.
+  contents: read
 
 concurrency:
   group: apk-${{ github.ref }}
   cancel-in-progress: true
+
+# [MINIS-X run-logs 37094] Every `run:` block is a bash script, and the long
+# commands below are piped into `tee` so the log survives the runner.
+#
+# Two facts from the workflow-syntax docs, both load-bearing:
+#   * shell unset (what this file used to be) runs `bash -e {0}` — NO pipefail.
+#     So `gradlew | tee` returns tee's 0 even when gradle failed, and the job
+#     goes green on a failed build.
+#   * shell `bash` runs `bash --noprofile --norc -eo pipefail {0}` — WITH
+#     pipefail, and without sourcing the runner's profile, which could inject
+#     shell options we never asked for.
+# The flags are spelled out rather than written as `shell: bash` so the file
+# states what it gets instead of relying on a doc line someone has to remember.
+#
+# Consequence for every pipeline in this file: an early-exit consumer (`head`,
+# `grep -q`) closes the pipe while the producer is still writing, the producer
+# dies of SIGPIPE (141), and pipefail turns that into a red step. `| head -1`
+# and `| grep -q` are therefore banned below; `sed -n '1,Np'`, `grep -c >/dev/null`
+# and bash `case` read to EOF and cannot produce that failure.
+defaults:
+  run:
+    shell: bash --noprofile --norc -eo pipefail {0}
 
 env:
   # [MINIS-X ci-cache] Pinned so the Go cache key does not churn on a toolchain
@@ -127,19 +154,34 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
-          CODE=$(sed -n 's/^ *versionCode *= *\([0-9]\+\).*/\1/p' src/android/app/build.gradle.kts | head -1)
-          NAME=$(sed -n 's/^ *versionName *= *"\([^"]*\)".*/\1/p' src/android/app/build.gradle.kts | head -1)
+          CODE=$(sed -n 's/^ *versionCode *= *\([0-9]\+\).*/\1/p' src/android/app/build.gradle.kts | sed -n '1p')
+          NAME=$(sed -n 's/^ *versionName *= *"\([^"]*\)".*/\1/p' src/android/app/build.gradle.kts | sed -n '1p')
           [ -n "$CODE" ] || { echo "::error::could not read versionCode"; exit 1; }
           [ -n "$NAME" ] || { echo "::error::could not read versionName"; exit 1; }
           TAG="v$NAME"
           echo "gate: $TAG build $CODE"
+          # [37094] `|| true` made this gate FAIL OPEN. An expired token or a
+          # 403 answered exactly like "no release yet", so the one check that
+          # protects a published versionCode passed silently on the errors
+          # where it was most needed. "No such release" and "the query failed"
+          # are now different outcomes, and only the first one is allowed.
+          ERR=$(mktemp)
+          set +e
           EXISTING=$(gh release view "$TAG" --repo "${{ github.repository }}" \
-              --json assets --jq '.assets[].name' 2>/dev/null || true)
-          if [ -z "$EXISTING" ]; then
-            echo "gate: no release for $TAG yet — allowed"
-            exit 0
+              --json assets --jq '.assets[].name' 2>"$ERR")
+          RC=$?
+          set -e
+          if [ "$RC" -ne 0 ]; then
+            if grep -qiE 'not found|HTTP 404' "$ERR"; then
+              echo "gate: no release for $TAG yet — allowed"
+              exit 0
+            fi
+            echo "::error::could not query releases for $TAG (gh exit $RC):"
+            sed -n '1,5p' "$ERR"
+            echo "::error::refusing to publish on an unverified gate"
+            exit 1
           fi
-          OLD=$(echo "$EXISTING" | sed -n 's/.*-build\([0-9]*\)-.*/\1/p' | head -1)
+          OLD=$(echo "$EXISTING" | sed -n 's/.*-build\([0-9]*\)-.*/\1/p' | sed -n '1p')
           if [ -z "$OLD" ]; then
             echo "::error::$TAG exists without a build number in its asset name — refusing"
             exit 1
@@ -227,7 +269,49 @@ jobs:
         working-directory: src/android
         run: |
           chmod +x gradlew
-          ./gradlew :app:compileGithubDebugKotlin --build-cache --stacktrace
+          # [37094] Same tee contract as the other Gradle steps: the file is
+          # uploaded with `if: always()`, so a red compile can be read back
+          # after the artifact expires from the Actions UI.
+          LOG="$GITHUB_WORKSPACE/build/logs/compile.log"
+          mkdir -p "$(dirname "$LOG")"
+          ./gradlew :app:compileGithubDebugKotlin --build-cache --stacktrace 2>&1 | tee -a "$LOG"
+
+      # [37094] `if: always()` is the whole point: without it the upload step is
+      # skipped exactly when the compile failed, i.e. when the log is the only
+      # thing worth having. 90 days is the ceiling on a public repo.
+      - name: Scrub secrets from the logs
+        # [37094] GitHub masks secrets in the LIVE log stream only. These files
+        # are the copy that survives, and artifact contents are not masked. A
+        # `tee` that captures everything therefore needs a scrub before upload.
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/scrub_logs.py build/logs
+
+      - name: Upload run logs
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-logs-compile
+          path: build/logs/**
+          retention-days: 90
+          if-no-files-found: warn
+
+      # [G2 37094] Room's schema JSON is a BUILD OUTPUT: KSP writes it to
+      # `src/android/app/schemas/<db>/<version>.json` and it is not in the repo
+      # for version 15. Without it, `MigrationTestHelper` cannot compare 14→15
+      # and the next DB change has no baseline. Uploading it from the job that
+      # already pays for KSP is the only way to obtain it without a local JDK
+      # (this device has none — PRoot cannot mark pages executable).
+      - name: Upload Room schemas
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: room-schemas
+          path: src/android/app/schemas/**
+          retention-days: 90
+          if-no-files-found: warn
 
   tests:
     name: Unit tests
@@ -311,7 +395,31 @@ jobs:
         working-directory: src/android
         run: |
           chmod +x gradlew
-          ./gradlew :app:testGithubDebugUnitTest --tests 'com.openminis.app.ozel.*' --stacktrace
+          LOG="$GITHUB_WORKSPACE/build/logs/tests.log"
+          mkdir -p "$(dirname "$LOG")"
+          ./gradlew :app:testGithubDebugUnitTest --tests 'com.openminis.app.ozel.*' --stacktrace 2>&1 | tee -a "$LOG"
+
+      # [37094] A red test is the case where the HTML report and the raw console
+      # log matter most, so both are uploaded unconditionally.
+      - name: Scrub secrets from the logs
+        # [37094] Same reason as the other jobs: the artifact copy of a log is
+        # not masked, so it is scrubbed before it leaves the runner.
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/scrub_logs.py build/logs
+
+      - name: Upload run logs and test report
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-logs-tests
+          path: |
+            build/logs/**
+            src/android/app/build/reports/tests/**
+            src/android/app/build/test-results/**
+          retention-days: 90
+          if-no-files-found: warn
 
       # Upstream's 721 test files are NOT run here any more. They took 612 s of
       # the old pipeline to produce a result that could not fail anything
@@ -345,7 +453,7 @@ jobs:
       - name: Init proot submodule
         run: |
           git submodule update --init --depth 1 deps/proot
-          ls -la deps/proot | head -5
+          ls -la deps/proot | sed -n '1,5p'
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -414,19 +522,23 @@ jobs:
         # this would cost more in restore than it saves — hence uncached, on
         # purpose, and this comment is why that is not an oversight.
         run: |
-          ./deps/build_proot.sh
-          ./scripts/prepare_android_sandbox.sh
-          ls -la src/android/app/src/main/jniLibs/arm64-v8a/
-          ls -la src/android/app/src/main/assets/ | head -10
+          LOG="$GITHUB_WORKSPACE/build/logs/native.log"
+          mkdir -p "$(dirname "$LOG")"
+          ./deps/build_proot.sh 2>&1 | tee -a "$LOG"
+          ./scripts/prepare_android_sandbox.sh 2>&1 | tee -a "$LOG"
+          ls -la src/android/app/src/main/jniLibs/arm64-v8a/ | tee -a "$LOG"
+          ls -la src/android/app/src/main/assets/ 2>&1 | sed -n '1,12p' | tee -a "$LOG"
 
       - name: Build rclone.aar
         if: steps.rclone-cache.outputs.cache-hit != 'true'
         run: |
           chmod +x deps/build_rclone_android.sh
-          ./deps/build_rclone_android.sh
+          LOG="$GITHUB_WORKSPACE/build/logs/native.log"
+          mkdir -p "$(dirname "$LOG")"
+          ./deps/build_rclone_android.sh 2>&1 | tee -a "$LOG"
           mkdir -p src/android/app/libs
           cp deps/build/rclone/rclone.aar src/android/app/libs/
-          ls -la src/android/app/libs/
+          ls -la src/android/app/libs/ | tee -a "$LOG"
 
       - name: Upload the native layer
         uses: actions/upload-artifact@v4
@@ -442,6 +554,24 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
+      # [37094] The native layer is where "it downloaded everything again" shows
+      # up. The log says which cache failed to restore and why — and, because
+      # these files outlive the Actions UI, they are scrubbed before upload.
+      - name: Scrub secrets from the logs
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/scrub_logs.py build/logs
+
+      - name: Upload run logs
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-logs-native
+          path: build/logs/**
+          retention-days: 90
+          if-no-files-found: warn
+
 
   build:
     name: Android APK (${{ inputs.build_type || 'release' }})
@@ -451,6 +581,10 @@ jobs:
     # pipeline at max(native + build, tests) instead of native + build + tests,
     # since preflight finishes long before native does.
     needs: [preflight, native, version-gate, compile, tests]
+    # [37094] The only job that writes: softprops/action-gh-release creates the
+    # release the in-app updater polls. Scoped here instead of workflow-wide.
+    permissions:
+      contents: write
     # [MINIS-OZEL 11.4] `tests` is in `needs` now that publishing is automatic.
     # Before, a release run whose test job was RED still built and PUBLISHED:
     # the run said "failure" while the APK was already on the release page, so
@@ -651,12 +785,15 @@ jobs:
         working-directory: src/android
         run: |
           chmod +x gradlew
+          LOG="$GITHUB_WORKSPACE/build/logs/assemble.log"
+          mkdir -p "$(dirname "$LOG")"
           BT="${{ inputs.build_type || 'release' }}"
           if [ "$BT" = "debug" ]; then
-            ./gradlew :app:assembleGithubDebug --build-cache --parallel --stacktrace
+            TASK=":app:assembleGithubDebug"
           else
-            ./gradlew :app:assembleGithubRelease --build-cache --parallel --stacktrace
+            TASK=":app:assembleGithubRelease"
           fi
+          ./gradlew $TASK --build-cache --parallel --stacktrace 2>&1 | tee -a "$LOG"
 
       - name: Verify APK contents
         working-directory: src/android
@@ -664,13 +801,28 @@ jobs:
           BTYPE: ${{ inputs.build_type || 'release' }}
         run: |
           set -e
-          APK=$(find app/build/outputs/apk -name 'app-github-*.apk' | head -1)
+          # [37094] No `| head` / `| grep -q` anywhere in this step. Both exit
+          # before their producer finishes, the producer dies of SIGPIPE (141),
+          # and under the pipefail set at the top of this file that turns a
+          # PASSING check into a red step — the worst possible failure mode for
+          # a release gate, because it only shows up on the release run. So:
+          # capture each tool's output once, then match with bash `case`, which
+          # reads a variable instead of a pipe.
+          APK=$(find app/build/outputs/apk -name 'app-github-*.apk' | sed -n '1p')
+          [ -n "$APK" ] || { echo "FAIL: no APK produced under app/build/outputs/apk"; exit 1; }
           echo "checking $APK"
           BT="$ANDROID_HOME/build-tools/36.0.0"
-          # 1. identity really landed
-          "$BT/aapt2" dump badging "$APK" | head -2
-          "$BT/aapt2" dump badging "$APK" | grep -q "package: name='com.minis.x'" \
-            || { echo "FAIL: applicationId not applied"; exit 1; }
+          [ -d "$BT" ] || BT=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | sed -n '$p')
+          [ -x "$BT/aapt2" ] || { echo "FAIL: no aapt2 under $ANDROID_HOME/build-tools"; exit 1; }
+          echo "build-tools: $BT"
+
+          # 1. identity really landed (one aapt2 call, not three)
+          BADGING=$("$BT/aapt2" dump badging "$APK")
+          printf '%s\n' "$BADGING" | sed -n '1,2p'
+          case "$BADGING" in
+            *"package: name='com.minis.x'"*) : ;;
+            *) echo "FAIL: applicationId not applied"; exit 1 ;;
+          esac
           # 2. signature is ours and verifies
           #
           # DEBUG BUILDS ARE NOT SIGNED WITH THE RELEASE KEY, by design (they
@@ -680,21 +832,30 @@ jobs:
           # while the only thing that happened is that the debug keystore did
           # what it is for. The release identity is still checked below, in the
           # release path only, where publishing actually happens.
-          "$BT/apksigner" verify --print-certs "$APK"
+          CERTS=$("$BT/apksigner" verify --print-certs "$APK")
+          printf '%s\n' "$CERTS" | sed -n '1,6p'
           if [ "${BTYPE:-release}" = "debug" ]; then
             echo "debug build — signing identity not asserted (only release is)"
           else
-            "$BT/apksigner" verify --print-certs "$APK" | grep -q "3e62d262631a8182167bfb22df64ae413286257fc6e6a77a08c6ced0bc0bb6c9" \
-              || { echo "FAIL: not signed with the Minis Ozel key"; exit 1; }
+            case "$CERTS" in
+              *3e62d262631a8182167bfb22df64ae413286257fc6e6a77a08c6ced0bc0bb6c9*) : ;;
+              *) echo "FAIL: not signed with the Minis Ozel key"; exit 1 ;;
+            esac
           fi
+          # 3-4. contents: one `unzip -l`, matched in memory
+          LIST=$(unzip -l "$APK")
           # 3. the proot loaders must be inside or every shell command returns exit -1
           for so in libproot.so libproot-loader.so libproot-loader32.so; do
-            unzip -l "$APK" | grep -q "lib/arm64-v8a/$so" \
-              || { echo "FAIL: lib/arm64-v8a/$so missing from APK"; exit 1; }
+            case "$LIST" in
+              *"lib/arm64-v8a/$so"*) : ;;
+              *) echo "FAIL: lib/arm64-v8a/$so missing from APK"; exit 1 ;;
+            esac
           done
           # 4. the sandbox must ship its rootfs
-          unzip -l "$APK" | grep -q 'assets/alpine-minirootfs' \
-            || { echo "FAIL: alpine rootfs missing from APK"; exit 1; }
+          case "$LIST" in
+            *assets/alpine-minirootfs*) : ;;
+            *) echo "FAIL: alpine rootfs missing from APK"; exit 1 ;;
+          esac
           echo "APK checks passed"
 
       - name: Collect artifacts
@@ -709,10 +870,10 @@ jobs:
           # re-checks the archive's own versionCode before handing it to the
           # package manager. So the name MUST carry both, or the app silently
           # reports "up to date" forever — which is what app-release.apk did.
-          APK=$(find src/android/app/build/outputs/apk -name 'app-github-release.apk' | head -1)
-          [ -n "$APK" ] || APK=$(find src/android/app/build/outputs/apk -name 'app-github-*.apk' | head -1)
+          APK=$(find src/android/app/build/outputs/apk -name 'app-github-release.apk' | sed -n '1p')
+          [ -n "$APK" ] || APK=$(find src/android/app/build/outputs/apk -name 'app-github-*.apk' | sed -n '1p')
           echo "source apk: $APK"
-          BADGING=$("$BT/aapt2" dump badging "$APK" | head -1)
+          BADGING=$("$BT/aapt2" dump badging "$APK" | sed -n '1p')
           VERSION_CODE=$(printf '%s' "$BADGING" | sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p")
           VERSION_NAME=$(printf '%s' "$BADGING" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p")
           echo "versionName=$VERSION_NAME versionCode=$VERSION_CODE"
@@ -721,8 +882,8 @@ jobs:
           cp -v "$APK" "$OUT"
           ls -la out/
           echo "### $OUT"
-          "$BT/aapt2" dump badging "$OUT" 2>/dev/null | head -2 || true
-          "$BT/apksigner" verify --print-certs "$OUT" 2>&1 | head -6 || true
+          "$BT/aapt2" dump badging "$OUT" 2>/dev/null | sed -n '1,2p' || true
+          "$BT/apksigner" verify --print-certs "$OUT" 2>&1 | sed -n '1,6p' || true
           sha256sum "$OUT"
           echo "MINIS_APK_NAME=$(basename "$OUT")" >> "$GITHUB_ENV"
           echo "MINIS_VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
@@ -760,7 +921,7 @@ jobs:
           # release reads as "what changed" rather than GitHub's default list
           # of every merge commit. Conventional-commit prefixes are what the
           # rest of this repo already uses (see CONTRIBUTING.md §4).
-          PREV=$(git tag --list 'v*' --sort=-v:refname | head -1 || true)
+          PREV=$(git tag --list 'v*' --sort=-v:refname | sed -n '1p' || true)
           if [ -n "$PREV" ] && git rev-parse "$PREV" >/dev/null 2>&1; then
             RANGE="$PREV..HEAD"
             echo "notes: since $PREV"
@@ -806,6 +967,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Release gate — never reuse a published versionCode
+        id: release_gate
         # [MINIS-OZEL] The tag is derived from versionName, and the release
         # action UPSERTS: a second build of the same version replaces the
         # first one's APK under the same tag. Two consequences, both silent:
@@ -824,18 +986,51 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
-          TAG="v${MINIS_VERSION_NAME}"
-          CODE="${{ env.MINIS_VERSION_CODE }}"
+          # [37094] Read the version from the SHELL environment, not from
+          # the env expression context. "Collect artifacts" exports these through
+          # $GITHUB_ENV, and that is guaranteed to reach the shell of the next
+          # step; whether it also lands in the `env` expression context is a
+          # detail of the runner. The shell form has no such question, and the
+          # gate now publishes the tag itself as a step OUTPUT, so the release
+          # action never depends on the env context either.
+          TAG="v${MINIS_VERSION_NAME:-}"
+          CODE="${MINIS_VERSION_CODE:-}"
+          [ -n "${MINIS_VERSION_NAME:-}" ] || { echo "::error::MINIS_VERSION_NAME is empty — Collect artifacts did not run"; exit 1; }
+          [ -n "$CODE" ] || { echo "::error::MINIS_VERSION_CODE is empty — Collect artifacts did not run"; exit 1; }
+          # A tag of bare "v" would publish a release that every later build
+          # tries to replace; refuse before anything is created.
+          if [ "$TAG" = "v" ]; then
+            echo "::error::versionName resolved to nothing — refusing to publish tag 'v'"
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "name=$MINIS_VERSION_NAME" >> "$GITHUB_OUTPUT"
           echo "gate: tag=$TAG versionCode=$CODE"
-          # --json on a missing release exits non-zero; treat that as "none".
+          # [37094] Same fail-open fix as the version gate: a failed query is
+          # not an empty release. Publishing is irreversible (the updater
+          # replaces whatever is under that tag), so an unverified gate refuses.
+          ERR=$(mktemp)
+          set +e
           EXISTING=$(gh release view "$TAG" --repo "${{ github.repository }}" \
-              --json assets --jq '.assets[].name' 2>/dev/null || true)
+              --json assets --jq '.assets[].name' 2>"$ERR")
+          RC=$?
+          set -e
+          if [ "$RC" -ne 0 ]; then
+            if grep -qiE 'not found|HTTP 404' "$ERR"; then
+              echo "gate: no release for $TAG yet — publishing"
+              exit 0
+            fi
+            echo "::error::could not query releases for $TAG (gh exit $RC):"
+            sed -n '1,5p' "$ERR"
+            echo "::error::refusing to publish on an unverified gate"
+            exit 1
+          fi
           if [ -z "$EXISTING" ]; then
-            echo "gate: no release for $TAG yet — publishing"
+            echo "gate: release exists but has no assets — publishing"
             exit 0
           fi
           echo "gate: existing assets:"; echo "$EXISTING"
-          OLD=$(echo "$EXISTING" | sed -n 's/.*-build\([0-9]*\)-.*/\1/p' | head -1)
+          OLD=$(echo "$EXISTING" | sed -n 's/.*-build\([0-9]*\)-.*/\1/p' | sed -n '1p')
           if [ -z "$OLD" ]; then
             echo "gate: existing release has no build number in its asset name — refusing to replace it"
             exit 1
@@ -858,10 +1053,20 @@ jobs:
         # builds of the same version replace the same release instead of piling
         # up entries the updater would have to choose between.
         if: ${{ (inputs.build_type || 'release') == 'release' }}
-        uses: softprops/action-gh-release@v2
+        # [37094] Pinned to a commit, not `@v2`. This is the only THIRD-PARTY
+        # action in the repo and it is handed `contents: write` — a moving tag
+        # means whoever controls that tag can rewrite the publisher of every
+        # APK the user installs. Bumping it is a deliberate act: resolve the new
+        # v2 commit, replace the SHA, keep the comment.
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
-          tag_name: v${{ env.MINIS_VERSION_NAME }}
-          name: Minis X ${{ env.MINIS_VERSION_NAME }}
+          # [37094] From the gate's OUTPUT, not the env expression context. The gate already
+          # proved the name is non-empty and refused a bare "v"; reading the
+          # same value here through a different mechanism was how a release
+          # tagged "v" could slip through on a runner that does not mirror
+          # $GITHUB_ENV into the env context.
+          tag_name: ${{ steps.release_gate.outputs.tag }}
+          name: Minis X ${{ steps.release_gate.outputs.name }}
           files: out/*.apk
           # Stable channel: UpdatePolicy.STABLE refuses a prerelease, so publishing
           # our own builds as prereleases would hide them from the in-app updater.
@@ -873,3 +1078,50 @@ jobs:
           body: ${{ steps.notes.outputs.body }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # [37094] The run summary is the part a human actually reads before
+      # opening a 20 000-line log: which version, how big, which hash. It lives
+      # on the run page, so it survives as long as the run does — and unlike
+      # the log it is in the URL preview.
+      - name: Run summary
+        if: always()
+        run: |
+          {
+            echo "## Minis X derlemesi"
+            echo ""
+            echo "| alan | değer |"
+            echo "|---|---|"
+            echo "| sürüm | ${MINIS_VERSION_NAME:-?} / ${MINIS_VERSION_CODE:-?} |"
+            echo "| tür | ${{ inputs.build_type || 'release' }} |"
+            if [ -n "${MINIS_APK_NAME:-}" ] && [ -f "out/$MINIS_APK_NAME" ]; then
+              echo "| boyut | $(wc -c < "out/$MINIS_APK_NAME") bayt |"
+              echo "| sha256 | \`$(sha256sum "out/$MINIS_APK_NAME" | cut -d' ' -f1)\` |"
+            else
+              echo "| apk | üretilmedi |"
+            fi
+            echo "| koşu | ${GITHUB_RUN_ID} |"
+            echo ""
+            echo "Loglar: \`run-logs-build\` artifact (90 gün). Yayın gövdesi kalıcı."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # [37094] Last step in the job, and unconditional. If PUBLISHING failed,
+      # this is the only artifact a later reader gets — including the reason.
+      - name: Scrub secrets from the logs
+        # [37094] GitHub masks secrets in the LIVE log stream only. These files
+        # are the copy that survives, and artifact contents are not masked. A
+        # `tee` that captures everything therefore needs a scrub before upload.
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/scrub_logs.py build/logs
+
+      - name: Upload run logs
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-logs-build
+          path: |
+            build/logs/**
+            build/reports/**
+          retention-days: 90
+          if-no-files-found: warn

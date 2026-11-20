@@ -1,0 +1,82 @@
+name: Build digest
+
+# [37091 E] Derleme geçmişi, GitHub'ın saklama süresinden bağımsız.
+#
+# ## Neden var
+#
+# Loglar 90 gün, artifact'lar 7–30 gün yaşıyor. "Bu hata daha önce çıkmış
+# mıydı" sorusunun cevabı bir ay sonra YOK. `run-logs-*` artifact'ları bunu
+# kısmen çözdü ama onlar da süreli. Repo kalıcı; bu iş koşuların başarısız
+# adımlarını `docs/ozel/BUILD-GECMISI.md`'ye yazıp commit'liyor.
+#
+# ## Neden commit, neden artifact değil
+#
+# Artifact süreli, runner geçici. Bir kayıt yalnız onu üreten makinede
+# yaşıyorsa kayıt değildir — bu, dilim raporunda yaşandı (build/ gitignore'da
+# olduğu için her checkout'ta siliniyordu).
+#
+# ## Neden [skip ci]
+#
+# Commit bir push; push bu işi tetikleyebilir. Döngüyü kapatmazsak haftada bir
+# sonsuz zincir olur. GitHub `[skip ci]`i push tetikleyicileri için onurlandırır.
+#
+# ## Neden haftalık
+#
+# Günlük, "aynı hata" gürültüsünü büyütür; aylık, hatayı fark etmek için geç.
+# Haftada bir, 15 koşuluk pencereyle örtüşüyor.
+
+on:
+  schedule:
+    # Pazartesi 04:17 UTC — sürüm turlarının dışında, runner kalabalığı düşükken.
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Kaç koşu taranacak"
+        default: "30"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-digest
+  cancel-in-progress: true
+
+jobs:
+  digest:
+    name: Digest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Build the digest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          LIMIT="${{ inputs.limit || '30' }}"
+          python3 scripts/build_digest.py --limit "$LIMIT"
+
+      - name: Show what changed
+        run: |
+          set -e
+          git --no-pager diff --stat -- docs/ozel/BUILD-GECMISI.md || true
+          sed -n '1,40p' docs/ozel/BUILD-GECMISI.md
+
+      - name: Commit if changed
+        run: |
+          set -e
+          git add docs/ozel/BUILD-GECMISI.md
+          if git diff --cached --quiet; then
+            echo "değişiklik yok — commit atlanıyor"
+            exit 0
+          fi
+          git -c user.name="minis-ci" -c user.email="ci@localhost" \
+            commit -q -m "chore(digest): derleme geçmişi $(date -u +%Y-%m-%d) [skip ci]"
+          git push
+          echo "commit'lendi: $(git log -1 --oneline)"

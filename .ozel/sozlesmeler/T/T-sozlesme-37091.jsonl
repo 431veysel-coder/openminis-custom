@@ -1,0 +1,7 @@
+{"t": "2026-11-19T23:40:16Z", "id": "T-sozlesme-37091", "op": "ac", "tur": "T", "is": "sozlesme-37091", "oturum": "A", "taban": "ea17ff6", "kademe": "K1", "durma": "21/21", "butce": "", "kapsam": ["sozlesme testleri"], "disi": ["android"]}
+{"t": "2026-11-19T23:40:16Z", "id": "T-sozlesme-37091", "op": "alan", "alan": "test", "deger": "test_sozlesme.py#test_uydurma_test_reddedilir"}
+{"t": "2026-11-19T23:40:16Z", "id": "T-sozlesme-37091", "op": "alan", "alan": "olcen", "deger": "uydurma kanit kapiyi gecemez"}
+{"t": "2026-11-19T23:40:17Z", "id": "T-sozlesme-37091", "op": "alan", "alan": "sinir", "deger": "rg var / rg yok"}
+{"t": "2026-11-19T23:40:17Z", "id": "T-sozlesme-37091", "op": "alan", "alan": "calistiran", "deger": "pytest scripts/tests/test_sozlesme.py"}
+{"t": "2026-11-19T23:40:17Z", "id": "T-sozlesme-37091", "op": "kanit", "deger": "komut:python3 -m pytest scripts/tests/test_sozlesme.py -q"}
+{"t": "2026-11-19T23:41:26Z", "id": "T-sozlesme-37091", "op": "kapat", "sonuc": "TAMAM"}

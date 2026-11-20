@@ -42,7 +42,13 @@ import tempfile
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 MAIN = ROOT / "src/android/app/src/main/java"
 TEST = ROOT / "src/android/app/src/test/java"
-OUT = ROOT / "build/slice-report"
+# [37092] Reports go to docs/ozel/slice-report/, NOT build/.
+#
+# `build/` is in .gitignore, so every one of these files was deleted by the next
+# clean checkout — which is exactly why "the build logs keep disappearing". A
+# report that only exists on the runner that produced it is not a record.
+# Under docs/ they are committed, diffable, and survive the machine.
+OUT = ROOT / "docs/ozel/slice-report"
 MANIFEST = pathlib.Path(__file__).resolve().parent / "slices.json"
 
 
@@ -109,7 +115,7 @@ def junit_cp(kc: str | None = None) -> str | None:
     if env:
         parts.append(env)
     else:
-        jars = sorted((ROOT / "build/slice-report/jars").glob("*.jar"))
+        jars = sorted((ROOT / "docs/ozel/slice-report/jars").glob("*.jar"))
         if not jars:
             return None
         parts.append(os.pathsep.join(str(j) for j in jars))

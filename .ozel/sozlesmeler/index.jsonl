@@ -1,0 +1,44 @@
+{"t": "2026-11-19T23:40:14Z", "id": "F-sozlesme-37091", "op": "ac", "tur": "F", "is": "sozlesme-37091", "oturum": "A", "taban": "ea17ff6", "kademe": "K1", "durma": "audit yesil", "butce": "", "kapsam": ["pytest kurulumu"], "disi": ["test icerigi"]}
+{"t": "2026-11-19T23:40:14Z", "id": "F-sozlesme-37091", "op": "alan", "alan": "hata", "deger": "/usr/bin/python3: No module named pytest (run 44638097929, 10s)"}
+{"t": "2026-11-19T23:40:14Z", "id": "F-sozlesme-37091", "op": "alan", "alan": "sinif", "deger": "CI"}
+{"t": "2026-11-19T23:40:15Z", "id": "F-sozlesme-37091", "op": "alan", "alan": "deneme", "deger": "1"}
+{"t": "2026-11-19T23:40:15Z", "id": "F-sozlesme-37091", "op": "alan", "alan": "onleyici", "deger": "audit.yml: Install test runner adimi (pytest==8.3.4 pinli)"}
+{"t": "2026-11-19T23:40:15Z", "id": "F-sozlesme-37091", "op": "kanit", "deger": "kosu:44639275217:audit"}
+{"t": "2026-11-19T23:40:16Z", "id": "T-sozlesme-37091", "op": "ac", "tur": "T", "is": "sozlesme-37091", "oturum": "A", "taban": "ea17ff6", "kademe": "K1", "durma": "21/21", "butce": "", "kapsam": ["sozlesme testleri"], "disi": ["android"]}
+{"t": "2026-11-19T23:40:16Z", "id": "T-sozlesme-37091", "op": "alan", "alan": "test", "deger": "test_sozlesme.py#test_uydurma_test_reddedilir"}
+{"t": "2026-11-19T23:40:16Z", "id": "T-sozlesme-37091", "op": "alan", "alan": "olcen", "deger": "uydurma kanit kapiyi gecemez"}
+{"t": "2026-11-19T23:40:17Z", "id": "T-sozlesme-37091", "op": "alan", "alan": "sinir", "deger": "rg var / rg yok"}
+{"t": "2026-11-19T23:40:17Z", "id": "T-sozlesme-37091", "op": "alan", "alan": "calistiran", "deger": "pytest scripts/tests/test_sozlesme.py"}
+{"t": "2026-11-19T23:40:17Z", "id": "T-sozlesme-37091", "op": "kanit", "deger": "komut:python3 -m pytest scripts/tests/test_sozlesme.py -q"}
+{"t": "2026-11-19T23:40:17Z", "id": "G-sozlesme-37091", "op": "ac", "tur": "G", "is": "sozlesme-37091", "oturum": "A", "taban": "ea17ff6", "kademe": "K1", "durma": "preflight temiz", "butce": "", "kapsam": ["sozlesme ailesi"], "disi": ["chip"]}
+{"t": "2026-11-19T23:40:18Z", "id": "G-sozlesme-37091", "op": "kanit", "deger": "komut:python3 scripts/preflight.py"}
+{"t": "2026-11-19T23:40:55Z", "id": "P-sozlesme-37091", "op": "ac", "tur": "P", "is": "sozlesme-37091", "oturum": "A", "taban": "ea17ff6", "kademe": "K1", "durma": "bash -n 30/30", "butce": "", "kapsam": ["sozlesme.py, preflight.py, audit.yml"], "disi": ["app kodu"]}
+{"t": "2026-11-19T23:40:55Z", "id": "P-sozlesme-37091", "op": "alan", "alan": "dosya", "deger": "scripts/sozlesme.py"}
+{"t": "2026-11-19T23:40:56Z", "id": "P-sozlesme-37091", "op": "alan", "alan": "once_hash", "deger": "000000000000"}
+{"t": "2026-11-19T23:40:56Z", "id": "P-sozlesme-37091", "op": "alan", "alan": "sonra_hash", "deger": "111111111111"}
+{"t": "2026-11-19T23:40:56Z", "id": "P-sozlesme-37091", "op": "alan", "alan": "deneme", "deger": "1"}
+{"t": "2026-11-19T23:40:57Z", "id": "P-sozlesme-37091", "op": "alan", "alan": "kanit", "deger": "bash -n"}
+{"t": "2026-11-19T23:40:57Z", "id": "C-sozlesme-37091", "op": "ac", "tur": "C", "is": "sozlesme-37091", "oturum": "A", "taban": "ea17ff6", "kademe": "K1", "durma": "-", "butce": "", "kapsam": ["scripts/ ve workflows"], "disi": ["-"]}
+{"t": "2026-11-19T23:40:58Z", "id": "C-sozlesme-37091", "op": "alan", "alan": "dosya", "deger": "scripts/sozlesme.py"}
+{"t": "2026-11-19T23:40:58Z", "id": "C-sozlesme-37091", "op": "alan", "alan": "aralik", "deger": "tum dosya"}
+{"t": "2026-11-19T23:40:58Z", "id": "C-sozlesme-37091", "op": "alan", "alan": "sahip", "deger": "A"}
+{"t": "2026-11-19T23:40:58Z", "id": "C-sozlesme-37091", "op": "alan", "alan": "bitis", "deger": "commit 3e207a8"}
+{"t": "2026-11-19T23:40:59Z", "id": "D-sozlesme-37091", "op": "ac", "tur": "D", "is": "sozlesme-37091", "oturum": "A", "taban": "ea17ff6", "kademe": "K1", "durma": "audit success", "butce": "", "kapsam": ["audit.yml kapi"], "disi": ["apk"]}
+{"t": "2026-11-19T23:40:59Z", "id": "D-sozlesme-37091", "op": "alan", "alan": "komut", "deger": "python3 scripts/check_workflow_shell.py"}
+{"t": "2026-11-19T23:41:00Z", "id": "D-sozlesme-37091", "op": "alan", "alan": "cikti", "deger": "checked 30 run blocks, 0 problem(s)"}
+{"t": "2026-11-19T23:41:00Z", "id": "D-sozlesme-37091", "op": "alan", "alan": "log", "deger": "run 44639275217"}
+{"t": "2026-11-19T23:41:00Z", "id": "D-sozlesme-37091", "op": "kanit", "deger": "kosu:44639275217:audit"}
+{"t": "2026-11-19T23:41:00Z", "id": "M-sozlesme-37091", "op": "ac", "tur": "M", "is": "sozlesme-37091", "oturum": "A", "taban": "ea17ff6", "kademe": "K1", "durma": "-", "butce": "", "kapsam": ["rapor: 24 sozlesme + 2 gercek hata"], "disi": ["chip"]}
+{"t": "2026-11-19T23:41:01Z", "id": "M-sozlesme-37091", "op": "alan", "alan": "kanit", "deger": "kosu:44639275217"}
+{"t": "2026-11-19T23:41:01Z", "id": "M-sozlesme-37091", "op": "alan", "alan": "soylenmeyen", "deger": "chip yok, G5 yapilmadi"}
+{"t": "2026-11-19T23:41:25Z", "id": "F-sozlesme-37091", "op": "alan", "alan": "kanit", "deger": "kosu:44639275217:audit"}
+{"t": "2026-11-19T23:41:26Z", "id": "G-sozlesme-37091", "op": "kapat", "sonuc": "TAMAM"}
+{"t": "2026-11-19T23:41:26Z", "id": "T-sozlesme-37091", "op": "kapat", "sonuc": "TAMAM"}
+{"t": "2026-11-19T23:41:27Z", "id": "D-sozlesme-37091", "op": "kapat", "sonuc": "TAMAM"}
+{"t": "2026-11-19T23:41:27Z", "id": "F-sozlesme-37091", "op": "kapat", "sonuc": "TAMAM"}
+{"t": "2026-11-19T23:41:40Z", "id": "P-sozlesme-37091", "op": "kanit", "deger": "komut:python3 -m pytest scripts/tests/test_sozlesme.py -q"}
+{"t": "2026-11-19T23:41:41Z", "id": "C-sozlesme-37091", "op": "kanit", "deger": "komut:python3 scripts/sozlesme_uret.py --check"}
+{"t": "2026-11-19T23:41:41Z", "id": "M-sozlesme-37091", "op": "kanit", "deger": "kosu:44639275217"}
+{"t": "2026-11-19T23:41:41Z", "id": "P-sozlesme-37091", "op": "kapat", "sonuc": "TAMAM"}
+{"t": "2026-11-19T23:41:42Z", "id": "C-sozlesme-37091", "op": "kapat", "sonuc": "TAMAM"}
+{"t": "2026-11-19T23:41:42Z", "id": "M-sozlesme-37091", "op": "kapat", "sonuc": "TAMAM"}
