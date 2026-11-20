@@ -389,7 +389,23 @@ def l0_sozlesmeler() -> list[Problem]:
     """
     defter = ROOT / ".ozel/sozlesmeler"
     script = ROOT / "scripts/sozlesme.py"
-    if not defter.exists() or not script.exists():
+    if not script.exists():
+        return []
+    if not defter.exists():
+        # [37092] "Defter yoksa atla" bir FAIL-OPEN'dı: `.ozel/` sparse-checkout
+        # listesinde olmadığı için dosya diskte yoktu ve kapı sessizce susuyordu.
+        # Defter git'te izleniyorsa yokluğu bir kurulum hatasıdır, izin değil.
+        try:
+            import subprocess as _sp2
+            r2 = _sp2.run(["git", "ls-files", "--error-unmatch", ".ozel/sozlesmeler"],
+                          cwd=ROOT, capture_output=True, text=True, timeout=15)
+            tracked = r2.returncode == 0 and bool(r2.stdout.strip())
+        except Exception:
+            tracked = False
+        if tracked:
+            return [Problem("sozlesme", ".ozel/sozlesmeler", 0,
+                            "defter git'te izleniyor ama diskte yok — sparse-checkout "
+                            "listesine `.ozel` eklenmeli; kapı sessizce susamaz")]
         return []
     import subprocess as _sp
     r = _sp.run([sys.executable, str(script), "denetle", "--json"],

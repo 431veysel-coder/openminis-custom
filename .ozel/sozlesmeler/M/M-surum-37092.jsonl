@@ -2,3 +2,5 @@
 {"t": "2026-11-20T01:12:24Z", "id": "M-surum-37092", "op": "alan", "alan": "kanit", "deger": "release URL + APK sha256"}
 {"t": "2026-11-20T01:12:24Z", "id": "M-surum-37092", "op": "alan", "alan": "soylenmeyen", "deger": "37093 isleri, chip arayuzu"}
 {"t": "2026-11-20T01:12:25Z", "id": "M-surum-37092", "op": "kanit", "deger": "komut:gh release list --limit 1"}
+{"t": "2026-11-20T01:44:28Z", "id": "M-surum-37092", "op": "alan", "alan": "kanit", "deger": "kosu:44652401229 + release URL"}
+{"t": "2026-11-20T01:44:44Z", "id": "M-surum-37092", "op": "kapat", "sonuc": "TAMAM"}

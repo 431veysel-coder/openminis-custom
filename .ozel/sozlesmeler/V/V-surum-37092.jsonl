@@ -5,3 +5,4 @@
 {"t": "2026-11-20T01:11:23Z", "id": "V-surum-37092", "op": "alan", "alan": "test", "deger": "yok (sema dosyasi gelince)"}
 {"t": "2026-11-20T01:11:23Z", "id": "V-surum-37092", "op": "alan", "alan": "geri", "deger": "ileri goc; downgrade yok"}
 {"t": "2026-11-20T01:11:24Z", "id": "V-surum-37092", "op": "kanit", "deger": "komut:rg -n CODE_DB_VERSION src/android/app/src/main/java"}
+{"t": "2026-11-20T01:44:45Z", "id": "V-surum-37092", "op": "kapat", "sonuc": "TAMAM"}

@@ -5,3 +5,6 @@
 {"t": "2026-11-20T01:11:19Z", "id": "S-surum-37092", "op": "alan", "alan": "geri_alma", "deger": "eski kod daha YUKSEK numara ile yeniden (downgrade yok)"}
 {"t": "2026-11-20T01:11:20Z", "id": "S-surum-37092", "op": "kanit", "deger": "komut:bash scripts/check_identity.sh"}
 {"t": "2026-11-20T01:13:28Z", "id": "S-surum-37092", "op": "alan", "alan": "yayin", "deger": "v1.15-ozel.15 (Latest) - bekleniyor"}
+{"t": "2026-11-20T01:44:27Z", "id": "S-surum-37092", "op": "alan", "alan": "yayin", "deger": "v1.15-ozel.15 Latest, 2026-11-20T01:33:16Z"}
+{"t": "2026-11-20T01:44:27Z", "id": "S-surum-37092", "op": "kanit", "deger": "kosu:44652401229:Android APK (release)"}
+{"t": "2026-11-20T01:44:44Z", "id": "S-surum-37092", "op": "kapat", "sonuc": "TAMAM"}
