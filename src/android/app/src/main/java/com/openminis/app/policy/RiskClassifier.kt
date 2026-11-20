@@ -23,6 +23,20 @@ package com.openminis.app.policy
  * sınıflandırılırsa ilk kural kazanır ve `rm` görünmez — tam da kaçınmak
  * istediğimiz şey. Bölme sonrası en ağır parça komutun kararı olur, gerekçeler
  * birleşir.
+ *
+ * ## [37096] Kara listenin bilinen sınırı — ve kapatılan kısmı
+ *
+ * Bu sınıflandırıcı komut METNİNE bakar; metnin içinde çalışacak kodu
+ * göremez. `.15`'e kadar `python3 -c "import shutil; shutil.rmtree(...)"`
+ * hiçbir kurala uymuyordu, çünkü hiçbir kalıp `rmtree` aramıyordu. Artık iki
+ * kademe var: satır içi kod çalıştıran her çağrı `shell:interpreter`, içinde
+ * silme/üzerine yazma API'si geçen `shell:interpreter-destroy` (HIGH,
+ * PERMANENT). Ayrıca `mv`, `truncate`, `>` yönlendirme ve yıkıcı SQL eklendi —
+ * veriyi silmeden götüren yollar.
+ *
+ * Kalan sınır dürüstçe: **dil içinde dil** (base64 ile kod, `eval`, bir
+ * betiğin içine yazıp çalıştırma) metinden çözülemez. Bu yüzden asıl güvenlik
+ * iddiası "her şeyi yakalar" değil; "bilinen her yol bir kart açar".
  */
 class RiskClassifier(
     /** Bu oturumun çalışma dizini, ör. `/var/minis/minis-sessions/<id>`. */
@@ -42,6 +56,17 @@ class RiskClassifier(
     )
 
     private val deviceRoots = listOf("/storage", "/sdcard", "/data", "/system", "/etc", "/sdcard0")
+
+    /**
+     * [37096] Gerçekten geçici olan konumlar.
+     *
+     * Bunlar `scratchSubdirs`'tan farklı: oturuma ait değil, ama içindeki veri
+     * de kullanıcının arşivi değil. Ayrım iki hatayı birden kapatıyor:
+     * `cmd > /tmp/x` her seferinde onay kartı açmıyor, ama `rm -rf /tmp` de
+     * sessizce geçmiyor (kural seviyesi korunur, yalnız "cihaz geneli" diye
+     * yükseltilmiyor).
+     */
+    private val tempRoots = listOf("/tmp", "/var/tmp", "/dev/shm")
 
     // ------------------------------------------------------------------ shell
 
@@ -118,9 +143,22 @@ class RiskClassifier(
      */
     private fun adjustLevel(rule: RiskRules.Rule, targets: List<String>): RiskLevel {
         if (!rule.pathScoped) return rule.level
-        if (targets.isEmpty()) return RiskLevel.HIGH // hedefi bilinmeyen silme
-        val allScratch = targets.all { isScratch(it) }
-        if (allScratch && rule.recovery == Recovery.PERMANENT) return RiskLevel.LOW
+        if (targets.isEmpty()) {
+            // [37096] Tek istisna `mv`: hedefi çözülemeyen bir taşıma, göreli
+            // yol demektir ve kabuk oturum dizininde çalışıyor. Yine de
+            // sessizleşmiyor — MEDIUM, yani kart açılır. Ötekilerde bilinmeyen
+            // hedef "güvenli" değil, "en geniş" sayılmaya devam eder.
+            return if (rule.id == "shell:move") RiskLevel.MEDIUM else RiskLevel.HIGH
+        }
+        val allDisposable = targets.all { isScratch(it) || isTemp(it) }
+        if (allDisposable) {
+            // Yalnız çöp/geçici alan: kullanıcı verisi yok, o yüzden sessiz.
+            // Tek istisna kökün KENDİSİ: `rm -rf /tmp` bir dosya silmek değil,
+            // başka oturumların da kullandığı alanı boşaltmak — kuralın kendi
+            // seviyesinde sorulur.
+            val wholeRoot = targets.any { p -> tempRoots.any { p == it } || p == sessionDir }
+            return if (wholeRoot) rule.level else RiskLevel.LOW
+        }
         val anyUserData = targets.any { p -> userDataRoots.any { p.startsWith(it) } }
         return when {
             anyUserData -> RiskLevel.HIGH
@@ -137,9 +175,16 @@ class RiskClassifier(
         return scratchSubdirs.any { rest == it || rest.startsWith("$it/") }
     }
 
+    /** [37096] Oturuma ait olmayan ama gerçekten geçici konum mu? */
+    fun isTemp(path: String): Boolean {
+        val p = normalize(path)
+        return tempRoots.any { p == it || p.startsWith("$it/") }
+    }
+
     fun reachOf(path: String): Reach {
         val p = normalize(path)
         if (p.isEmpty()) return Reach.DEVICE
+        if (isTemp(p)) return Reach.SANDBOX
         if (p.startsWith("$sessionDir/") || p == sessionDir) return Reach.SANDBOX
         if (deviceRoots.any { p == it || p.startsWith("$it/") }) return Reach.DEVICE
         if (userDataRoots.any { p == it || p.startsWith("$it/") }) return Reach.SESSION
@@ -166,7 +211,7 @@ class RiskClassifier(
 
     fun classifyWrite(path: String): RiskVerdict {
         val reach = reachOf(path)
-        val scratch = isScratch(path)
+        val scratch = isScratch(path) || isTemp(path)
         val level = when {
             scratch -> RiskLevel.NONE
             reach == Reach.SANDBOX -> RiskLevel.LOW
@@ -224,10 +269,56 @@ class RiskClassifier(
 
     // ----------------------------------------------------------- iç yardımcı
 
-    private fun splitSegments(command: String): List<String> =
-        command.split(Regex("""(?:&&|\|\||[;|\n])"""))
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
+    /**
+     * [37096] Tırnak farkında bölme.
+     *
+     * Eski hâli körlemesine `;`, `|`, `&&` üzerinde bölüyordu — tırnak içinde
+     * olsa bile. Sonuç: `python3 -c "import os; os.system('rm -rf /x')"` iki
+     * parçaya ayrılıyor ve ikinci parça `'rm` ile başladığı için hiçbir kuralın
+     * ayırıcı önekiyle eşleşmiyordu. Yani silme, gözle görülür biçimde
+     * metindeyken görünmez oluyordu.
+     *
+     * Şimdi bölme yalnız tırnak DIŞINDA oluyor; tırnak içi tek parça kalıyor.
+     * Bedeli yok: sınıflandırıcı zaten metne bakıyor, `sh -c "a; b"` de tek
+     * parça olarak sınıflandırılmak istenen şey.
+     */
+    private fun splitSegments(command: String): List<String> {
+        val out = ArrayList<String>()
+        val cur = StringBuilder()
+        var quote: Char? = null
+        var i = 0
+        while (i < command.length) {
+            val c = command[i]
+            when {
+                quote != null -> {
+                    cur.append(c)
+                    if (c == quote) quote = null
+                }
+                c == '\'' || c == '"' -> {
+                    quote = c
+                    cur.append(c)
+                }
+                c == '\\' && i + 1 < command.length -> {
+                    cur.append(c).append(command[i + 1])
+                    i++
+                }
+                c == ';' || c == '\n' || c == '|' -> {
+                    out += cur.toString().trim()
+                    cur.setLength(0)
+                    if (i + 1 < command.length && command[i + 1] == '|') i++
+                }
+                c == '&' && i + 1 < command.length && command[i + 1] == '&' -> {
+                    out += cur.toString().trim()
+                    cur.setLength(0)
+                    i++
+                }
+                else -> cur.append(c)
+            }
+            i++
+        }
+        if (cur.isNotBlank()) out += cur.toString().trim()
+        return out.filter { it.isNotEmpty() }
+    }
 
     /** Komuttaki yol gibi görünen belirteçler. URL'ler ve seçenekler dışlanır. */
     private fun extractPaths(segment: String): List<String> {

@@ -81,7 +81,79 @@ object RiskRules {
     private val PKG_INSTALL = Regex("""(^|[\s;&|])(apk|apt|apt-get|pip|pip3|npm|pnpm|yarn|cargo|gem|go)\s+(add|install|get|i)\b""")
     private val PKG_UNINSTALL = Regex("""(^|[\s;&|])(apk|apt|apt-get|pip|npm)\s+(del|remove|uninstall|rm)\b""")
 
+    // --- Yorumlayıcı: satır içi kod (37096) --------------------------------
+    //
+    // Ölçülen boşluk: `python3 -c "import shutil; shutil.rmtree('/var/minis/shared')"`
+    // hiçbir kurala uymuyordu, çünkü `RM` kalıbı `rm\s` arıyor. Kabuk kural
+    // tablosu komut METNİNE bakar; metnin içinde çalıştırılacak kodu göremez.
+    // Statik olarak çözülemez, o yüzden iki kademe:
+    //
+    //  - `shell:interpreter`: satır içi kod çalıştıran her çağrı -> MEDIUM.
+    //    (Yorumlayıcı çalıştırmak denetlenemez; kullanıcı bir kez "bu sohbette
+    //    hep" diyebilir, kart bir daha çıkmaz.)
+    //  - `shell:interpreter-destroy`: metin silme/üzerine yazma API'si
+    //    geçiyorsa -> HIGH + PERMANENT. Bu, oturumdan uzun onay ALMAZ.
+    private val INTERPRETER = Regex(
+        """(^|[\s;&|])(python3?|perl|ruby|node|deno|bun|php|Rscript|osascript)\s[\s\S]*\s*-(c|e|r)\b""",
+    )
+    /**
+     * Yorumlayıcı **ve** yıkıcı API aynı parçada olmalı.
+     *
+     * Ayrı iki kural olsaydı `rg "shutil.rmtree" src/` — yani kodu *arayan*
+     * bir komut — silme kartı açardı. Kalıbı birleştirmek, aramayı aramak
+     * olarak bırakıyor: metinde `-c`/`-e` ile çalıştırılan kod yoksa kart yok.
+     */
+    private val INTERPRETER_DESTROY = Regex(
+        """(^|[\s;&|])(python3?|perl|ruby|node|deno|bun|php)\s[\s\S]*-(c|e|r)\b[\s\S]*(shutil\.rmtree|os\.remove|os\.unlink|os\.rmdir|os\.rename|\.unlink\(|\.rmdir\(|rmSync|unlinkSync|rmdirSync|removeDirectory|deleteDirectory|rmtree\(|os\.system|subprocess|open\s*\([^)]*['"]w)""",
+    )
+
+    // --- Yer değiştirme / kesme / yönlendirme (37096) ---------------------
+    //
+    // Bunlar dosyayı olduğu yerde yok etmeden de veriyi götürebilir:
+    // `mv /var/minis/shared /tmp`, `truncate -s 0 notes.db`, `> notes.db`.
+    // `mv` geri alınabilir (veri hedefte duruyor), `truncate` ve yönlendirme
+    // geri alınamaz (içerik okunmadan üzerine yazıldı).
+    private val MV = Regex("""(^|[\s;&|])(mv|rename)\s""")
+    private val TRUNCATE = Regex("""(^|[\s;&|])(truncate|shred|wipe)\s""")
+    /** `> /yol` — ama `/dev/null` hariç, yoksa her sessizleştirme kart açardı. */
+    private val REDIRECT_OVERWRITE = Regex("""(>>?)\s*(?!/dev/null)(/|\.\.?/|~)""")
+    private val CHMOD_RECURSIVE = Regex("""(^|[\s;&|])(chmod|chown|chattr)\s[^;&|]*-(R|r|-recursive)\b""")
+
+    // --- Veritabanı: veri kaybı (37096) ----------------------------------
+    private val SQL_DESTRUCTIVE = Regex(
+        """(^|[\s;&|])(sqlite3|psql|mysql|mariadb)\s[^;&|]*(drop\s+table|drop\s+database|delete\s+from|truncate\s+table|alter\s+table\s+\w+\s+drop)""",
+        RegexOption.IGNORE_CASE,
+    )
+
     val ALL: List<Rule> = listOf(
+        // [37096] Yorumlayıcı: en özel olan önce, yoksa genel kalıp onu yer.
+        Rule(
+            id = "shell:interpreter-destroy",
+            pattern = INTERPRETER_DESTROY,
+            level = RiskLevel.HIGH,
+            reach = Reach.DEVICE,
+            recovery = Recovery.PERMANENT,
+            note = "satır içi kod bir silme/üzerine yazma çağrısı içeriyor; hangi dosyaya dokunduğu komut metninden çözülemez",
+        ),
+        Rule(
+            id = "shell:interpreter",
+            pattern = INTERPRETER,
+            level = RiskLevel.MEDIUM,
+            reach = Reach.DEVICE,
+            recovery = Recovery.RECOVERABLE,
+            note = "satır içi kod çalıştırır; kabuk kural tablosu metnin içindeki kodu denetleyemez",
+        ),
+        Rule(
+            id = "sql:destructive",
+            pattern = SQL_DESTRUCTIVE,
+            level = RiskLevel.HIGH,
+            reach = Reach.DEVICE,
+            recovery = Recovery.PERMANENT,
+            note = "veritabanında tablo/satır siliyor; yedek yoksa içerik geri gelmez",
+            pathScoped = true,
+            match = Match.DESTRUCTIVE_PATH,
+        ),
+
         // Kalıcı silme — en üstte, çünkü en sık yapılan hata.
         Rule(
             id = "shell:rm-recursive",
@@ -115,6 +187,48 @@ object RiskRules {
         ),
         Rule("shell:dd", DD, RiskLevel.HIGH, Reach.DEVICE, Recovery.PERMANENT, "diske ham yazma; yanlış hedef cihazı kullanılamaz hâle getirir"),
         Rule("shell:mkfs", MKFS, RiskLevel.HIGH, Reach.DEVICE, Recovery.PERMANENT, "bölümü biçimlendirir; içindeki her şey gider"),
+
+        // [37096] Sessiz veri kaybı: silmeden götüren yollar.
+        Rule(
+            id = "shell:truncate",
+            pattern = TRUNCATE,
+            level = RiskLevel.HIGH,
+            reach = Reach.SANDBOX, // hedefe göre yükseltilir
+            recovery = Recovery.PERMANENT,
+            note = "dosyanın içeriğini yerinde sıfırlar; içerik hiçbir yere kopyalanmadığı için geri gelmez",
+            pathScoped = true,
+            match = Match.DESTRUCTIVE_PATH,
+        ),
+        Rule(
+            id = "shell:redirect-overwrite",
+            pattern = REDIRECT_OVERWRITE,
+            level = RiskLevel.HIGH,
+            reach = Reach.SANDBOX,
+            recovery = Recovery.PERMANENT,
+            note = "çıktıyı dosyanın üzerine yazar; eski içerik okunmadan yok olur",
+            pathScoped = true,
+            match = Match.DESTRUCTIVE_PATH,
+        ),
+        Rule(
+            id = "shell:move",
+            pattern = MV,
+            level = RiskLevel.MEDIUM,
+            reach = Reach.SANDBOX,
+            recovery = Recovery.RECOVERABLE,
+            note = "dosyayı yerinden taşır; veri silinmez ama eski yolda artık yoktur",
+            pathScoped = true,
+            match = Match.DESTRUCTIVE_PATH,
+        ),
+        Rule(
+            id = "shell:chmod-recursive",
+            pattern = CHMOD_RECURSIVE,
+            level = RiskLevel.MEDIUM,
+            reach = Reach.SANDBOX,
+            recovery = Recovery.UNDOABLE,
+            note = "bir ağacın tamamının izinlerini değiştirir; yanlış mod uygulamayı ya da dosyaları erişilemez yapar",
+            pathScoped = true,
+            match = Match.DESTRUCTIVE_PATH,
+        ),
 
         // Git
         Rule("git:push-force", GIT_PUSH_FORCE, RiskLevel.HIGH, Reach.NETWORK, Recovery.PERMANENT, "uzak geçmişi ezer; başkasının commit'i sunucudan silinir ve geri getirilemez"),
@@ -158,6 +272,7 @@ object RiskRules {
         Rule("deny:root", Regex("""rm\s+[^;&|]*(-\w*r\w*\s+)?/(\s|$)"""), RiskLevel.HIGH, Reach.DEVICE, Recovery.PERMANENT, "kök dizini silmek sistemi anında çöker; kurtarma yolu yok"),
         Rule("deny:storage", Regex("""rm\s+[^;&|]*(-\w*r\w*\s+)?/storage/?(\s|$)"""), RiskLevel.HIGH, Reach.DEVICE, Recovery.PERMANENT, "tüm depolama alanını silmek fotoğraf, belge ve indirmeleri birlikte götürür"),
         Rule("deny:fork-bomb", Regex("""\w+\(\)\s*\{[^}]*\|\s*\w+[^}]*&"""), RiskLevel.HIGH, Reach.DEVICE, Recovery.UNDOABLE, "kendini çoğaltan süreç; cihazı kullanılamaz hâle getirir"),
-        Rule("deny:pm-all", Regex("""pm\s+uninstall\s+(com\.openminis\.app|com\.veysel\.minis)\b"""), RiskLevel.HIGH, Reach.DEVICE, Recovery.PERMANENT, "uygulamanın kendisini kaldırmak; ajanı ve tüm verisini yok eder"),
+        Rule("deny:pm-all", Regex("""pm\s+(uninstall|clear)\s+(com\.openminis\.app|com\.veysel\.minis[A-Za-z]*|com\.minis\.x)\b"""), RiskLevel.HIGH, Reach.DEVICE, Recovery.PERMANENT, "uygulamanın kendisini kaldırmak ya da verisini silmek; ajanı ve tüm verisini yok eder"),
+        Rule("deny:deny-self", Regex("""(pm\s+disable-user|pm\s+disable)\s+(com\.openminis\.app|com\.veysel\.minis[A-Za-z]*|com\.minis\.x)\b"""), RiskLevel.HIGH, Reach.DEVICE, Recovery.RECOVERABLE, "uygulamayı devre dışı bırakmak; ajan kendini kapatmış olur ve geri açacak kimse kalmaz"),
     )
 }

@@ -1,15 +1,21 @@
 # MINIS X — entegrasyon durumu ve kullanıcı yüzeyi
 
-**APK:** `MinisX-37072-apk.apk` · `com.veysel.minisx` · `Minis X` · versionCode 37072 · 73,3 MB · arm64-v8a
-**Release: YAPILMADI.** 37072 hâlâ yanmadı, release sayfasında `1.15-ozel.11.4` duruyor.
+**Sürüm:** `1.15-ozel.16` · versionCode **37097** · `com.minis.x` · arm64-v8a
+**Önceki yayın:** `1.15-ozel.15` / 37092 (2026-11-20)
+**Release: YAPILMADI.** 37097 hazırlık dalında; push/yayın kararı senin.
 
 Bu belge "hangi özellik gerçekten çalışıyor" sorusunun tek cevabı. Ölçüm elle
 değil: `python3 scripts/integration_audit.py` üretim kodundan çağrı arıyor.
 Testlerin ve sınıfın kendi paketinin çağrı sayılmadığı bir tarama.
 
+> **`.16` notu:** 37089 (yeniden oynatma) artık üretim kodundan çağrılıyor
+> (`ReplayScreen` → `ReplayStore`), o yüzden ⏳ değil ✅. 37095 (sağlık
+> göstergesi) bu sürümde **gerçekten bağlandı**: çekirdek `.15`'te vardı ama
+> çağrısızdı.
+
 ---
 
-## Ölçülen durum: 9/11 bağlı
+## Ölçülen durum: 10/11 bağlı
 
 | # | Dilim | Durum | Kullanıcı nasıl görür |
 |---|---|---|---|
@@ -22,18 +28,35 @@ Testlerin ve sınıfın kendi paketinin çağrı sayılmadığı bir tarama.
 | 37086 | Ders defteri | ✅ **BAĞLI** | Sinyal toplanıyor; kart ayrı dilim |
 | 37087 | Kanıtlı bitti | ✅ **BAĞLI** | Kanıtsız "bitti"de sonraki tura hatırlatıcı |
 | 37088 | Yazma niyeti | ✅ **BAĞLI** | Görünmez; çakışma günlüğe yazılır |
-| 37089 | Yeniden oynatma | ⏳ sınıf+test | Geliştirici aleti, ekran yok |
+| 37089 | Yeniden oynatma | ✅ **BAĞLI** | Ayarlar › Geçmiş koşuyu yeniden oynat |
 | 37090 | Uzaktan konsol | ⛔ **yalnız model** | Ürün kararı bekliyor, uygulama yok |
+| 37095 | Sağlık göstergesi | ✅ **BAĞLI (.16)** | Canlı Görevler kartında `820ms · 3.2s · 429` |
 
-**Neden 9 da 11 değil:** her dilim bir sınıf + test + anahtar olarak hazır, ama
-"çalışıyor" için üretim kodundan çağrı gerekiyor. Sırayla yapıldı: en yüksek
-riskli olan (onay) ve en bağımsız olan (yedek) önce.
+**Neden 10 da 11 değil:** her dilim bir sınıf + test + anahtar olarak hazır, ama
+"çalışıyor" için üretim kodundan çağrı gerekiyor. Kalan tek dilim (37090 uzaktan
+konsol) bilerek uygulanmadı: jeton modeli var, sunucu yok — ürün kararı
+bekliyor.
+
+### `.16`'da eklenen ikinci görünür yüzey: sağlık satırı
+
+`ChatHealthWiring` → `LiveTasksScreen`. Canlı Görevler kartının alt satırı:
+
+```
+RUNNING · shell_execute: pytest · 820ms
+WAITING · 3.2s                 (istek yolda, sayaç canlı)
+RETRYING · 1/3                 (geri çekilme sayacı)
+ERROR · 429                    (kota), 503 (sunucu), NET (ağ yok)
+```
+
+`.15`'te bu çekirdeğin (`ChatHealthTracker`) üretim kodunda **tek** referansı
+kendi tanımıydı — anahtar açık, görünen hiçbir şey yok. Aynı sınıf hata `.14`'te
+`STATION` için yazılmıştı; tekrar etmişti.
 
 ---
 
 ## Kullanıcı ne görüyor — ön yüz
 
-### 1. Onay kartı (37080) — tek gerçekten görünür yeni şey
+### 1. Onay kartı (37080) — en görünür yüzey
 
 Tehlikeli bir komut geldiğinde sohbetin üstünde kart:
 

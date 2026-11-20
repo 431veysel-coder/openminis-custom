@@ -195,20 +195,22 @@ fun OzelFeaturesScreen(
             )
         }
 
-        // ── Station and edit mode [MINIS-OZEL 11.1] ──────────────────────
-        SettingsSection(
-            header = stringResource(R.string.ozel_features_section_station),
-            footer = stringResource(R.string.ozel_features_station_footer),
-        ) {
-            SettingsSwitchRow(
-                title = stringResource(R.string.ozel_feature_station),
-                subtitle = stringResource(R.string.ozel_feature_station_subtitle),
-                checked = values[Feature.STATION] == true,
-                onCheckedChange = { set(Feature.STATION, it) },
-            )
-            // [37091] The Edit-mode row is gone with the flag: the pen it
-            // described was never built. See OzelFeatures for the reasoning.
-        }
+        // ── Station / edit mode [MINIS-OZEL 11.1] ────────────────────────
+        //
+        // [37096] Both rows are gone, and this time for the reason .14 already
+        // wrote down: a switch that can be flipped is a promise that something
+        // happens when you flip it.
+        //
+        //  · STATION — `ui/station/` was never written, so `Feature.STATION`
+        //    has no reader in production code. It was default-ON in .14 and
+        //    closed; closed but still rendered, it stayed a promise. The flag
+        //    stays in `OzelFeatures` (panels are 37093 work), the ROW does not:
+        //    when `ui/station/` lands, the row comes back with the panels.
+        //  · EDIT_MODE — deleted with the flag: the pen was never built.
+        //
+        // The same rule caught `CHAT_HEALTH` in .15: default ON, no consumer,
+        // no row. It is now wired (ChatHealthBridge -> Live Tasks), so it
+        // appears where it does something instead of as a switch here.
 
         // ── Teams / council [11.5] ───────────────────────────────────────
         // The switch existed since 37060 but had NO row, so the only way to turn

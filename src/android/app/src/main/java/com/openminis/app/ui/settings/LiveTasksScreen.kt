@@ -315,6 +315,11 @@ private fun LiveSessionCard(
     val app = LocalContext.current.applicationContext as MinisApp
     val flow = remember(sessionId) { app.chatRepository.observeMessages(sessionId) }
     val messages by flow.collectAsState(initial = emptyList())
+    // [37096] Canlı sağlık: "cevap veriyor mu, yavaş mı, koptu mu" sorusunun
+    // tek satırlık cevabı. .15'te çekirdek vardı, ekran yoktu; burası en doğal
+    // yer çünkü bu panelin işi zaten "şu anda ne oluyor".
+    val healthBySession by com.openminis.app.ozel.ChatHealthBridge.state
+        .collectAsState()
     val steps = remember(messages) {
         AgentStepExtractor.extract(messages.takeLast(TRANSCRIPT_TAIL))
     }
@@ -326,9 +331,13 @@ private fun LiveSessionCard(
                 title = title,
                 statusLabel = if (live) {
                     // The freshest call is the honest "you are here" marker.
-                    steps.lastOrNull()?.let { s ->
+                    val base = steps.lastOrNull()?.let { s ->
                         s.description ?: s.name
                     }?.let { "$statusLabel · $it" } ?: statusLabel
+                    val health = healthBySession[sessionId]
+                        ?.takeIf { it.state != com.openminis.app.ozel.health.HealthState.IDLE }
+                        ?.headline(android.os.SystemClock.elapsedRealtime())
+                    if (health.isNullOrBlank()) base else "$base · $health"
                 } else {
                     statusLabel
                 },

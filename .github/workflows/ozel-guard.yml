@@ -1,0 +1,80 @@
+name: Ozel Guard
+
+# [37096] Üç sessiz hatayı CI'da kırmızıya çeviren ucuz kapı.
+#
+# ## Neden ayrı iş
+#
+# `slice-gate.yml` Kotlin derliyor (4 dk). `apk.yml` APK üretiyor (40 dk).
+# Buradaki üç kontrol toplam **saniyeler** sürüyor ve üçünü de derleme
+# yakalayamaz:
+#
+#  1. `risk-corpus.py` — kural tablosu ile korpustaki beklenti ayrıştığında.
+#     Derleme bunu görmez: ikisi de geçerli Kotlin'dir. Sadece test görür, o da
+#     40 dakikalık işin sonunda.
+#  2. `tag-denetim.py` — bir yayın etiketi yanlış commit'i gösterdiğinde.
+#     Hiçbir derleme bunu görmez; kullanıcı cihazında "güncelleme yok" olarak
+#     görünür. 2026-11-20'de beş etiket bu durumdaydı.
+#  3. `kotlin-denetim.py` — kapanmamış süslü parantez, çift imza, kapanmamış
+#     çok satırlı string. Derleme bunları da görür ama 40 dakika sonra ve
+#     12 000 satırlık tek log içinde.
+#
+# ## Neden `continue-on-error` yok
+#
+# Bu üç kontrolün varlık sebebi "kırmızı olsun" değil, "kırmızı olduğunda
+# nerede olduğunu söylesin" değil — **kırmızı olsun**. Yumuşak kapı, kapı
+# değildir; bu depoda `audit.yml`'in `|| true` ile sessizce açık kaldığı bir
+# olay zaten yaşandı (bkz. `docs/ozel/SURUM-NOTU-1.15-ozel.15.md`).
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ozel-guard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  guards:
+    name: Risk korpusu · etiket · yapı
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Etiket denetimi etiketleri okumak zorunda; tam geçmiş olmadan
+          # `git tag` boş döner ve kontrol sessizce "temiz" der.
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Risk korpusu (kural tablosu ↔ beklenti)
+        run: python3 scripts/ozel/risk-corpus.py --fail-on-mismatch
+
+      - name: Yapısal Kotlin denetimi
+        run: python3 scripts/ozel/kotlin-denetim.py --no-warn
+
+      - name: Yayın etiketi ↔ sürüm
+        # `--strict` yok: yanlış etiket bir *push* problemidir, PR'ı
+        # engellememeli (katkı veren etiketleri düzeltemez). Rapor her zaman
+        # yazılır, karar release adımında verilir.
+        run: python3 scripts/ozel/tag-denetim.py
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Özel kapı"
+            echo '```'
+            python3 scripts/ozel/risk-corpus.py | tail -3 || true
+            echo '```'
+            echo "Etiketler: $(git tag --list 'v*' | wc -l) adet"
+          } >> "$GITHUB_STEP_SUMMARY"

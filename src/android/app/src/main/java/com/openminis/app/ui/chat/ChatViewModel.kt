@@ -12224,6 +12224,11 @@ class ChatViewModel(
                     val streamStartMs = android.os.SystemClock.elapsedRealtime()
                     val firstChunkSeen = java.util.concurrent.atomic.AtomicBoolean(false)
                     val diagSid = activeSessionId
+                    // [37096] Sağlık göstergesi: turun gerçek anlarını buradan
+                    // izliyoruz. Çekirdek (.15) vardı ama hiçbir yerden
+                    // çağrılmıyordu; anahtar varsayılan açık olduğu için
+                    // kullanıcı açık bir anahtar görüp hiçbir şey görmüyordu.
+                    com.openminis.app.ozel.ChatHealthBridge.requestStarted(context, diagSid)
                     println(
                         "[T-STALL-DIAG] stream REQUEST-OUT sid=$diagSid turn=$turn " +
                             "provider=${currentProvider.javaClass.simpleName} " +
@@ -12337,6 +12342,9 @@ class ChatViewModel(
                 // [T-STALL-DIAG] Mark first byte back from the provider and log
                 // the time-to-first-chunk once per turn.
                 if (firstChunkSeen.compareAndSet(false, true)) {
+                    // [37096] İlk parça = TTFB. Sağlık çipi "cevap veriyor mu"
+                    // sorusunu buradan öğreniyor.
+                    com.openminis.app.ozel.ChatHealthBridge.firstChunk(diagSid)
                     // [T-callback-queued-reminder] The provider is answering the
                     // request that carried the reminder: those jobs are done
                     // with. Marked here rather than at send so a request that
@@ -12798,11 +12806,26 @@ class ChatViewModel(
                         // spent. elapsedRealtime is monotonic, so a clock
                         // change or a doze cannot produce a negative interval.
                         turnStreamMs += android.os.SystemClock.elapsedRealtime() - streamStartMs
+                        // [37096] Tur kapandı (başarı ya da hata). `finally`
+                        // tek yer olduğu için burada bir kez çağrılıyor; hata
+                        // durumu köprü tarafından korunuyor.
+                        com.openminis.app.ozel.ChatHealthBridge.finished(diagSid)
                     }
                 } catch (e: Exception) {
                     if (e is CancellationException && e.cause == null) throw e  // real job cancellation
                     val actual = unwrapFlowException(e)
                     val isRateLimit = actual is com.openminis.app.data.model.LLMError.RateLimited
+                    // [37096] Hata turu: çip "429 / 503 / NET" gibi kısa bir
+                    // etiket gösteriyor. Oturum kimliği burada
+                    // `activeSessionId` — `diagSid` try bloğunun içinde tanımlı
+                    // ve catch'ten görünmez.
+                    runCatching {
+                        com.openminis.app.ozel.ChatHealthBridge.failed(
+                            activeSessionId,
+                            label = actual.javaClass.simpleName,
+                            httpStatus = (actual as? com.openminis.app.data.model.LLMError)?.httpServerErrorStatus,
+                        )
+                    }
                     // [T-android-503-fallback] A confirmed HTTP 5xx, taken from
                     // the structured status the provider mappers now attach.
                     //

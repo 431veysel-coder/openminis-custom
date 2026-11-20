@@ -478,6 +478,12 @@ maliyet şeffaflığı (§3.11), upstream nöbeti (§4.1), sürüm notu otomasyo
 | 2026-11-16 | `1.15-ozel.10` | **Çeviri paketleri** (`TranslationPacks`): dil başına terim sözlüğü, üslup ve çevrilmeyecek tanımlayıcılar taşıyan küçük JSON; Ayarlar › Çeviri › Paketler'den katalogdan veya bağlantıdan kurulur, önbellek anahtarına katılır. **Sunucu yaşam döngüsü**: anahtar açılınca anında başlar, 30 dk sonra kendiliğinden kapanır, jeton ayar ekranında görünür (`DevServerController`). **Geri alma iş akışı** (`rollback.yml`): eski kodu daha yüksek `versionCode` ile yeniden yayınlar — Android düşük sürümü kabul etmediği için tek yol bu. |
 | 2026-11-16 | `1.15-ozel.10.1` | **İki depo, tek APK.** `scripts/sync_upstream.sh` + `apply_identity.py` + yeniden yazılan `upstream-sync.yml`: upstream birleştirmesi artık dal üretiyor, kimliği otomatik geri uyguluyor ve muhafızı kanıt olarak çalıştırıyor; çakışma varsa kararı insana bırakıyor. **Rootfs sürüm işareti** (`.image`) — yeni Alpine tabanı eski kurulumlara ulaşabiliyor ve yeniden çıkarma 1,4 GB'lık araç zincirini artık silmiyor (`USER_TREES` taşınır). FORK.md sürüm tablosu ve çift `ozel.1` kaydı düzeltildi. |
 
+> **Bu tablo `.10.1`'de duruyor.** `.11.3.1` → `.16` arası sürümler için
+> tek kaynak: [`docs/ozel/DEGISIKLIK-GUNLUGU-11-16.md`](docs/ozel/DEGISIKLIK-GUNLUGU-11-16.md).
+> Sebep: bu dosyadaki tabloyu elle sürdürmek beş sürüm boyunca atlandı; kod
+> ilerlerken günlük geride kaldı ve "hangi sürümde ne vardı" sorusu cevapsız
+> kaldı. Yeni günlük sürüm notundan türetiliyor, yani iki yerde tutulmuyor.
+
 ---
 
 ## 11. Lisans ve atıf

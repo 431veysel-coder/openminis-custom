@@ -6,7 +6,6 @@ import com.openminis.app.policy.ApprovalRequest
 import com.openminis.app.policy.ApprovalScope
 import com.openminis.app.policy.Decision
 import com.openminis.app.policy.GateDecision
-import com.openminis.app.policy.Grant
 import com.openminis.app.policy.GrantBook
 import com.openminis.app.policy.RiskClassifier
 import com.openminis.app.policy.RiskReason
@@ -15,11 +14,7 @@ import com.openminis.app.policy.Reach
 import com.openminis.app.policy.Recovery
 import com.openminis.app.policy.RiskLevel
 import com.openminis.app.data.OzelFeatures
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONObject
 
 /**
@@ -47,16 +42,20 @@ import org.json.JSONObject
  */
 object PolicyGate {
 
-    /** Onay bekleyen kart sayısı — arayüz bunu okur. */
-    private val _pending = MutableStateFlow<List<ApprovalRequest>>(emptyList())
-    val pending: StateFlow<List<ApprovalRequest>> = _pending.asStateFlow()
+    /**
+     * [37096] Bekleme odası ayrı sınıfta: `ApprovalInbox` Android'siz, yani
+     * zaman aşımı ve çift cevap test edilebilir. Burası yalnız sınıflandırma
+     * ile kuyruğu birleştiriyor.
+     */
+    private val inbox = ApprovalInbox(TIMEOUT_MS)
 
-    private val waiters = java.util.concurrent.ConcurrentHashMap<String, CompletableDeferred<Answer>>()
+    /** Onay bekleyen kartlar — arayüz bunu okur. */
+    val pending: StateFlow<List<ApprovalRequest>> = inbox.pending
 
     /** Kullanıcının verdiği cevap. */
     data class Answer(val decision: Decision, val scope: ApprovalScope?, val note: String = "")
 
-    const val TIMEOUT_MS: Long = 5 * 60 * 1000
+    const val TIMEOUT_MS: Long = ApprovalInbox.DEFAULT_TIMEOUT_MS
 
     /** planVerdict'in Context'e ihtiyacı var; gate() girişinde set edilir. */
     private var appContext: Context? = null
@@ -141,28 +140,21 @@ object PolicyGate {
     }
 
     /** Kartı kuyruğa koyar ve cevabı bekler. Kuyrukta aynı soru birleşir. */
-    private suspend fun ask(request: ApprovalRequest): Answer? {
-        val def = CompletableDeferred<Answer>()
-        waiters[request.id] = def
-        _pending.value = (_pending.value.filterNot { it.id == request.id } + request)
-        try {
-            return withTimeoutOrNull(TIMEOUT_MS) { def.await() }
-        } finally {
-            waiters.remove(request.id)
-            _pending.value = _pending.value.filterNot { it.id == request.id }
-        }
-    }
+    private suspend fun ask(request: ApprovalRequest): Answer? =
+        inbox.ask(request)?.let { Answer(it.decision, it.scope, it.note) }
 
-    /** Arayüzden çağrılır. Cevap yoksa (zaman aşımı) sessizce yutulur. */
-    fun answer(requestId: String, answer: Answer) {
-        waiters[requestId]?.complete(answer)
-    }
+    /**
+     * Arayüzden çağrılır. Kart artık yoksa (zaman aşımı / iptal) `false`
+     * döner; cevap yutulmaz.
+     */
+    fun answer(requestId: String, answer: Answer): Boolean =
+        inbox.answer(requestId, ApprovalInbox.Answer(answer.decision, answer.scope, answer.note))
 
     /** Arayüzdeki tüm kartları reddet — kullanıcı "hepsini durdur" derse. */
-    fun refuseAll(note: String = "kullanıcı hepsini reddetti") {
-        val ids = _pending.value.map { it.id }
-        ids.forEach { id -> waiters[id]?.complete(Answer(Decision.DENY, null, note)) }
-    }
+    fun refuseAll(note: String = "kullanıcı hepsini reddetti"): Int = inbox.refuseAll(note)
+
+    /** Tur iptal edildi: bekleyen kartları düşür. Kaç kart kapatıldığını döner. */
+    fun cancelPending(): Int = inbox.clear()
 
     // ---------------------------------------------------------------- iç
 

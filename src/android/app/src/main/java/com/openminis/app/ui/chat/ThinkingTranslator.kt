@@ -178,7 +178,18 @@ internal object ThinkingTranslator {
 
         val result = out.toString()
         if (result.isBlank()) return null
-        if (done == chunks.size) writeCache(context, cacheKey, result)
+        // [37096] Kısmi sonuç da önbelleğe yazılıyor — ayrı ve TEK anahtarla.
+        //
+        // Eski hâli yalnız tamamlanmış çeviriyi yazıyordu: 7 parçanın 5'i
+        // çevrilip 6.'da ağ koptuysa kullanıcı kısmi metni görüyor, sonra
+        // pencereyi kapatıp açtığında **baştan ödüyordu**. Şimdi kısmi sonuç
+        // `:partial` anahtarına yazılıyor; tam çeviri geldiğinde tam anahtar
+        // yazılıp kısmi kayıt siliniyor. Böylece:
+        //   * aynı kopukluk ikinci kez ödenmiyor,
+        //   * tamamlanmış çeviri hiçbir zaman yarım kayıttan okunmuyor.
+        val complete = done == chunks.size
+        writeCache(context, if (complete) cacheKey else partialKey(cacheKey), result)
+        if (complete) dropPartial(context, cacheKey)
         AppLogger.info(
             TAG,
             "[xlate] done chars=${text.length}->${result.length} chunks=$done/${chunks.size} " +
@@ -268,7 +279,24 @@ internal object ThinkingTranslator {
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
-    private fun readCache(ctx: Context, key: String): String? = runCatching {
+    /**
+     * [37096] Önbellek okuması: önce tam çeviri, sonra kısmi.
+     *
+     * Kısmi kayıt tek dosyadır (`{key}:partial`) ve her kısmi yazımda üzerine
+     * yazılır. Neden parça sayısını ada gömmüyoruz: `:p3` gibi bir sonek
+     * okurken "hangi parça sayısını arayacağım" sorusunu doğurur ve cevabı
+     * yoktur — okuyan taraf tamamlanmışlığı bilmiyor. Tek dosya bu soruyu
+     * ortadan kaldırıyor.
+     *
+     * Kısmi metin yalnız tam çeviri yokken dönüyor; tam çeviri geldiğinde
+     * kısmi dosya siliniyor, böylece eski kısa metin asla yeğlenmiyor.
+     */
+    private fun readCache(ctx: Context, key: String): String? {
+        readCacheFile(ctx, key)?.let { return it }
+        return readCacheFile(ctx, partialKey(key))
+    }
+
+    private fun readCacheFile(ctx: Context, key: String): String? = runCatching {
         val f = File(cacheDir(ctx), "$key.txt")
         if (!f.isFile) return null
         // Touch so the prune below keeps recently-read entries.
@@ -276,11 +304,18 @@ internal object ThinkingTranslator {
         f.readText().takeIf { it.isNotBlank() }
     }.getOrNull()
 
+    private fun partialKey(key: String): String = "$key:partial"
+
     private fun writeCache(ctx: Context, key: String, value: String) {
         runCatching {
             File(cacheDir(ctx), "$key.txt").writeText(value)
             pruneCache(ctx)
         }
+    }
+
+    /** [37096] Tam çeviri yazıldığında kısmi kaydı düşür. */
+    private fun dropPartial(ctx: Context, key: String) {
+        runCatching { File(cacheDir(ctx), "${partialKey(key)}.txt").delete() }
     }
 
     private fun pruneCache(ctx: Context) {
