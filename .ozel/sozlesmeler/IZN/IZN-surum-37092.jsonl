@@ -4,3 +4,4 @@
 {"t": "2026-11-20T01:12:21Z", "id": "IZN-surum-37092", "op": "alan", "alan": "saklama", "deger": "GitHub secrets (4 imza sirri)"}
 {"t": "2026-11-20T01:12:21Z", "id": "IZN-surum-37092", "op": "alan", "alan": "sizinti", "deger": "log artifact maskelenmez -> scrub_logs.py yukleme oncesi"}
 {"t": "2026-11-20T01:12:22Z", "id": "IZN-surum-37092", "op": "kanit", "deger": "komut:rg -n 'contents:' .github/workflows/apk.yml"}
+{"t": "2026-11-20T01:44:45Z", "id": "IZN-surum-37092", "op": "kapat", "sonuc": "TAMAM"}

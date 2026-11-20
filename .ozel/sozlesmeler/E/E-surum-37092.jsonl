@@ -3,3 +3,4 @@
 {"t": "2026-11-20T01:13:20Z", "id": "E-surum-37092", "op": "alan", "alan": "omur", "deger": "log 90g, rapor 90g, APK release'te kalici"}
 {"t": "2026-11-20T01:13:21Z", "id": "E-surum-37092", "op": "alan", "alan": "budama", "deger": "GitHub otomatik; APK elle silinmez"}
 {"t": "2026-11-20T01:13:21Z", "id": "E-surum-37092", "op": "kanit", "deger": "komut:rg -n retention-days .github/workflows/apk.yml"}
+{"t": "2026-11-20T01:44:46Z", "id": "E-surum-37092", "op": "kapat", "sonuc": "TAMAM"}

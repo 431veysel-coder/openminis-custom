@@ -5,3 +5,4 @@
 {"t": "2026-11-20T01:13:13Z", "id": "P-surum-37092", "op": "alan", "alan": "deneme", "deger": "1"}
 {"t": "2026-11-20T01:13:13Z", "id": "P-surum-37092", "op": "alan", "alan": "kanit", "deger": "check_identity.sh"}
 {"t": "2026-11-20T01:13:14Z", "id": "P-surum-37092", "op": "kanit", "deger": "komut:bash scripts/check_identity.sh"}
+{"t": "2026-11-20T01:44:43Z", "id": "P-surum-37092", "op": "kapat", "sonuc": "TAMAM"}

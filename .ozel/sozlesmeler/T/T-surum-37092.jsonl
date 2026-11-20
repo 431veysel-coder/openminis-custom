@@ -4,3 +4,4 @@
 {"t": "2026-11-20T01:13:17Z", "id": "T-surum-37092", "op": "alan", "alan": "sinir", "deger": "eksik kardes -> ret"}
 {"t": "2026-11-20T01:13:17Z", "id": "T-surum-37092", "op": "alan", "alan": "calistiran", "deger": "pytest"}
 {"t": "2026-11-20T01:13:17Z", "id": "T-surum-37092", "op": "kanit", "deger": "komut:python3 -m pytest scripts/tests/test_sozlesme.py -q"}
+{"t": "2026-11-20T01:44:43Z", "id": "T-surum-37092", "op": "kapat", "sonuc": "TAMAM"}
