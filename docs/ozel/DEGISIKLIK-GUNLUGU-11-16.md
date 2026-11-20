@@ -1,4 +1,4 @@
-# Değişiklik günlüğü — `.11.3.1` → `.16`
+# Değişiklik günlüğü — `.11.3.1` → `.17`
 
 > `FORK.md` §10 günlüğü `.10.1`'de duruyordu; kod beş sürüm ilerideydi. Bu dosya
 > o boşluğu kapatıyor ve bundan sonrasının tek kaynağı olmayı hedefliyor.
@@ -6,10 +6,44 @@
 
 ---
 
-## `1.15-ozel.16` / 37097 — 2026-11-20
+## `1.15-ozel.17` / 37098 — 2026-11-20 · **bekleyen sürüm**
+
+`.16` yayınlanmadı; bu sürüme katlandı.
+
+**Termux katmanı (yeni, P1).** `sandbox/TermuxLayer.kt`: iki katman tek kök
+(Alpine/musl + Termux/bionic), `probe` ile cihaz uygunluğu, `environment`
+ayrımı (`LD_LIBRARY_PATH` yalnız Termux `lib`), `installPlan` (indir → sha256 →
+aç → SYMLINKS → home → sources → smoke). Güvenlik: `termux:pkg` (MEDIUM),
+`termux:sources` (HIGH/ACCOUNT), `termux:sshd` (HIGH/PERMANENT). 13 test.
+Ayrıntı: `TERMUX-ENTEGRASYONU.md`.
+
+**Ölçülen kısıt:** PRoot konuğunda `/system` yok (`ls /system` → ENOENT), yani
+bionic ikililer bugünkü yapılandırmada çalışmaz; `-b /system -b /apex` gerekiyor
+(P2). Bootstrap öneki `/data/data/com.termux/files/usr` kök içinde sıradan bir
+dizin — püf noktası bu.
+
+### Güvenlik ve doğrulama (`.16`'dan devir)
+
+- Risk korpusu: **57 komut**, tek karar kaynağı; `RiskCorpusTest` + Python aynası.
+- `shell:interpreter` / `-destroy`, `truncate`, `redirect-overwrite`, `move`,
+  `chmod-recursive`, `sql:destructive` eklendi.
+- `splitSegments` tırnak farkında (tırnak içindeki silme görünmez olmaktan çıktı).
+- `deny:pm-all` düzeltildi (`pm uninstall com.minis.x` **geçiyordu**);
+  `deny:deny-self` eklendi.
+- `ApprovalInbox` + 7 test; `answer()` → `Boolean`.
+- `ChatHealthWiring`: sağlık göstergesi gerçekten bağlandı.
+- Kısmi çeviri önbelleği; `STATION` satırı silindi.
+
+## `1.15-ozel.16` / 37097 — yayınlanmadı
+
+`1.15-ozel.17`'ye katlandı. Kod tabanında ayrı bir sürüm olarak yaşamadı; yalnız
+hazırlık dalının ilk iki commit'i bu numarayı taşıdı.
 
 **Konu:** `.15`'te ölçülen üç sessiz boşluğu kapatmak ve kural tablosunu
-test edilebilir hâle getirmek.
+test edilebilir hâle getirmek. (Aşağıdaki maddelerin tamamı `.17` paketinde.)
+
+> Not: `48 komut` → `.17`'de Termux satırlarıyla **57** oldu; aşağıdaki 48
+> rakamı `.16` anının ölçümüdür, tarihsel kayıt olarak duruyor.
 
 ### Güvenlik — risk kapısı
 

@@ -75,3 +75,14 @@ mv /var/minis/memory /tmp ||| ASK ||| hafıza dizinini taşımak
 > /var/minis/shared/onemli.txt ||| ASK ||| tek başına yönlendirme
 chmod -R 777 . ||| ASK ||| oturum kökünün izinleri
 pm disable-user com.minis.x ||| DENY ||| uygulama kendini kapatamaz
+
+# --- Termux katmanı (37098) ---------------------------------------------
+pkg install openssh ||| ASK ||| termux deposundan paket
+apt install -y sshpass ||| ASK ||| apt ile kurulum
+apt-get upgrade -y ||| ASK ||| toplu yükseltme
+dpkg -i el.deb ||| ASK ||| yerel paket kurma
+sshd ||| ASK ||| kabuğu ağa açar
+echo "deb https://kotu.example/apt stable main" > /data/data/com.termux/files/usr/etc/apt/sources.list ||| ASK ||| paket kaynağını değiştirmek
+apt remove openssh ||| ASK ||| paket kaldırma
+$PREFIX/bin/python --version ||| SILENT ||| prefix altında tipik komut (kural yok)
+apk add jq ||| SILENT ||| alpine tarafı, düşük seviye

@@ -1,0 +1,253 @@
+package com.openminis.app.sandbox
+
+import java.io.File
+
+/**
+ * [37098] Termux katmanı — Termux paket evrenini aynı PRoot kökünde çalıştırma.
+ *
+ * ## Neden "Termux'u kur" değil, "Termux katmanı"
+ *
+ * Termux bir uygulamadır: kendi APK'sı, kendi uid'i, kendi paket yöneticisi
+ * (`apt` / `pkg`), kendi deposu. Biz onu **kurmayız**; iki şeyi ödünç alırız:
+ *
+ *  1. **Bootstrap** (Resmî: `termux/termux-packages` release asset'i, ölçüldü:
+ *     `bootstrap-aarch64.zip`, 31,6 MB, 3779 dosya, 2026-11-15).
+ *  2. **Paket evreni**: `apt` + Termux depoları, `sshd`, `python`, `node`,
+ *     `clang`, `ffmpeg`, `openssh`… Alpine'de de var; fark, Termux paketlerinin
+ *     Android'e *bionic* üzerinden bağlanması (Termux:API, sensörler, `termux-*`
+ *     yardımcıları, `am`/`termux-open` köprüleri).
+ *
+ * ## Ölçülen kısıt — tasarımın tamamını bu belirliyor
+ *
+ * Termux ikilileri **bionic** ile derlenmiştir ve ELF yorumlayıcıları
+ * `/system/bin/linker64`'tür. Bizim PRoot kökümüz Alpine (musl) ve `-r` ile
+ * verilen kök dışında hiçbir şey görünmüyor:
+ *
+ * ```
+ * $ ls /system            -> No such file or directory
+ * $ ls /system/bin/linker64 -> No such file or directory
+ * ```
+ *
+ * Yani Termux ikilisi bugünkü yapılandırmada **çalışmaz**; çalıştırmak için
+ * `/system` ve `/apex` konuğa bağlanmalı. Bu, uygulamanın bugün yapmadığı bir
+ * şey (yalnız `/dev`, `/proc`, `/sys` + oturum/global dizinler bağlı).
+ *
+ * Termux ikililerinin **sabit öneki** `/data/data/com.termux/files/usr`. Android
+ * tarafında bu yol gerçek uygulama verisidir; PRoot kökünde ise gerçek Android
+ * `/data` **bağlı değil**, dolayısıyla bu yol kökün içinde sıradan bir dizindir.
+ * Bootstrap'ı tam o yola açmak, ikililerin kendi önekini bulmasını sağlar —
+ * sembolik bağ hilesi, `proot` yaması veya ikili düzenleme gerekmez.
+ *
+ * ## Neden "önce ölç, sonra kur"
+ *
+ * `/system/bin/linker64`'ün varlığı cihazdan cihaza değişir (Android 14+ bazı
+ * imajlarda yalnız `/apex/com.android.runtime` altında). Bu yüzden kurulum
+ * **koşullu**: [probe] gerçek dosyalara bakar ve gerekçesini yazar. Kapalıyken
+ * kullanıcıya "Termux katmanı bu cihazda çalışmıyor: <sebep>" denir — sessizce
+ * yarım kurulum yapılmaz. Aynı kural yükleme sonrası da geçerli: [verify]
+ * gerçekten `bash --version` çalıştırmadan "kuruldu" demez.
+ *
+ * ## Neden bu dosya `android.*` import etmiyor
+ *
+ * Karar mantığı saf: yol listesi, boyut, neden. Böylece `TermuxLayerTest`
+ * cihazsız koşar ve "hangi cihazda ne olur" sorusu tahmin değil test olur.
+ * Android'e dokunan tek yer `Context.filesDir` → [rootfsDir] parametresi.
+ */
+object TermuxLayer {
+
+    /** Termux ikililerinin derlenmiş öneki. Değiştirilemez — ikililerin içinde. */
+    const val GUEST_PREFIX: String = "/data/data/com.termux/files/usr"
+
+    /** Termux `$HOME` — ikililer bu yolu da sabit bilir. */
+    const val GUEST_HOME: String = "/data/data/com.termux/files/home"
+
+    /** Resmî bootstrap asset'i; sürüm sabitlenir, "en son" bir sürüm değildir. */
+    const val BOOTSTRAP_NAME: String = "bootstrap-aarch64.zip"
+    const val BOOTSTRAP_URL: String =
+        "https://github.com/termux/termux-packages/releases/download/" +
+            "bootstrap-2026.11.15-r1%2Bapt.android-7/bootstrap-aarch64.zip"
+
+    /** Ölçüldü: 31,6 MB zip → açıldığında ~110 MB, 3779 dosya. */
+    const val BOOTSTRAP_ZIP_MB: Int = 32
+    const val BOOTSTRAP_UNPACKED_MB: Int = 110
+
+    /** `apt update` sonrası liste + ilk kurulumlar için önerilen boş alan. */
+    const val RECOMMENDED_FREE_MB: Int = 400
+
+    /** bionic yükleyicinin yaşadığı bilinen konumlar, sırayla. */
+    private val LOADER_CANDIDATES = listOf(
+        "/system/bin/linker64",
+        "/apex/com.android.runtime/bin/linker64",
+    )
+
+    /** Bionic çalışma zamanı kitaplıkları (libc, libdl, libm…). */
+    private val RUNTIME_DIRS = listOf(
+        "/system/lib64",
+        "/apex/com.android.runtime/lib64/bionic",
+    )
+
+    /**
+     * Konuğa bağlanması gereken host dizinleri.
+     *
+     * `/system` salt-okunur bir bölümdür (dm-verity), bu yüzden `-b` ile
+     * yazılabilir bağlanması bir risk taşımaz: yazma denemesi zaten EROFS
+     * döner. `/apex` de öyle. **`/data` asla bağlanmaz** — gerçek uygulama
+     * verisini konuğa açmak, kendi onay kapımızı kendi elimizle kaldırmak olur.
+     */
+    fun requiredBinds(): List<Pair<String, String>> = listOf(
+        "/system" to "/system",
+        "/apex" to "/apex",
+    )
+
+    /** Probe sonucu: kurulabilir mi, neden değil, hangi yükleyici bulundu. */
+    data class Probe(
+        val canInstall: Boolean,
+        val loader: String?,
+        val runtimeDir: String?,
+        val problems: List<String>,
+        val warnings: List<String>,
+    ) {
+        /** Kullanıcıya tek satır: neden çalışmıyor. */
+        fun summary(): String = when {
+            canInstall && warnings.isEmpty() -> "Termux katmanı bu cihazda kullanılabilir"
+            canInstall -> "Kullanılabilir; " + warnings.joinToString("; ")
+            else -> "Kullanılamaz: " + problems.joinToString("; ")
+        }
+    }
+
+    /**
+     * Saf ön kontrol. [exists] enjekte edilebilir: testte sahte dosya sistemi.
+     */
+    fun probe(exists: (String) -> Boolean = { File(it).exists() }): Probe {
+        val problems = mutableListOf<String>()
+        val warnings = mutableListOf<String>()
+
+        val loader = LOADER_CANDIDATES.firstOrNull { exists(it) }
+        if (loader == null) {
+            problems += "bionic yükleyici bulunamadı (" +
+                LOADER_CANDIDATES.joinToString(" veya ") + ")"
+        }
+        val runtime = RUNTIME_DIRS.firstOrNull { exists(it) }
+        if (runtime == null) {
+            problems += "bionic çalışma zamanı kitaplıkları yok (" +
+                RUNTIME_DIRS.joinToString(" veya ") + ")"
+        }
+        if (loader != null && runtime != null && !exists("/system")) {
+            // Yükleyici /apex'te olabilir; /system yoksa bağlama da anlamsız.
+            problems += "/system konuğa bağlanamıyor (bölüm görünmüyor)"
+        }
+        return Probe(
+            canInstall = problems.isEmpty(),
+            loader = loader,
+            runtimeDir = runtime,
+            problems = problems,
+            warnings = warnings,
+        )
+    }
+
+    /** Diskte yer var mı — kurulum öncesi son kapı. */
+    fun spaceProblem(freeBytes: Long, isInstalled: Boolean): String? {
+        if (isInstalled) return null
+        val needed = RECOMMENDED_FREE_MB.toLong() * 1024 * 1024
+        if (freeBytes >= needed) return null
+        val haveMb = freeBytes / (1024 * 1024)
+        return "yer yetersiz: $haveMb MB var, en az $RECOMMENDED_FREE_MB MB önerilir"
+    }
+
+    /** Konuk yolları — kökün içinde nerede durur. */
+    fun guestPrefixDir(rootfsDir: File): File = File(rootfsDir, GUEST_PREFIX.trimStart('/'))
+    fun guestHomeDir(rootfsDir: File): File = File(rootfsDir, GUEST_HOME.trimStart('/'))
+
+    /** Katman kurulu mu? Bootstrap'ın son adımı `apt` ikilisini bırakır. */
+    fun isInstalled(rootfsDir: File): Boolean =
+        File(guestPrefixDir(rootfsDir), "bin/apt").exists() &&
+            File(guestPrefixDir(rootfsDir), "etc/apt/sources.list").exists()
+
+    /**
+     * Kabuk için ortam. `PATH` Termux önekini **öne** alır; Alpine araçları
+     * erişilebilir kalır (ikinci katman).
+     *
+     * `LD_LIBRARY_PATH` yalnız Termux `lib` dizinini içerir: bionic ikilileri
+     * musl `lib`'ini görmemeli (karışık yükleme sessiz çökme üretir).
+     */
+    fun environment(rootfsDir: File, homeOverride: String? = null): Map<String, String> {
+        val p = GUEST_PREFIX
+        return mapOf(
+            "PREFIX" to p,
+            "TERMUX_PREFIX" to p,
+            "TERMUX_VERSION" to "0.118.3",
+            "TERMUX_APP_PID" to "0",
+            "TERMUX_MAIN_PACKAGE_FORMAT" to "debian",
+            "HOME" to (homeOverride ?: GUEST_HOME),
+            "PATH" to "$p/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "LD_LIBRARY_PATH" to "$p/lib",
+            "TMPDIR" to "$p/tmp",
+            "SHELL" to "$p/bin/bash",
+            "LANG" to "en_US.UTF-8",
+        )
+    }
+
+    /**
+     * Bu komut Termux katmanını mı gerektiriyor?
+     *
+     * Kural: `apt`, `pkg`, `dpkg` ve `$PREFIX` altındaki araçlar Termux'a ait;
+     * `apk` ve `/usr/local` araçları Alpine'e. Karışık çağrı (ikisi birden)
+     * reddedilmez — kullanıcı bilinçli olabilir — ama [layerFor] raporlar.
+     */
+    fun layerFor(command: String): Layer {
+        val t = command.trim()
+        val termuxish = Regex("""(^|[\s;&|])(pkg|apt|apt-get|dpkg|termux-[a-z-]+)\s""")
+            .containsMatchIn(t) || t.contains("$GUEST_PREFIX/bin/")
+        val alpineish = Regex("""(^|[\s;&|])apk\s""").containsMatchIn(t)
+        return when {
+            termuxish && alpineish -> Layer.MIXED
+            termuxish -> Layer.TERMUX
+            alpineish -> Layer.ALPINE
+            else -> Layer.EITHER
+        }
+    }
+
+    enum class Layer { ALPINE, TERMUX, MIXED, EITHER }
+
+    /**
+     * Kurulum adımları — sırayla, her biri tekrar başlatılabilir.
+     *
+     * "Tekrar başlatılabilir" önemli: 31 MB indirme telefonda kopabilir.
+     * Bir adım tamamlandıysa yeniden çalıştırıldığında atlanır; yarım kalırsa
+     * baştan başlamaz.
+     */
+    fun installPlan(): List<Step> = listOf(
+        Step("probe", "Cihaz uygunluğunu ölç", optional = false),
+        Step("space", "Boş alanı denetle (≥ $RECOMMENDED_FREE_MB MB)", optional = false),
+        Step("download", "Bootstrap indir ($BOOTSTRAP_ZIP_MB MB, resmî release)", optional = false),
+        Step("verify", "sha256 doğrula (GitHub'ın bildirdiği özet)", optional = false),
+        Step("extract", "Aç ($GUEST_PREFIX)", optional = false),
+        Step("symlinks", "SYMLINKS.txt uygula", optional = false),
+        Step("home", "$GUEST_HOME hazırla, oturum dizinlerine bağla", optional = false),
+        Step("sources", "apt kaynaklarını sabitle (resmî mirror)", optional = false),
+        Step("apt-update", "apt update (ilk liste)", optional = true),
+        Step("smoke", "bash --version + apt --version çalıştır", optional = false),
+    )
+
+    data class Step(val id: String, val title: String, val optional: Boolean)
+
+    /**
+     * `apt` kaynaklarını **resmî mirror**'a sabitler.
+     *
+     * Neden: bootstrap `sources.list` içinde `stable`/`main` yazar; bir gün
+     * kullanıcı ya da ajan bunu değiştirirse tüm paketler üçüncü taraftan
+     * gelir. Ajanın kendi paket kaynağını değiştirmesi, onay kapısının
+     * engellemesi gereken işlerden: `termux:repo` kuralı bunu kart'a bağlar.
+     */
+    fun defaultSources(): String = buildString {
+        appendLine("# [37098] Minis X — Termux katmanı")
+        appendLine("# Kaynak değişikliği ajan tarafından yapılırsa onay kartı çıkar.")
+        appendLine("deb https://packages.termux.dev/apt/termux-main stable main")
+    }
+
+    /** Kurulum sonrası doğrulama: gerçek çıktı, iddia değil. */
+    fun smokeCommands(): List<String> = listOf(
+        "$GUEST_PREFIX/bin/bash --version",
+        "$GUEST_PREFIX/bin/apt --version",
+    )
+}

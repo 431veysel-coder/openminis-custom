@@ -56,12 +56,40 @@ ASK_FROM = "MEDIUM"
 # Kotlin kaynağını okuma
 # --------------------------------------------------------------------------- #
 def load_regexes(text: str) -> dict[str, re.Pattern]:
-    """`private val AD = Regex(\"\"\"...\"\"\")` tanımlarını toplar."""
+    """
+    Kotlin kaynağındaki Regex tanımlarını toplar.
+
+    Kotlin, `Regex(` ile string arasına yorum koymaya izin verir:
+
+        private val X = Regex(
+            // iki yön de olur: …
+            \"\"\"kalıp\"\"\",
+        )
+
+    İlk sürüm bunu kaçırıyordu ve kalıp **sessizce** yüklenmiyordu: gölge
+    koşucu o kuralı hiç görmediği için "temiz" diyordu. Sessiz eksik kural,
+    sessiz yanlış karardan daha tehlikeli — çünkü testin yeşil olması kuralın
+    var olduğunu kanıtlamıyor.
+    """
     out: dict[str, re.Pattern] = {}
-    for m in re.finditer(r"private\s+val\s+(\w+)\s*=\s*Regex\(\s*\"\"\"(.*?)\"\"\"", text, re.S):
-        name, pattern = m.group(1), m.group(2)
-        flags = re.I if "IGNORE_CASE" in text[m.end(): m.end() + 60] else 0
-        out[name] = re.compile(pattern, flags)
+    head = re.compile(
+        r"private\s+val\s+(\w+)\s*=\s*Regex\("
+        r"(?:\s|//[^\n]*\n)*?"      # araya giren boşluk ve yorum satırları
+        r'"""',
+        re.S,
+    )
+    for m in head.finditer(text):
+        name = m.group(1)
+        end = text.find('"""', m.end())
+        if end < 0:
+            continue
+        pattern = text[m.end():end]
+        tail = text[end + 3: end + 80]
+        flags = re.I if "IGNORE_CASE" in tail else 0
+        try:
+            out[name] = re.compile(pattern, flags)
+        except re.error:
+            continue
     return out
 
 

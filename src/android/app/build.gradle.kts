@@ -73,9 +73,13 @@ android {
         // exact failure the new `needs: tests` removes — so it stays spent.
         //
         // 37097 (1.15-ozel.16): risk korpusu + ApprovalInbox + sağlık köprüsü
-        // + kısmi çeviri önbelleği. 37093..37096 yakılmadı; 37097 ilk boş.
-        versionCode = 37097
-        versionName = "1.15-ozel.16"
+        // + kısmi çeviri önbelleği. 37093..37096 yakılmadı.
+        //
+        // 37098 (1.15-ozel.17): Termux katmanı (bionic + apt evreni).
+        // `.16` YAYINLANMADI; aynı pakete katlandı. Yayın tek seferde yapılacak,
+        // o yüzden iki ayrı "bekleyen sürüm" tutmak yanıltıcı olurdu.
+        versionCode = 37098
+        versionName = "1.15-ozel.17"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

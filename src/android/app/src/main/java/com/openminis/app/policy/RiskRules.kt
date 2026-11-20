@@ -125,7 +125,47 @@ object RiskRules {
         RegexOption.IGNORE_CASE,
     )
 
+    // --- Termux katmanı (37098) -------------------------------------------
+    //
+    // Termux katmanı bionic ikilileri çalıştırıyor ve paketleri `apt` ile
+    // kuruyor. Bu, Alpine tarafından iki farklı sınıf risk doğuruyor:
+    //
+    //  · `apt`/`pkg`/`dpkg` — yeni kod indirir ve **konuk root olarak**
+    //    kurar. `apk` ile aynı sınıf (MEDIUM, geri alınabilir) ama kaynağı
+    //    değiştirmek ayrı bir iştir: kaynak değişirse paketler üçüncü
+    //    taraftan gelir, o yüzden o kural ayrı ve HIGH.
+    //  · `sshd` — kabuğu **ağa** açar. Geri dönüşü yok: açıldığı andan
+    //    kapatılana kadar ağdan giriş mümkündür ve deneme kayıtları kalır.
+    private val TERMUX_SOURCES = Regex(
+        // İki yön de olur: `> … /etc/apt/sources.list` (yönlendirme önce) ve
+        // `sed -i … sources.list` (yol önce). Tek yön yazmak, en sık yazılan
+        // biçimi kaçırır — ilk korpus koşusunda tam olarak bu oldu.
+        //
+        // Tek parça string olarak yazıldı: `risk-corpus.py` bu satırı okuyup
+        // aynı kalıbı Python'da kuruyor, ve parçalı birleştirme onun ayrıştırıcısının
+        // dışında kalır (ikisi ayrışırsa gölge koşucu yalan söyler).
+        """(sources\.list|/etc/apt/)[^;&|]*(>>?|tee|sed\s+-i|cp\s|mv\s)|(>>?|tee)\s+\S*(sources\.list|/etc/apt/)""",
+    )
+    private val TERMUX_SSHD = Regex("""(^|[\s;&|])(sshd|ssh-keygen|termux-wake-lock)(\s|$)""")
+    private val TERMUX_PKG = Regex(
+        """(^|[\s;&|])(pkg|apt|apt-get|dpkg)\s+(-[a-zA-Z]+\s+)*(install|add|upgrade|dist-upgrade|full-upgrade|remove|purge|autoremove|-i)\b""",
+    )
+
     val ALL: List<Rule> = listOf(
+        // [37098] En özel kural en başta: `echo deb ... > sources.list` hem
+        // yönlendirme hem kaynak değişikliğidir. Karar ikisinde de ASK/HIGH,
+        // ama **kart gerekçesi** farklı: "dosyanın üzerine yazar" demek,
+        // "bundan sonraki her paket yeni kaynaktan gelir" demenin yerini
+        // tutmaz. Sıra, kararın değil gerekçenin doğruluğu için.
+        Rule(
+            id = "termux:sources",
+            pattern = TERMUX_SOURCES,
+            level = RiskLevel.HIGH,
+            reach = Reach.ACCOUNT,
+            recovery = Recovery.RECOVERABLE,
+            note = "paket kaynağını değiştirir; bundan sonraki her paket yeni kaynaktan gelir ve hiçbiri imza doğrulamasından geçmez",
+        ),
+
         // [37096] Yorumlayıcı: en özel olan önce, yoksa genel kalıp onu yer.
         Rule(
             id = "shell:interpreter-destroy",
@@ -254,6 +294,27 @@ object RiskRules {
         Rule("credential:read", SECRET_READ, RiskLevel.HIGH, Reach.ACCOUNT, Recovery.UNDOABLE, "anahtar dosyasını okur; okunan değer model bağlamına girer ve oradan çıkmaz"),
 
         // Paket
+        //
+        // [37098] Termux kuralları **önce** gelir: `apt install` hem buraya hem
+        // `pkg:install`'a uyar, ve tablo sıralı — ilk eşleşen kazanır. Sıra
+        // tersine dönerse apt kurulumu LOW'a düşer ve kart açılmaz. Bu, ilk
+        // korpus koşusunda gerçekten oldu.
+        Rule(
+            id = "termux:pkg",
+            pattern = TERMUX_PKG,
+            level = RiskLevel.MEDIUM,
+            reach = Reach.SANDBOX,
+            recovery = Recovery.UNDOABLE,
+            note = "Termux deposundan paket kurar/kaldırır; yeni kod konuk root olarak çalışır",
+        ),
+        Rule(
+            id = "termux:sshd",
+            pattern = TERMUX_SSHD,
+            level = RiskLevel.HIGH,
+            reach = Reach.NETWORK,
+            recovery = Recovery.PERMANENT,
+            note = "konuk kabuğu ağa açar; açık olduğu sürece dışarıdan giriş denenebilir ve deneme kayıtları kalır",
+        ),
         Rule("pkg:install", PKG_INSTALL, RiskLevel.LOW, Reach.SANDBOX, Recovery.UNDOABLE, "ortama yeni paket kurar; geri alınabilir, ama kaynağına güvenmek gerekir"),
         Rule("pkg:uninstall", PKG_UNINSTALL, RiskLevel.MEDIUM, Reach.SANDBOX, Recovery.RECOVERABLE, "kurulu paketi kaldırır; ona bağlı araçlar bozulabilir"),
     )
