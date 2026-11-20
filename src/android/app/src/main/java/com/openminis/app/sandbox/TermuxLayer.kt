@@ -200,6 +200,21 @@ object TermuxLayer {
     fun guestPrefixDir(rootfsDir: File): File = File(rootfsDir, GUEST_PREFIX.trimStart('/'))
     fun guestHomeDir(rootfsDir: File): File = File(rootfsDir, GUEST_HOME.trimStart('/'))
 
+    /**
+     * Bootstrap zip girişinin **açılacağı** yer.
+     *
+     * Zip girişleri öneğe göre göreli (`bin/bash`, `etc/apt/sources.list`) —
+     * ölçüldü: üst düzey dizinler `bin`, `etc`, `include`, `lib`, `libexec`,
+     * `share`, `tmp`, `var`. Köke açmak Alpine'in `/bin`'ini ve `/etc`'sini
+     * EZER; kök kullanılamaz hâle gelir.
+     *
+     * Bu fonksiyonun varlık sebebi o hatanın tekrar edilememesi:
+     * `TermuxInstaller` buradan geçmek zorunda, `TermuxLayerTest` de bu
+     * sözleşmeyi çivliyor. Yol hesabı tek yerde.
+     */
+    fun extractTarget(rootfsDir: File, entryName: String): File =
+        File(guestPrefixDir(rootfsDir), entryName.trimStart('/'))
+
     /** Katman kurulu mu? Bootstrap'ın son adımı `apt` ikilisini bırakır. */
     fun isInstalled(rootfsDir: File): Boolean =
         File(guestPrefixDir(rootfsDir), "bin/apt").exists() &&

@@ -83,7 +83,7 @@ alpine-rootfs/                      ← PRoot kökü (-r), .image = alpine-3.21.
 ├── bin/ usr/ etc/ …                ← KATMAN A: Alpine (musl, apk)   [varsayılan]
 └── data/data/com.termux/files/     ← KATMAN B: Termux (bionic, apt) [isteğe bağlı]
     ├── usr/  (PREFIX — 3 779 dosya, ~110 MB)
-    └── home/ (→ /var/minis/shared/termux-home sembolik bağı)
+    └── home/ (Termux $HOME — kökün içinde kalır, yedeklenmez)
 ```
 
 PRoot komut satırına iki ek:
@@ -177,25 +177,35 @@ Yani:
 
 ### 5.1 Yazıldı (bu turda)
 
-| Dosya | Satır | Ne |
-|---|---|---|
-| `sandbox/TermuxLayer.kt` | 258 | `probe`, `spaceProblem`, yol haritası, `environment`, `layerFor`, `installPlan`, `defaultSources`, `smokeCommands` |
-| `policy/RiskRules.kt` | +3 kural | `termux:pkg`, `termux:sources`, `termux:sshd` |
-| `test/.../TermuxLayerTest.kt` | 13 test | sahte dosya sistemiyle uygunluk, ortam, katman seçimi, plan sırası |
-| `test/resources/ozel/risk-corpus.txt` | +9 satır | Termux kararları korpusa girdi |
+| Dosya | Ne |
+|---|---|
+| `sandbox/TermuxLayer.kt` | `probe`, `spaceProblem`, `extractTarget`, `environment`, `layerFor`, `installPlan`, `defaultSources`, `smokeCommands`, `APK_BUDGET_KB` |
+| `sandbox/TermuxInstaller.kt` | indirme + sabit sha256 + zip-slip + `SYMLINKS.txt` + smoke; 10 adım tekrar başlatılabilir |
+| `ozel/TermuxPrompt.kt` | sistem istemine iki sabit metin (kurulu ~221 token / değil ~128) |
+| `sandbox/PRootKernel.kt` | `-b /system -b /apex` (koşullu), PATH öneki, `refreshTermuxPath()` |
+| `sandbox/RootfsManager.kt` | `USER_TREES` += `data/data/com.termux` |
+| `sandbox/ToolchainManager.kt` | `termuxGroup` (liste başında), `install`/`uninstall` ayrı yolu |
+| `policy/RiskRules.kt` | 3 kural: `termux:pkg`, `termux:sources`, `termux:sshd` |
+| `test/.../TermuxLayerTest.kt` | **15 test** (ikisi hata sonrası eklendi: açma hedefi, `data` altında arama) |
+| `test/resources/ozel/risk-corpus.txt` | +9 satır (48 → 57) |
 
 `TermuxLayer` **`android.*` import etmiyor**: karar mantığı saf, test cihazsız
 koşuyor (`TermuxLayerTest`).
 
-### 5.2 Bağlanacak (sıradaki adım — kod yeri belli)
+### 5.2 Bağlandı (P2) ve kalan (P3)
 
-| Dosya | Değişiklik | Risk |
+| Dosya | Değişiklik | Durum |
 |---|---|---|
-| `sandbox/PRootKernel.kt` | `buildProotCommand`: uygunluk varsa `-b /system -b /apex` ekle + `TermuxLayer.environment` enjekte et | Düşük — mevcut bağların yanına ekleme |
-| `sandbox/RootfsManager.kt` | `USER_TREES`'e `data/data/com.termux` ekle | **Kritik** — eklenmezse yeni Alpine imajı 110 MB katmanı siler |
-| `sandbox/ToolchainManager.kt` | Yeni grup: "Termux katmanı" (boyut 110 MB + prob sonucu) | Orta |
-| `ui/settings/ToolchainScreen.kt` | Grup kartında prob sonucu; uygun değilse düğme pasif + sebep | Düşük |
-| `terminal/TerminalSession.kt` | Katman seçici (Alpine / Termux) oturum başlığında | Orta |
+| `sandbox/PRootKernel.kt` | `-b /system -b /apex` (yalnız kuruluysa) + PATH öneki + `refreshTermuxPath()` | ✅ |
+| `sandbox/RootfsManager.kt` | `USER_TREES` += `data/data/com.termux` | ✅ |
+| `sandbox/ToolchainManager.kt` | `termuxGroup` + `install`/`uninstall` ayrı yolu | ✅ |
+| `ozel/TermuxPrompt.kt` | sistem istemine iki sabit metin | ✅ |
+| `ui/settings/ToolchainScreen.kt` | ilerleme yüzdesi (kart `Installing(line)` görüyor) | ⬜ P3 |
+| `terminal/TerminalSession.kt` | katman rozeti (`ALPINE` / `TERMUX`) | ⬜ P3 |
+
+**"Kur" düğmesi çalışıyor:** `ToolchainScreen` zaten `install(context, group.id)`
+çağırıyor, `install` da `TERMUX_GROUP_ID` için ayrı yola gidiyor. P3'te eksik
+olan yalnız görsellik.
 
 **`USER_TREES` maddesi en kolay atlanan ve en pahalı olan.** `.10.1`'de aynı
 hata yaşandı: rootfs yeniden çıkarılınca 1,4 GB'lık araç zinciri silinmişti.
@@ -464,6 +474,27 @@ denmez.
 | **`/data` bağlamak** | Sandbox sınırını kendi elimizle kaldırmak; onay kapısı anlamsızlaşır |
 | **`termux-api` desteğini ilk sürüme koymak** | Termux APK'sı kurulu değilse çalışmaz; "var" görünen ama çalışmayan özellik, `.14`'te kınanan sınıfın ta kendisi |
 | **`sshd` varsayılan açık** | Telefonda ağa açık kabuk; parola denemesi kaba kuvvete açık |
+
+---
+
+## 9.1 · Bu turda bulunan ve kapatılan hatalar
+
+Kod yazıldıktan sonra satır satır yeniden okundu; **yedi gerçek hata** çıktı.
+Tamamı `docs/ozel/DENETIM-37098.md`'de kanıtıyla. Özet:
+
+| # | Hata | Etkisi | Kapanış |
+|---|---|---|---|
+| 1 | Bootstrap **kök** dizine açılıyordu | Alpine'in `/bin`'ini ezerdi — 31 MB indirip çalışan sandbox'ı bozardı | `extractTarget()` tekleştirildi + test |
+| 2 | Kurulum `boot()` yapmadan proot çağırıyordu | `IllegalStateException` → "kuruldu ama doğrulanamadı" | `runInGuest` artık `suspend`, ilk işi `boot()` |
+| 3 | Kurulum sonrası PATH eski | `apt: not found` — "kurdum ama çalışmıyor" | `refreshTermuxPath()` + 3 çağrı yeri |
+| 4 | `LD_LIBRARY_PATH` global enjeksiyonu | musl ikilileri bionic yüklerdi → sessiz çökme | kabuğa **yalnız PATH**; tam ortam sadece smoke'ta |
+| 5 | Probe `command -v bash` | Alpine'in bash'i → yarım kurulum "kurulu" görünürdü | mutlak yollar |
+| 6 | Kaldırma üç adımlık türetme | yanlış dizin silme riski | sabit yol + kök altı kapısı |
+| 7 | `apk del` Termux grubunda | "Kaldır" hiçbir şey yapmazdı | ayrı `uninstall` yolu |
+
+Ders: altısı **sessizdi** — kullanıcıya hata mesajı değil, yanlış davranış
+olarak görünürdü. Termux katmanında "çalışıyor gibi" ile "çalışıyor" arasındaki
+fark, bu belgede ölçülen kısıtların kendisi.
 
 ---
 

@@ -227,8 +227,6 @@ def main() -> int:
     stamp = time.strftime("%Y%m%d-%H%M%S")
     name, code = version()
     pkg = out / f"minis-x-paket-{name}-{stamp}"
-    for sub in ("00-BASLA.md", "01-DAMGA", "02-KAYNAK", "03-BELGE", "04-ARAC", "05-GECMIS", "06-KANIT"):
-        pass
     pkg.mkdir(parents=True, exist_ok=True)
     print(f"paket: {pkg.name}")
 

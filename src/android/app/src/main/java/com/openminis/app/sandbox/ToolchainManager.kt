@@ -94,7 +94,13 @@ object ToolchainManager {
         packages = emptyList(),
         sizeMb = TermuxLayer.BOOTSTRAP_ZIP_MB,
         probe = "${TermuxLayer.GUEST_PREFIX}/bin/bash --version",
-        requiredBinaries = listOf("bash", "apt"),
+        // Mutlak yol şart: `command -v bash` Alpine'in bash'ini de bulur ve
+        // katman kurulmamışken "kurulu" derdi. Mutlak yol, yalnız Termux'un
+        // ikilisini sayar (`command -v /yol/x` yürütülebilirse yolu döner).
+        requiredBinaries = listOf(
+            "${TermuxLayer.GUEST_PREFIX}/bin/bash",
+            "${TermuxLayer.GUEST_PREFIX}/bin/apt",
+        ),
     )
 
     val groups: List<Group> = listOf(
@@ -506,6 +512,9 @@ object ToolchainManager {
         }
         set(TERMUX_GROUP_ID, InstallState.Present)
         AppLogger.info(TAG, "[install] termux layer ok: ${result.message}")
+        // [37098] Kurulum boot'tan sonra olduysa `customEnvironment`'daki PATH
+        // hâlâ eski. Tazelemezsek ajan `apt` bulamaz — "kurdum ama çalışmıyor".
+        runCatching { PRootKernel.refreshTermuxPath() }
         return true
     }
 
@@ -584,6 +593,21 @@ object ToolchainManager {
      */
     suspend fun uninstall(context: Context, groupId: String, onLine: (String) -> Unit = {}): Boolean =
         withContext(Dispatchers.IO) {
+            // [37098] Termux katmanı `apk del` ile kaldırılmaz: paketleri
+            // Alpine'e ait değil, kendi dizinini silmek gerekir. Boş paket
+            // listesiyle `apk del` çalıştırmak komutu bozardı.
+            if (groupId == TERMUX_GROUP_ID) {
+                set(TERMUX_GROUP_ID, InstallState.Installing(null))
+                val ok = runCatching { TermuxInstaller.uninstall(context) }
+                    .getOrElse {
+                        set(TERMUX_GROUP_ID, InstallState.Failed(it.message ?: "uninstall failed"))
+                        return@withContext false
+                    }
+                set(TERMUX_GROUP_ID, if (ok) InstallState.Absent else InstallState.Failed("katman silinemedi"))
+                runCatching { PRootKernel.refreshTermuxPath() }
+                AppLogger.info(TAG, "[uninstall] termux layer removed=$ok")
+                return@withContext ok
+            }
             val group = groups.firstOrNull { it.id == groupId } ?: return@withContext false
             set(groupId, InstallState.Installing(null))
             val result = runCatching {

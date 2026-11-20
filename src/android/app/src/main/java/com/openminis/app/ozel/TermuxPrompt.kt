@@ -1,7 +1,6 @@
 package com.openminis.app.ozel
 
 import android.content.Context
-import com.openminis.app.data.OzelFeatures
 import com.openminis.app.sandbox.TermuxLayer
 import java.io.File
 
@@ -37,20 +36,28 @@ import java.io.File
  */
 object TermuxPrompt {
 
-    /** Kök dizinde katman var mı — istem üretimi için tek gerçek. */
+    /**
+     * Kök dizinde katman var mı — istem üretimi için tek gerçek.
+     *
+     * [OzelFeatures.Feature.TOOLCHAINS] anahtarına **bağlanmıyor**: o anahtar
+     * kurulum ekranını gizler, kurulu katmanı silmez. Katman kuruluyken anahtar
+     * kapatılırsa `apt` kabukta hâlâ çalışır; istemin bunu gizlemesi modeli
+     * olmayan bir kısıt varsaymaya iter ("apt yok" derken komut çalışır).
+     * İstem gerçeği söyler, ayar ekranı neyin görüneceğini söyler.
+     */
     fun isReady(ctx: Context): Boolean =
-        OzelFeatures.isEnabled(ctx, OzelFeatures.Feature.TOOLCHAINS) &&
-            TermuxLayer.isInstalled(File(ctx.applicationContext.filesDir, "alpine-rootfs"))
+        TermuxLayer.isInstalled(File(ctx.applicationContext.filesDir, "alpine-rootfs"))
 
     /**
-     * Sistem istemine eklenecek bölüm. Katman kapalıysa **boş string** —
-     * kapalı bir özelliği anlatmak, modele yapamayacağı bir şeyi düşündürür.
+     * Sistem istemine eklenecek bölüm.
+     *
+     * Katman kurulu değilken de metin yazılıyor — "yok" bilgisi de bir
+     * bilgidir: modelin `apt` deneyip hatayı izin sorunu sanmasını engelliyor.
+     * Boş string yalnız katman hiç mümkün değilse (bu cihazda bionic yok)
+     * dönerdi; o durumda da modelin bilmesi gereken şey aynı: "apt yok,
+     * kurmayı denemeyin".
      */
-    fun section(ctx: Context): String = when {
-        !OzelFeatures.isEnabled(ctx, OzelFeatures.Feature.TOOLCHAINS) -> ""
-        isReady(ctx) -> READY
-        else -> NOT_READY
-    }
+    fun section(ctx: Context): String = if (isReady(ctx)) READY else NOT_READY
 
     private val READY = """
 

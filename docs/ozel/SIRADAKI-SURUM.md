@@ -15,21 +15,28 @@ reddedilen seçenekler).
 
 | Faz | İş | Durum |
 |---|---|---|
-| **P1** | `TermuxLayer` (258 satır) + 3 risk kuralı + 13 test + korpus 9 satır | ✅ **hazır** |
-| **P2** | `PRootKernel`: `-b /system -b /apex` + `TermuxLayer.environment` enjeksiyonu | ⬜ |
-| **P2** | `RootfsManager.USER_TREES` += `data/data/com.termux` | ⬜ **kritik** |
-| **P2** | Kurulum akışı (indir → sha256 → aç → SYMLINKS.txt → home → sources → smoke) | ⬜ |
-| **P3** | `ToolchainScreen`: "Termux katmanı" kartı + prob sonucu + adım göstergesi | ⬜ |
+| **P1** ✅ | `TermuxLayer` (karar mantığı) + 3 risk kuralı + 15 test + korpus 9 satır | ✅ |
+| **P2** ✅ | `PRootKernel`: `-b /system -b /apex` (koşullu) + PATH öneki + `refreshTermuxPath` | ✅ |
+| **P2** ✅ | `RootfsManager.USER_TREES` += `data/data/com.termux` | ✅ |
+| **P2** ✅ | `TermuxInstaller` (10 adım, tekrar başlatılabilir, sabit sha256, zip-slip, SYMLINKS.txt) | ✅ |
+| **P2** ✅ | `TermuxPrompt` — modelin katmanı bilmesi (istemsiz araç = özellik yok) | ✅ |
+| **P3** | `ToolchainScreen`: ilerleme çubuğu (kart `Installing(line)` alıyor; yüzde yok) | ⬜ |
 | **P3** | Terminal oturum başlığında katman rozeti (`ALPINE` / `TERMUX`) | ⬜ |
 | **P4** | `sshd` anahtar tabanlı, parola kapalı, 30 dk otomatik kapanma | ⬜ |
 | **P5** | Ölçüm tablosunu doldur (kurulum süresi, RAM, `apt update` boyutu) | ⬜ |
 
 **P2'de en kolay atlanan ve en pahalı olan:** `USER_TREES`. `.10.1`'de aynı hata
 yaşandı — rootfs yeniden çıkarılınca 1,4 GB'lık araç zinciri silinmişti.
+`.17`'de bu satır **yazıldı**; silinmemesi için gerekçesi de yorumda.
 
-**P2 bitmeden arayüz yazılmasın.** Kurulum çalışmayan bir "Kur" düğmesi, boş
-vaattir; bu depoda o sınıf hata (`FANOUT`, `STATION`, `CHAT_HEALTH`) üç kez
-tekrarlandı.
+**P2 bitti.** Yedi gerçek hata bulundu ve kapatıldı — hepsi
+`docs/ozel/DENETIM-37098.md`'de kanıtıyla. En kritik ikisi: bootstrap kök
+dizine açılıyordu (Alpine'in `/bin`'ini ezerdi) ve kurulum `boot()` yapmadan
+proot çağırıyordu.
+
+**P3 başlamadan:** `ToolchainScreen` zaten `install(context, group.id)`
+çağırıyor, yani "Kur" düğmesi **çalışır durumda**. Eksik olan yalnız ilerleme
+görselliği ve terminal katman rozeti.
 
 ---
 

@@ -147,6 +147,14 @@ object TermuxInstaller {
         }
 
         // 5) extract
+        //
+        // ⚠️ Bootstrap zip'i ÖNEKE GÖRE göreli: `bin/`, `etc/`, `lib/`,
+        // `var/`… Yani köke açılırsa Alpine'in `/bin`, `/etc`, `/lib`
+        // dizinlerinin ÜZERİNE yazar ve kök kullanılamaz hâle gelir. İlk
+        // yazımda tam olarak bu hatayı yaptım (`unzip(zip, root)`); doğrusu
+        // önek dizinine açmak. Zip içeriği ölçüldü: SYMLINKS.txt, bin, etc,
+        // include, lib, libexec, share, tmp, var — hiçbiri `data/` ile
+        // başlamıyor.
         val prefixDir = TermuxLayer.guestPrefixDir(root)
         val extractErr = runCatching {
             prefixDir.mkdirs()
@@ -221,16 +229,38 @@ object TermuxInstaller {
             )
         }
         zip.delete()
+        // Kurulum boot'tan sonra olabilir: PATH'i tazele, yoksa ajan `apt`
+        // bulamaz. Tazeleme `TermuxInstaller`'ın kendi işi — çağıranın bunu
+        // hatırlamasına bırakmak, "kurdum ama çalışmıyor" sınıfı bir hata.
+        runCatching { PRootKernel.refreshTermuxPath() }
         Log.i(TAG, "termux layer installed at ${prefixDir.absolutePath}")
         Result(true, "Termux katmanı kuruldu: ${smokeLines.joinToString("; ")}", steps)
     }
 
     /** Kaldırma — kökün içindeki tek dizin silinir, başka hiçbir şey. */
+    /**
+     * Kaldırma — kökün içindeki `data/data/com.termux` dizini silinir, başka
+     * hiçbir şey.
+     *
+     * Yolu `guestPrefixDir().parentFile.parentFile` ile türetmek kırılgan:
+     * `usr` → `files` → `com.termux` üç adım ve biri değişirse yanlış dizini
+     * siler (ör. `files`i silmek Termux ev dizinini de götürür). Sabit yol
+     * yazmak, silme işleminde tahmin yürütmemek demek.
+     *
+     * Ek koruma: hedef kökün **altında** olmak zorunda. `root` dışına çıkan
+     * bir yol asla silinmez.
+     */
     suspend fun uninstall(ctx: Context): Boolean = withContext(Dispatchers.IO) {
         val root = rootfs(ctx)
-        val target = TermuxLayer.guestPrefixDir(root).parentFile?.parentFile // …/files
-        val ok = target != null && target.exists() && target.path.startsWith(root.path)
-        if (ok) target.deleteRecursively()
+        val target = File(root, "data/data/com.termux")
+        val insideRoot = target.canonicalPath.startsWith(root.canonicalPath + File.separator)
+        if (!insideRoot) {
+            Log.w(TAG, "uninstall refused: ${target.absolutePath} kökün dışında")
+            return@withContext false
+        }
+        if (!target.exists()) return@withContext false
+        val ok = target.deleteRecursively()
+        Log.i(TAG, "termux layer removed: $ok (${target.absolutePath})")
         ok
     }
 
@@ -298,23 +328,30 @@ object TermuxInstaller {
      * zorunda.
      */
     private fun unzip(zip: File, root: File) {
-        val rootPath = root.canonicalPath + File.separator
+        // [37098] Hedef hesabı `TermuxLayer.extractTarget`'ta: zip girişleri
+        // öneğe göre göreli, köke açmak Alpine'in /bin'ini ezer. Yol tek
+        // yerde, test o sözleşmeyi çiviliyor.
+        val prefixDir = TermuxLayer.guestPrefixDir(root)
+        val prefixPath = prefixDir.canonicalPath + File.separator
+        val prefixSelf = prefixDir.canonicalPath
         ZipInputStream(zip.inputStream().buffered()).use { zis ->
             var entry = zis.nextEntry
             while (entry != null) {
-                val dest = File(root, entry.name)
-                val destPath = dest.canonicalPath
-                if (!destPath.startsWith(rootPath) && destPath != root.canonicalPath) {
-                    throw SecurityException("zip girişi kök dışına çıkıyor: ${entry.name}")
+                val out = TermuxLayer.extractTarget(root, entry.name)
+                val outPath = out.canonicalPath
+                if (!outPath.startsWith(prefixPath) && outPath != prefixSelf) {
+                    throw SecurityException("zip girişi hedef dışına çıkıyor: ${entry.name}")
                 }
                 if (entry.isDirectory) {
-                    dest.mkdirs()
+                    out.mkdirs()
                 } else {
-                    dest.parentFile?.mkdirs()
-                    dest.outputStream().use { out -> zis.copyTo(out, 64 * 1024) }
+                    out.parentFile?.mkdirs()
+                    out.outputStream().use { o -> zis.copyTo(o, 64 * 1024) }
                     // Termux ikilileri 0755 olmalı; zip modu taşımıyor.
-                    if (entry.name.startsWith("bin/") || entry.name.startsWith("lib/")) {
-                        runCatching { Os.chmod(dest.absolutePath, 493) } // 0o755
+                    if (entry.name.startsWith("bin/") || entry.name.startsWith("lib/") ||
+                        entry.name.startsWith("libexec/")
+                    ) {
+                        runCatching { Os.chmod(out.absolutePath, 493) } // 0o755
                     }
                 }
                 zis.closeEntry()
@@ -378,11 +415,22 @@ object TermuxInstaller {
     /**
      * Konukta tek komut çalıştırır: `(çıkış kodu, çıktı)`.
      *
-     * Neden [ShellExecutor] değil de doğrudan proot: kurulum sırasında oturum
-     * yok ve shell oturum açılışına bağlanmak istemiyoruz. Kullanıcı katmanı
-     * kurarken bir sohbetin kabuğunu meşgul etmemeli.
+     * ## Neden [ShellExecutor] değil de doğrudan proot
+     *
+     * Kurulum sırasında oturum yok ve bir sohbetin kabuğunu meşgul etmemek
+     * gerekiyor.
+     *
+     * ## Neden `boot()` şart
+     *
+     * `buildProotCommand` `isBooted` kontrolü yapıyor (`check(isBooted)`).
+     * Kurulum, uygulama açılışında henüz kabuk hiç açılmamışken çalışabilir —
+     * o durumda çağrı `IllegalStateException` atardı ve son adım (smoke)
+     * "kuruldu ama doğrulanamadı" diye yanlış rapor verirdi. `boot()` ayrıca
+     * `nativeLibDir`/`prootLoaderPath`'i doldurur; bunlar olmadan proot
+     * execve'de SELinux tarafından öldürülür.
      */
-    private fun runInGuest(ctx: Context, command: String): Pair<Int, String> {
+    private suspend fun runInGuest(ctx: Context, command: String): Pair<Int, String> {
+        PRootKernel.boot(ctx)
         val root = rootfs(ctx)
         val pb = ProcessBuilder(PRootKernel.buildProotCommand(command))
         pb.redirectErrorStream(true)
@@ -392,8 +440,9 @@ object TermuxInstaller {
         PRootKernel.prootLoaderPath.takeIf { it.isNotEmpty() }?.let { env["PROOT_LOADER"] = it }
         PRootKernel.prootLoader32Path.takeIf { it.isNotEmpty() }?.let { env["PROOT_LOADER_32"] = it }
         PRootKernel.customEnvironment.forEach { (k, v) -> env[k] = v }
-        // Katman ortamı EN SON: PATH'i Termux önekiyle başlatır, böylece `bash`
-        // ve `apt` Alpine'in değil Termux'un ikilileridir.
+        // Katman ortamı EN SON: PATH'i Termux önekiyle başlatır ve
+        // LD_LIBRARY_PATH'i Termux lib'ine çeker — böylece `bash` ve `apt`
+        // bionic ikilileridir, Alpine'in musl karşılıkları değil.
         env.putAll(TermuxLayer.environment(root))
         val proc = pb.start()
         val out = proc.inputStream.bufferedReader().readText()

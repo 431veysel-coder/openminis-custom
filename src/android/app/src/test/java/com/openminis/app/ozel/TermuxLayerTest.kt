@@ -129,6 +129,40 @@ class TermuxLayerTest {
     }
 
     @Test
+    fun `bootstrap onek dizinine acilir kok dizinine degil`() {
+        // Ölçüldü: zip girişleri `bin/`, `etc/`, `lib/`, `var/` — öneğe göre
+        // göreli. Köke açılırsa Alpine'in /bin'i ezilir. Bu test o kararı
+        // çiviliyor: `TermuxLayer.extractTarget` her girişi öneğin altına
+        // yerleştirmek zorunda.
+        val root = File("/data/user/0/com.minis.x/files/alpine-rootfs")
+        val prefix = TermuxLayer.guestPrefixDir(root)
+
+        assertEquals(
+            File(prefix, "bin/bash"),
+            TermuxLayer.extractTarget(root, "bin/bash"),
+        )
+        // Ve ASLA kökün bin'i olmamalı — ezilmenin tam adresi.
+        assertFalse(
+            TermuxLayer.extractTarget(root, "bin/bash").path == File(root, "bin/bash").path,
+        )
+        assertEquals(
+            File(prefix, "etc/apt/sources.list"),
+            TermuxLayer.extractTarget(root, "etc/apt/sources.list"),
+        )
+        // Baştaki `/` girişte olursa da önek altında kalmalı.
+        assertTrue(TermuxLayer.extractTarget(root, "/bin/apt").path.startsWith(prefix.path))
+    }
+
+    @Test
+    fun `katman yalniz android data dizininin altinda aranir`() {
+        // Gerçek Android /data değil: kökün İÇİNDEKİ data. Bu ayrım
+        // karışırsa `isInstalled` yanlış cevap verir (sistemde com.termux
+        // kurulu bir uygulama varsa "kurulu" derdi).
+        val root = File("/rootfs")
+        assertTrue(TermuxLayer.guestPrefixDir(root).path.startsWith("/rootfs/"))
+    }
+
+    @Test
     fun `kaynak listesi resmi mirrori gosterir`() {
         val sources = TermuxLayer.defaultSources()
         assertTrue(sources.contains("https://packages.termux.dev/apt/termux-main"))

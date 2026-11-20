@@ -210,6 +210,24 @@ object PRootKernel {
             customEnvironment.putIfAbsent("GIT_CONFIG_VALUE_0", "rename")
         }
 
+        // [37098] Termux katmanı kuruluysa PATH'e önekini ekle.
+        //
+        // Neden burada, `TermuxLayer.environment()`'ı olduğu gibi enjekte
+        // etmek yerine: o metot LD_LIBRARY_PATH'i Termux lib'ine çekiyor ve
+        // HOME'u Termux ev dizinine çeviriyor. İkisi de **kabuk oturumu**
+        // için yanlış olur:
+        //   · LD_LIBRARY_PATH global olarak Termux lib'ini gösterirse musl
+        //     ikilileri (apk, busybox) bionic kütüphanelerini yüklemeye
+        //     çalışır → sessiz çökme.
+        //   · HOME=/data/data/com.termux/files/home, /var/minis/workspace
+        //     gibi mevcut alışkanlıkları bozar ve `~` yazımını değiştirir.
+        //
+        // Termux ikilileri kendi kütüphanelerini DT_RUNPATH ile buluyor
+        // (Termux paketleyicisi öyle derliyor), o yüzden PATH yeterli.
+        // Gereken tek şey: `apt`, `pkg`, `bash` çağrıldığında Termux'un
+        // olanının bulunması → önek PATH'in **başında**.
+        refreshTermuxPath()
+
         // Inject device timezone so Alpine userspace sees local time.
         // Mirrors iOS ISHShellExecutor.m:335-353 — uses POSIX TZ format with a
         // fixed name ("LCL") to avoid abbreviations like "GMT+8" which contain
@@ -673,6 +691,37 @@ object PRootKernel {
         val hasProxy = env["http_proxy"].orEmpty().isNotEmpty()
         Log.i(TAG, "Updated proxy — ${if (hasProxy) "active=${env["http_proxy"]}" else "cleared"}")
         return env
+    }
+
+    /**
+     * [37098] Termux katmanı kurulduktan/kaldırıldıktan sonra PATH'i tazele.
+     *
+     * `boot()` bir kez çalışır ve `customEnvironment`'ı o an dondurur. Katman
+     * kurulumu **boot'tan sonra** oluyorsa (normal durum: uygulama açıldı,
+     * kabuk açıldı, sonra kullanıcı kurdu) PATH'te `$PREFIX/bin` yoktur ve
+     * ajan `apt` çalıştıramaz — "kurdum ama çalışmıyor" hatası.
+     *
+     * Tekrar tekrar eklemeyi engellemek için önce eski öneki söker.
+     */
+    fun refreshTermuxPath() {
+        val guestPrefix = com.openminis.app.sandbox.TermuxLayer.GUEST_PREFIX
+        val current = customEnvironment["PATH"].orEmpty()
+        val stripped = current.split(":")
+            .filter { it.isNotEmpty() && it != "$guestPrefix/bin" }
+            .joinToString(":")
+        val base = stripped.ifEmpty {
+            "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/bin"
+        }
+        val installed = TermuxLayer.isInstalled(rootfsManager.rootfsDir)
+        customEnvironment["PATH"] = if (installed) "$guestPrefix/bin:$base" else base
+        if (installed) {
+            customEnvironment.putIfAbsent("PREFIX", guestPrefix)
+            customEnvironment.putIfAbsent("TERMUX_PREFIX", guestPrefix)
+        } else {
+            customEnvironment.remove("PREFIX")
+            customEnvironment.remove("TERMUX_PREFIX")
+        }
+        Log.i(TAG, "termux PATH refreshed: installed=$installed")
     }
 
     /**
