@@ -1,0 +1,6 @@
+{"t": "2026-11-20T01:13:16Z", "id": "T-surum-37092", "op": "ac", "tur": "T", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "-", "butce": "", "kapsam": ["sozlesme + dilim testleri"], "disi": ["android testleri (CI'da)"]}
+{"t": "2026-11-20T01:13:16Z", "id": "T-surum-37092", "op": "alan", "alan": "test", "deger": "test_sozlesme.py#test_k1_tam_zincir_kapanir"}
+{"t": "2026-11-20T01:13:17Z", "id": "T-surum-37092", "op": "alan", "alan": "olcen", "deger": "K1 zinciri kapisi"}
+{"t": "2026-11-20T01:13:17Z", "id": "T-surum-37092", "op": "alan", "alan": "sinir", "deger": "eksik kardes -> ret"}
+{"t": "2026-11-20T01:13:17Z", "id": "T-surum-37092", "op": "alan", "alan": "calistiran", "deger": "pytest"}
+{"t": "2026-11-20T01:13:17Z", "id": "T-surum-37092", "op": "kanit", "deger": "komut:python3 -m pytest scripts/tests/test_sozlesme.py -q"}

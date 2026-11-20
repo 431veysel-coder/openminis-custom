@@ -211,7 +211,11 @@ class MinisImageFetcher(
             return PRootKernel.resolveHostPath(linuxPath)
         }
 
-        /** Newest `minis-sessions/<any>/<sub>/<rest>`; last resort for orphan links. */
+        /**
+         * Newest `<root>/<any>/<sub>/<rest>` across every space root
+         * (`minis-sessions` AND `minis-spaces` since [MINIS-OZEL 37070]);
+         * last resort for orphan links.
+         */
         private fun searchSessions(
             filesDir: java.io.File,
             sub: String,
@@ -219,8 +223,11 @@ class MinisImageFetcher(
             exclude: String?,
         ): java.io.File? {
             if (rest.isEmpty()) return null
-            val hit = java.io.File(filesDir, "minis-sessions").listFiles().orEmpty()
+            val hit = com.openminis.app.sandbox.FsSpace.roots()
                 .asSequence()
+                .map { java.io.File(filesDir, it) }
+                .filter { it.isDirectory }
+                .flatMap { root -> root.listFiles().orEmpty().asSequence() }
                 .filter { it.name != exclude }
                 .map { java.io.File(it, "$sub/$rest") }
                 .filter { it.isFile }

@@ -193,5 +193,45 @@ object SessionConcurrencyManager {
         }
     }
 
+    /**
+     * [MINIS-OZEL 11.5 · 37062] Hand this session's slot back while it waits on a
+     * blocking sub-run, and return whether it actually held one.
+     *
+     * ## The problem this solves
+     *
+     * A slot is released in the stream job's `finally` (`ChatViewModel.kt:8772`),
+     * which runs when the TURN ends — not when a tool returns. `team_run` blocks
+     * inside the turn for up to twenty minutes, so the parent holds one of six
+     * global slots while doing nothing, and a five-member council leaves exactly
+     * zero room for the user. Measured consequence: opening another chat during a
+     * run showed "thinking…" for ever with no visible reason.
+     *
+     * ## Why returning is safe
+     *
+     * The parent is not using the slot: it is suspended waiting for its own run.
+     * Releasing it lets the members' loops (which do NOT take slots) and any other
+     * session flow. [reclaimSlot] takes one back afterwards, so the rest of the
+     * parent's turn is protected exactly as before.
+     *
+     * ## Why not simply let the parent skip the slot entirely
+     *
+     * Because after the run returns the parent still has work to do — another tool
+     * call, another model round — and doing that outside the cap is how the app
+     * ends up with seven concurrent streams that nobody counted.
+     */
+    fun loanOutSlot(sessionId: String): Boolean {
+        val held = synchronized(this) { sessionId in _runningSessions.value }
+        if (!held) return false
+        releaseSlot(sessionId)
+        println("[37062] slot LOANED-OUT sid=$sessionId running=${_runningSessions.value.size}/$maxConcurrent")
+        return true
+    }
+
+    /** Take a slot back after [loanOutSlot]. May queue; that is the point. */
+    suspend fun reclaimSlot(sessionId: String) {
+        acquireSlot(sessionId)
+        println("[37062] slot RECLAIMED sid=$sessionId running=${_runningSessions.value.size}/$maxConcurrent")
+    }
+
     fun isSuspended(sessionId: String): Boolean = sessionId in _suspendedSessions.value
 }

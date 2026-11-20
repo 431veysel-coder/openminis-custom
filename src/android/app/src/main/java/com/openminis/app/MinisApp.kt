@@ -596,6 +596,29 @@ class MinisApp : Application(), ImageLoaderFactory {
         memoryRepository = MemoryRepository(java.io.File(filesDir, "minis-global/memory"))
         webAppShortcutRepository = WebAppShortcutRepository(database.webAppShortcutDao())
 
+        // [MINIS-OZEL 37072] One-time "everything before projects is a project".
+        // Fired here, off the main thread, because it moves files: the UI must
+        // not wait for it, and the pre-migration state is perfectly usable — the
+        // personal memory is still the only layer until the move completes.
+        // Idempotent and self-guarded (see MemoryLegacyProjectMigration).
+        val migrationRepo = chatRepository
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            runCatching {
+                com.openminis.app.data.memory.MemoryLegacyProjectMigration
+                    .runIfDue(this@MinisApp, migrationRepo)
+            }.onFailure {
+                Log.w("MinisApp", "legacy memory migration failed: ${it.javaClass.simpleName}")
+            }
+        }
+
+        // [37082] Automatic backup: decided by AutoBackupPolicy, applied here.
+        // After the memory migration above on purpose — measuring the change
+        // signature while a migration is moving files would take a backup of a
+        // half-moved tree.
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            com.openminis.app.ozel.AutoBackupTrigger.maybeRun(this@MinisApp)
+        }
+
         // T-android-safemode-lateinit-crash: every repository the UI layer
         // reads is now assigned, so MainActivity may safely compose. Set
         // here rather than at the end of onCreate: the remaining work
@@ -812,7 +835,7 @@ class MinisApp : Application(), ImageLoaderFactory {
         // the token, i.e. every other app on the device. Both are now fixed:
         // the socket binds 127.0.0.1 only and requires the token even there
         // (DebugServer), and the whole surface is off unless the user turns it
-        // on in Settings › Minis Özel (off by default).
+        // on in Settings › Minis X (off by default).
         if (BuildConfig.DEV_TOOLS) {
             NativeOffloadServer.register(
                 "minis-debug",

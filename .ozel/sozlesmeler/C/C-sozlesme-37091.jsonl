@@ -1,0 +1,7 @@
+{"t": "2026-11-19T23:40:57Z", "id": "C-sozlesme-37091", "op": "ac", "tur": "C", "is": "sozlesme-37091", "oturum": "A", "taban": "ea17ff6", "kademe": "K1", "durma": "-", "butce": "", "kapsam": ["scripts/ ve workflows"], "disi": ["-"]}
+{"t": "2026-11-19T23:40:58Z", "id": "C-sozlesme-37091", "op": "alan", "alan": "dosya", "deger": "scripts/sozlesme.py"}
+{"t": "2026-11-19T23:40:58Z", "id": "C-sozlesme-37091", "op": "alan", "alan": "aralik", "deger": "tum dosya"}
+{"t": "2026-11-19T23:40:58Z", "id": "C-sozlesme-37091", "op": "alan", "alan": "sahip", "deger": "A"}
+{"t": "2026-11-19T23:40:58Z", "id": "C-sozlesme-37091", "op": "alan", "alan": "bitis", "deger": "commit 3e207a8"}
+{"t": "2026-11-19T23:41:41Z", "id": "C-sozlesme-37091", "op": "kanit", "deger": "komut:python3 scripts/sozlesme_uret.py --check"}
+{"t": "2026-11-19T23:41:42Z", "id": "C-sozlesme-37091", "op": "kapat", "sonuc": "TAMAM"}

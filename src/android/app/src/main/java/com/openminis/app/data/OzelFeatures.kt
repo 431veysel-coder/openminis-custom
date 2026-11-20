@@ -106,16 +106,22 @@ object OzelFeatures {
         /**
          * [MINIS-OZEL 11.1] The Station: several providers/models working the
          * same task side by side, each with its own terminal and browser tabs.
+         *
+         * [37091] OFF, and it was ON with a subtitle promising "two to four
+         * agents on one task". The module (`ui/station/`) was never written and
+         * nothing in production code reads this flag — measured: 0 call sites.
+         * A switch that does nothing is not a placeholder, it is a broken
+         * promise: the user turns it on and concludes the app is buggy. It goes
+         * back to ON when the panels exist (planned 37093).
          */
-        STATION("station", true),
+        STATION("station", false),
 
-        /**
-         * [MINIS-OZEL 11.1] Edit mode: a floating pen that lets the user pin a
-         * note onto whatever is on screen; the note lands in Notes for the
-         * agent to act on. Default OFF — a persistent overlay on top of every
-         * screen is intrusive unless the user asks for it.
-         */
-        EDIT_MODE("edit_mode", false),
+        // [37091] `EDIT_MODE` removed, not disabled. Its row promised "a pen in
+        // the middle of every screen: tap it, mark what should change, and the
+        // note lands in Notes" — no overlay, no pen, no capture existed, and no
+        // code read the flag (0 call sites). A disabled switch still advertises
+        // the feature; deleting it is the honest version. Comes back with the
+        // feature, not before.
 
         /**
          * [MINIS-OZEL 11.3.1] The action journal: every file an agent changed,
@@ -141,6 +147,121 @@ object OzelFeatures {
          * schema, so the model is not even offered it.
          */
         ACCEPTANCE_CRITERIA("acceptance_criteria", true),
+
+        /**
+         * [MINIS-OZEL 11.5 · 37060] Council mode: the third agent kind and the
+         * per-member belt that comes with it.
+         *
+         * ON by default because it changes no existing behaviour: a team whose
+         * `mode` is `handoff` runs exactly as before, and TOP/HELPER belts are
+         * untouched. OFF hides the council entry points and — the load-bearing
+         * part — makes `TeamRunner` refuse a `council` run, so a saved team
+         * cannot start an argument the user has switched off. Stored teams,
+         * runs and memory are never deleted by this flag (rule 2 of
+         * ANA-BAGLAM).
+         */
+        COUNCIL("council", true),
+
+        // ── [37080–37090] Özellik paketi ─────────────────────────────────
+        // Her anahtar kapalıyken o dilimin **davranışı** kalkar; veri silinmez
+        // (ANA-BAĞLAM kural 2). Varsayılanlar tek tek gerekçeli: güvenliği
+        // artıran fiiller açık, davranışı değiştiren ya da ölçüm bekleyenler
+        // kapalı.
+
+        /**
+         * [37080] Tehlike sınıflandırması + onay kartı.
+         *
+         * ON: bu bir fren, hız değil. Kapalı bırakmak, Shizuku/erişilebilirlik
+         * açık bir cihazda ajanın `settings put` çalıştırmasını serbest bırakır.
+         * Yalnız MEDIUM ve üstü sorar; `ls`, `cat`, `rg` sessiz geçer.
+         */
+        APPROVAL_GATE("approval_gate", true),
+
+        /**
+         * [37081] Sohbet/gün/ay harcama tavanı.
+         *
+         * ON, ama tavan tanımlanmadıkça hiçbir şey engellemez — bu yüzden
+         * açık olması bedava. Tavanlar ayarlardan girilir.
+         */
+        BUDGET_CAP("budget_cap", true),
+
+        /**
+         * [37082] Kendiliğinden yedek.
+         *
+         * OFF: depolama ve pil harcayan bir iş, kullanıcı istemeden başlamaz.
+         */
+        AUTO_BACKUP("auto_backup", false),
+
+        /**
+         * [37083] Pahalı işten önce plan kartı.
+         *
+         * ON: eşiğin altındaki işte hiç görünmez, üstündeki işte tek kart.
+         */
+        PLAN_PREVIEW("plan_preview", true),
+
+        /**
+         * [37084] Tur sonunda "ne değişti" özeti.
+         *
+         * ON: yalnız dosya değiştiyse çıkar, hiçbir şeyi durdurmaz.
+         */
+        TURN_DIFF("turn_diff", true),
+
+        /**
+         * [37085] Araç şeması daraltma (niyet → 6-10 aday).
+         *
+         * OFF: ilk turda doğru araç oranını düşürebilir. Ölçüm olmadan açmak,
+         * sessiz bir kalite kaybı riski. Açmadan önce "araç seçimi" sayacına
+         * bakılmalı.
+         */
+        TOOL_ROUTER("tool_router", false),
+
+        /**
+         * [37086] Hata/düzeltme → ders önerisi.
+         *
+         * ON: kendiliğinden hafızaya yazmaz, yalnız öneri kartı çıkarır.
+         */
+        LESSON_BOOK("lesson_book", true),
+
+        /**
+         * [37087] "Bitti" beyanı için kanıt.
+         *
+         * OFF: doğrulanamayan işlerde (ör. "kullanıcı beğendi mi") turu
+         * gereksiz uzatır. Açıksa iki turdan sonra uyarıyla geçilir.
+         */
+        EVIDENCE_GATE("evidence_gate", false),
+
+        /**
+         * [37088] Çok adımlı iş boyunca yazma niyeti + çakışma sicili.
+         *
+         * ON: yalnız parallel ajan varken anlamlı; tek ajanda maliyeti sıfır.
+         */
+        WRITE_INTENT("write_intent", true),
+
+        /**
+         * [37089] Kayıtlı yeniden oynatma (model karşılaştırması).
+         *
+         * OFF: geliştirici ölçüm aleti, normal kullanıcı akışında yeri yok.
+         */
+        REPLAY("replay", false),
+
+        /**
+         * [37090] Uzaktan konsol.
+         *
+         * OFF ve **uygulaması yok**: yalnız jeton/yetki modeli yazıldı. Ürün
+         * kararı verilmeden kullanıcıya açılmaz.
+         */
+        REMOTE_CONSOLE("remote_console", false),
+
+        /**
+         * [37095] Sohbet üst çubuğundaki sağlık göstergesi (TTFB, tekrar
+         * deneme, hata kodu).
+         *
+         * ON: yalnız **okur** — hiçbir isteği, hiçbir modeli, hiçbir akışı
+         * değiştirmez. Ölçüm zaten yapılıyordu (`streamStartMs`,
+         * `firstChunkSeen`, `_autoRetryAttempt`), tek eksiği ekranda
+         * görünmemesiydi. Kapalıyken chip çizilmez ve sayacı da durur.
+         */
+        CHAT_HEALTH("chat_health", true),
         ;
 
         companion object {

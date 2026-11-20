@@ -243,6 +243,171 @@ def load(staged_only: bool) -> Ctx:
 
 
 # ────────────────────────────────────────────────────────────────────────────
+# L0 — CI kabuğu
+# ────────────────────────────────────────────────────────────────────────────
+
+WF_DIR = ROOT / ".github/workflows"
+
+#: Erken çıkan boru tüketicileri. pipefail açıkken geçen bir kontrolü kırmızıya
+#: çevirebilirler; bkz. l0_workflow_pipes.
+_BAD_PIPE = ("| head", "| grep -q")
+
+#: Bir YAML adımının başlangıcı. Bloklar bu satırlarda bölünür; pipefail
+#: tespiti adım adım yapılır (dosya düzeyi varsayılan + adım içi `set -o pipefail`).
+_STEP_START = re.compile(r"^(\s*)-\s+(name|uses|run|id|if):")
+_SHELL_LINE = re.compile(r"^\s{0,4}shell:\s*(.+)$")
+
+#: `run:` gövdesi içinde, yorum satırında geçen GitHub ifadesi.
+_EXPR_ANY = re.compile(r"\$\{\{")
+
+def l0_run_comment_expr(wf_dir: Path = WF_DIR) -> list[Problem]:
+    """`run:` betiğinin YORUM satırındaki `${{ ... }}`.
+
+    GitHub, `run:` gövdesini tek bir metin olarak alır ve **içindeki her
+    `${{ }}` ifadesini** değerlendirir — betiğin yorum satırı olması onu
+    durdurmaz. Sonuç iki türlü olur:
+
+    1. İfade ayrıştırılamazsa (ör. içinde `…`, `->` gibi bir sembol varsa)
+       **iş akışının TAMAMI geçersiz** sayılır: `Invalid workflow file: failed
+       to parse workflow: Unexpected symbol`. Ne iş kurulur ne log üretilir;
+       koşu 0 saniyede düşer ve adı dosya yoluna düşer.
+    2. Ayrıştırılabiliyorsa yorum, değeri **gerçekten okur** — yani bir yoruma
+       "örnek" diye yazılan ifade, o adımı bozabilir.
+
+    37094'te bu tam olarak oldu: bir `run:` yorumuna `${{ env.… }}` yazıldı,
+    actionlint 0 hata verdi (yorumları ifade olarak taramıyor), PyYAML temiz
+    dedi, `bash -n` temiz dedi — ama GitHub dosyayı reddetti. Doğru cevabı
+    yalnızca GitHub'ın kendi doğrulayıcısı verdi.
+    """
+    out: list[Problem] = []
+    for path in sorted(wf_dir.glob("*.y*ml")):
+        text = _read(path)
+        if not text:
+            continue
+        in_run = False
+        run_indent = 0
+        for lineno, line in enumerate(text.splitlines(), 1):
+            stripped = line.strip()
+            indent = len(line) - len(line.lstrip())
+            if not stripped:
+                continue
+            # `run: |` ya da `- run: |` — ikisi de blok başlatır
+            m = re.match(r"^(?:-\s+)?run:", stripped)
+            if m:
+                in_run, run_indent = True, indent
+                continue
+            # `run:` gövdesinden çıkış: daha az girintili, yorum olmayan satır
+            if in_run and not stripped.startswith("#") and indent <= run_indent:
+                in_run = False
+            if in_run and stripped.startswith("#") and _EXPR_ANY.search(stripped):
+                out.append(Problem(
+                    "ci-expr", _rel(path), lineno,
+                    "`run:` betiğinin yorumunda `${{ }}` var: GitHub yorumu da "
+                    "ifade olarak değerlendirir ve geçersizse TÜM iş akışını "
+                    "reddeder — ifadeyi yorumdan çıkar"))
+    return out
+
+def _strip_comment(lines: list[str]) -> list[str]:
+    return [ln for ln in lines if not ln.strip().startswith("#")]
+
+def l0_workflow_pipes(wf_dir: Path = WF_DIR) -> list[Problem]:
+    """pipefail açık bir adımdaki `| head` / `| grep -q` kullanımları.
+
+    `apk.yml` kabuğu `bash --noprofile --norc -eo pipefail {0}`. Bu ayarla
+    `komut | head -1` şunu yapar: `head` ilk satırdan sonra çıkar, boruyu
+    kapatır, üretici SIGPIPE alır (141), pipefail onu adımın çıkış kodu yapar.
+    Sonuç: **geçen bir kontrol başarısız görünür**. 37094'te bu turap, APK
+    doğrulama adımında `aapt2 dump badging | grep -q "package: name=..."`
+    biçiminde duruyordu — yani her yayında, ama ancak yayın anında patlayacak.
+
+    `rollback.yml` aynı tuzağı adım içinde `set -euo pipefail` ile taşıyordu:
+    `git tag --list 'v*' | head -50`. Bugün 13 etiket var, 50'de kırılacaktı.
+
+    Kapsam bilerek dar: pipefail YOKSA kural susar. `set -e` tek başına SIGPIPE
+    yüzünden adımı düşürmez; oradaki `| head`i işaretlemek yanlış pozitif olur
+    ve yanlış pozitif bu depoda kapatılan bir kapı demek.
+    """
+    out: list[Problem] = []
+    for path in sorted(wf_dir.glob("*.y*ml")):
+        text = _read(path)
+        if not text:
+            continue
+        lines = text.splitlines()
+
+        # Dosya düzeyi varsayılan kabuk (yalnız üst düzey `defaults:` içindeki)
+        file_pipefail = False
+        for ln in _strip_comment(lines):
+            m = _SHELL_LINE.match(ln)
+            if m and "pipefail" in m.group(1):
+                file_pipefail = True
+                break
+
+        # Adımlara böl
+        blocks: list[tuple[int, list[str]]] = []
+        start, buf = 1, []
+        for lineno, ln in enumerate(lines, 1):
+            if _STEP_START.match(ln) and buf:
+                blocks.append((start, buf))
+                start, buf = lineno, [ln]
+            else:
+                buf.append(ln)
+        if buf:
+            blocks.append((start, buf))
+
+        for start, block in blocks:
+            body = _strip_comment(block)
+            pipefail = file_pipefail or any("pipefail" in b for b in body)
+            if not pipefail:
+                continue
+            for offset, ln in enumerate(block):
+                stripped = ln.strip()
+                if stripped.startswith("#"):
+                    continue
+                for bad in _BAD_PIPE:
+                    if bad in stripped:
+                        out.append(Problem(
+                            "ci-shell", _rel(path), start + offset,
+                            f"`{bad.strip()}` erken çıkar: pipefail altında üreticiyi "
+                            f"SIGPIPE ile öldürür — `sed -n '1p'` ya da bash `case` kullan"))
+    return out
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# L0 — sözleşme defteri
+# ────────────────────────────────────────────────────────────────────────────
+
+def l0_sozlesmeler() -> list[Problem]:
+    """Sözleşme defterindeki GERÇEK hatalar (uyarılar değil).
+
+    Neden `preflight`ta: sözleşme ancak sorulursa işe yarar. Bugün `denetle`'yi
+    kimse çağırmazsa defter yazılır ama kimse bakmaz — bu depoda tam olarak bu
+    oldu (`schemas/15.json` üç sürüm boyunca "bilinen borç" listesindeydi).
+
+    Yalnız hatalar kapıyı tutar. Uyarılar (kardeş sözleşme eksik, alan boş)
+    basılmaz: gürültülü kapıyı insan kapatır ve o zaman gerçek hatayı da
+    kaçırırız. Kapanış sırasında sıkı denetim `sozlesme.py kapat` içinde.
+    """
+    defter = ROOT / ".ozel/sozlesmeler"
+    script = ROOT / "scripts/sozlesme.py"
+    if not defter.exists() or not script.exists():
+        return []
+    import subprocess as _sp
+    r = _sp.run([sys.executable, str(script), "denetle", "--json"],
+                cwd=ROOT, capture_output=True, text=True, timeout=30)
+    if r.returncode == 0:
+        return []
+    try:
+        data = json.loads(r.stdout or "{}")
+    except ValueError:
+        return [Problem("sozlesme", ".ozel/sozlesmeler", 0,
+                        "denetle çıktısı okunamadı: " + (r.stderr or r.stdout)[:120])]
+    out: list[Problem] = []
+    for h in data.get("hata", []):
+        out.append(Problem("sozlesme", ".ozel/sozlesmeler", 0, h))
+    return out
+
+
+# ────────────────────────────────────────────────────────────────────────────
 # L0 — XML metin kaçışı + sürüm
 # ────────────────────────────────────────────────────────────────────────────
 
@@ -528,6 +693,9 @@ def run(staged_only: bool, deadline_s: float, verbose: bool) -> tuple[list[Probl
 
     layer("L0 strings", lambda: l0_strings(ctx))
     layer("L0 version", lambda: l0_version(ctx))
+    layer("L0 ci-shell", l0_workflow_pipes)
+    layer("L0 ci-expr", l0_run_comment_expr)
+    layer("L0 sozlesme", l0_sozlesmeler)
     layer("L1 R.string", lambda: l1_string_refs(ctx, parsed))
     layer("L2 import", lambda: l2_unimported(parsed, ctx.targets))
     layer("L2 enum", lambda: l2_enum(parsed, ctx.targets))
@@ -583,7 +751,13 @@ def selftest() -> int:
 
     fails: list[str] = []
 
+    # Sayaç elle yazılmaz: bir vaka eklendiğinde özetin yalan söylememesi
+    # için `want` kendisi sayar. (Önce sabit "9 vaka" yazıyordu ve 3 vaka
+    # eklendikten sonra da 9 demeye devam etti.)
+    seen: list[tuple[str, str]] = []
+
     def want(name: str, got: list[Problem], check: str, expect: bool = True) -> None:
+        seen.append((name, check))
         hit = any(p.check == check for p in got)
         if hit != expect:
             fails.append(f"{name}: '{check}' {'tetiklenmedi' if expect else 'yanlış tetiklendi'}")
@@ -599,6 +773,56 @@ def selftest() -> int:
         good = v / "s2.xml"
         good.write_text("<resources><string name=\"x\">Güncelle\\'ye</string></resources>", encoding="utf-8")
         want("xml doğru kaçış", l0_strings(Ctx(strings_files=[good])), "strings", expect=False)
+
+        # CI kabuğu: pipefail altında erken çıkan tüketici geçen kontrolü kırar
+        wf = root / "wf"; wf.mkdir()
+        (wf / "ok.yml").write_text(
+            "run: |\n  PREV=$(git tag --list 'v*' | sed -n '1p')\n"
+            "  case \"$X\" in *foo*) : ;; esac\n", encoding="utf-8")
+        want("ci-shell temiz", l0_workflow_pipes(wf), "ci-shell", expect=False)
+
+        # pipefail YOKSA susmalı: `set -e` tek başına SIGPIPE'tan düşmez.
+        (wf / "nopipefail.yml").write_text(
+            "run: |\n  set -e\n  find x -name 'a.apk' | head -1\n", encoding="utf-8")
+        want("ci-shell pipefail yok", l0_workflow_pipes(wf), "ci-shell", expect=False)
+        (wf / "nopipefail.yml").unlink()
+
+        (wf / "bad.yml").write_text(
+            "defaults:\n  run:\n    shell: bash -eo pipefail {0}\n"
+            "jobs:\n  a:\n    steps:\n      - run: |\n"
+            "          APK=$(find x -name 'a.apk' | head -1)\n", encoding="utf-8")
+        want("ci-shell head", l0_workflow_pipes(wf), "ci-shell")
+        (wf / "bad2.yml").write_text(
+            "jobs:\n  a:\n    steps:\n      - run: |\n          set -euo pipefail\n"
+            "          aapt2 dump badging \"$APK\" | grep -q \"name='x'\"\n",
+            encoding="utf-8")
+        want("ci-shell grep -q", l0_workflow_pipes(wf), "ci-shell")
+        (wf / "comment.yml").write_text(
+            "run: |\n  set -euo pipefail\n  # `| head -1` burada yalnızca anlatılıyor\n"
+            "  true\n", encoding="utf-8")
+        # Önceki iki örnek aynı dizinde duruyor; yalnız yorumu sınamak için silinir.
+        (wf / "bad.yml").unlink()
+        (wf / "bad2.yml").unlink()
+        want("ci-shell yorum", l0_workflow_pipes(wf), "ci-shell", expect=False)
+
+        # run: betiğinin yorumundaki ${{ }} — GitHub onu da ifade sanar
+        (wf / "expr.yml").write_text(
+            "jobs:\n  a:\n    steps:\n      - run: |\n"
+            "          # ornek: ${{ env.GIZLI }}\n"
+            "          echo ok\n", encoding="utf-8")
+        want("ci-expr yorumda", l0_run_comment_expr(wf), "ci-expr")
+        (wf / "expr.yml").unlink()
+        (wf / "expr_ok.yml").write_text(
+            "jobs:\n  a:\n    steps:\n      - run: |\n"
+            "          # yalniz env baglami, ifade yok\n"
+            "          echo \"$GIZLI\"\n", encoding="utf-8")
+        want("ci-expr temiz", l0_run_comment_expr(wf), "ci-expr", expect=False)
+        (wf / "expr_ok.yml").unlink()
+        # run: disindaki YAML yorumu serbest (concurrency aciklamasi gibi)
+        (wf / "expr_top.yml").write_text(
+            "# concurrency: apk-${{ github.ref }} boyle bir sey\n"
+            "jobs:\n  a:\n    steps:\n      - run: echo ok\n", encoding="utf-8")
+        want("ci-expr ust duzey", l0_run_comment_expr(wf), "ci-expr", expect=False)
 
         # Yorumdaki tip adı referans değildir (674 yanlışın kaynağı)
         a = root / "a"; b = root / "b"
@@ -644,7 +868,8 @@ def selftest() -> int:
         for f in fails:
             print("  ", f)
         return 2
-    print("selftest geçti: 9 vaka (5 denetim + watchdog)")
+    checks = sorted({c for _, c in seen})
+    print(f"selftest geçti: {len(seen)} vaka ({len(checks)} denetim) · {', '.join(checks)}")
     return 0
 
 

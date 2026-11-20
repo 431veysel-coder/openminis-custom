@@ -52,7 +52,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.veysel.minis"
+        applicationId = "com.minis.x"
         minSdk = 26
         targetSdk = 35
         // [MINIS-OZEL] 37014, not 37009. Builds 37009-37013 were spent on the
@@ -71,8 +71,8 @@ android {
         // 37033: the parser fix (a satisfied ledger no longer needs a speaker)
         // plus the release gate. 37032 was published WITH a red test job — the
         // exact failure the new `needs: tests` removes — so it stays spent.
-        versionCode = 37033
-        versionName = "1.15-ozel.11.4"
+        versionCode = 37092
+        versionName = "1.15-ozel.15"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

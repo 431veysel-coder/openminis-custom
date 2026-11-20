@@ -38,6 +38,8 @@ import androidx.compose.material.icons.outlined.Cancel
 import androidx.compose.material.icons.outlined.Keyboard
 import androidx.compose.material.icons.outlined.PauseCircle
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.Text
 import androidx.compose.ui.platform.LocalConfiguration
 import android.content.res.Configuration
@@ -94,6 +96,17 @@ fun TerminalScreen(
      * session's env vars (mirrors iOS "Open Terminal" from chat).
      */
     sessionId: String? = null,
+    /**
+     * [MINIS-OZEL 11.5 · 37063] Block keyboard input while still showing output.
+     *
+     * Used by the council member screen: the user watches a member's shell but
+     * cannot type into it until they take it over. Typing into a shell an agent
+     * is driving is the one thing that must not be a single tap — both writers
+     * end up interleaved in one PTY, and neither can tell whose command failed.
+     */
+    readOnly: Boolean = false,
+    /** Shown instead of the keyboard hint while [readOnly] is set. */
+    readOnlyNotice: String? = null,
 ) {
     val emulator = remember { TerminalEmulator() }
     val context = LocalContext.current
@@ -224,10 +237,18 @@ fun TerminalScreen(
                         emulator.resize(cols, rows)
                         terminalSession.setWindowSize(cols, rows)
                     },
-                    onTap = { inputController.requestFocus() },
+                    // [37063] In read-only mode a tap must not raise the
+                    // keyboard: the IME opening over an agent-driven shell reads
+                    // as "you can type here", and then nothing happens.
+                    onTap = { if (!readOnly) inputController.requestFocus() },
                 )
                 TerminalInputView(
                     onInput = { bytes ->
+                        // [37063] Read-only: output still streams, keys do not.
+                        // Returning here (before the byte reaches the PTY) is the
+                        // whole enforcement — the focus request is left alone so
+                        // the user can still scroll and select text.
+                        if (readOnly) return@TerminalInputView
                         // Any user input snaps back to live tail so typing is visible.
                         emulator.scrollOffset = 0
                         if (ctrlActive && bytes.size == 1) {
@@ -256,6 +277,18 @@ fun TerminalScreen(
                 .height(52.dp)
                 .background(TerminalBg),
         ) {
+            // [37063] The read-only banner sits in the top bar's free space, so
+            // the reason is visible without covering the output.
+            if (readOnly && readOnlyNotice != null) {
+                Text(
+                    text = readOnlyNotice,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFFFFC864),
+                    modifier = Modifier.align(Alignment.CenterStart).padding(start = 56.dp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             TerminalTopBar(
                 onClose = {
                     terminalSession.stop()

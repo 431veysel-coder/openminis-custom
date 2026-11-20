@@ -32,7 +32,7 @@ import com.openminis.app.debug.DevServerController
 import com.openminis.app.ui.components.RowLabel
 
 /**
- * [MINIS-OZEL] Settings › Minis Özel › Features.
+ * [MINIS-OZEL] Settings › Minis X › Features.
  *
  * One screen for every switch this fork added, so a feature that turns out to
  * be in the way can be put away without uninstalling the app or waiting for a
@@ -53,6 +53,10 @@ fun OzelFeaturesScreen(
     onOpenJournal: () -> Unit = {},
     // [MINIS-OZEL 11.3.1] How much the agent may do without asking.
     onOpenScope: () -> Unit = {},
+    // [37081] Where the token caps are typed.
+    onOpenBudget: () -> Unit = {},
+    // [37089] Record a chat and replay it.
+    onOpenReplay: () -> Unit = {},
 ) {
     val context = LocalContext.current
 
@@ -202,11 +206,119 @@ fun OzelFeaturesScreen(
                 checked = values[Feature.STATION] == true,
                 onCheckedChange = { set(Feature.STATION, it) },
             )
+            // [37091] The Edit-mode row is gone with the flag: the pen it
+            // described was never built. See OzelFeatures for the reasoning.
+        }
+
+        // ── Teams / council [11.5] ───────────────────────────────────────
+        // The switch existed since 37060 but had NO row, so the only way to turn
+        // council off was to edit preferences. `AndroidTeamRuntime` refuses a
+        // council run when this is off, which makes the missing row a real
+        // functional gap and not a cosmetic one: a team stuck in council mode
+        // could not be rescued from the UI.
+        SettingsSection(
+            header = stringResource(R.string.mx_section_teams),
+            footer = stringResource(R.string.mx_teams_footer),
+        ) {
             SettingsSwitchRow(
-                title = stringResource(R.string.ozel_feature_edit_mode),
-                subtitle = stringResource(R.string.ozel_feature_edit_mode_subtitle),
-                checked = values[Feature.EDIT_MODE] == true,
-                onCheckedChange = { set(Feature.EDIT_MODE, it) },
+                title = stringResource(R.string.mx_feature_council),
+                subtitle = stringResource(R.string.mx_feature_council_subtitle),
+                checked = values[Feature.COUNCIL] == true,
+                onCheckedChange = { set(Feature.COUNCIL, it) },
+                showDivider = false,
+            )
+        }
+
+        // ── Safety, money, agent quality [37080–37090] ───────────────────
+        SettingsSection(
+            header = stringResource(R.string.mx_section_safety),
+            footer = stringResource(R.string.mx_safety_footer),
+        ) {
+            SettingsSwitchRow(
+                title = stringResource(R.string.mx_feature_approval_gate),
+                subtitle = stringResource(R.string.mx_feature_approval_gate_subtitle),
+                checked = values[Feature.APPROVAL_GATE] == true,
+                onCheckedChange = { set(Feature.APPROVAL_GATE, it) },
+            )
+            SettingsSwitchRow(
+                title = stringResource(R.string.mx_feature_budget_cap),
+                subtitle = stringResource(R.string.mx_feature_budget_cap_subtitle),
+                checked = values[Feature.BUDGET_CAP] == true,
+                onCheckedChange = { set(Feature.BUDGET_CAP, it) },
+            )
+            // The caps are useless without a place to type them; the row is right
+            // under the switch rather than in a submenu, because "where do I set
+            // the number" is the first question the switch raises.
+            SettingsRow(
+                title = stringResource(R.string.mx_budget_title),
+                subtitle = stringResource(R.string.mx_budget_open_subtitle),
+                icon = Icons.Outlined.Shield,
+                iconColor = Color(0xFF34C759),
+                onClick = if (values[Feature.BUDGET_CAP] == true) onOpenBudget else null,
+            )
+            SettingsSwitchRow(
+                title = stringResource(R.string.mx_feature_auto_backup),
+                subtitle = stringResource(R.string.mx_feature_auto_backup_subtitle),
+                checked = values[Feature.AUTO_BACKUP] == true,
+                onCheckedChange = { set(Feature.AUTO_BACKUP, it) },
+                showDivider = false,
+            )
+        }
+
+        SettingsSection(
+            header = stringResource(R.string.mx_section_agent),
+            footer = stringResource(R.string.mx_agent_footer),
+        ) {
+            SettingsSwitchRow(
+                title = stringResource(R.string.mx_feature_plan_preview),
+                subtitle = stringResource(R.string.mx_feature_plan_preview_subtitle),
+                checked = values[Feature.PLAN_PREVIEW] == true,
+                onCheckedChange = { set(Feature.PLAN_PREVIEW, it) },
+            )
+            SettingsSwitchRow(
+                title = stringResource(R.string.mx_feature_turn_diff),
+                subtitle = stringResource(R.string.mx_feature_turn_diff_subtitle),
+                checked = values[Feature.TURN_DIFF] == true,
+                onCheckedChange = { set(Feature.TURN_DIFF, it) },
+            )
+            SettingsSwitchRow(
+                title = stringResource(R.string.mx_feature_lesson_book),
+                subtitle = stringResource(R.string.mx_feature_lesson_book_subtitle),
+                checked = values[Feature.LESSON_BOOK] == true,
+                onCheckedChange = { set(Feature.LESSON_BOOK, it) },
+            )
+            SettingsSwitchRow(
+                title = stringResource(R.string.mx_feature_write_intent),
+                subtitle = stringResource(R.string.mx_feature_write_intent_subtitle),
+                checked = values[Feature.WRITE_INTENT] == true,
+                onCheckedChange = { set(Feature.WRITE_INTENT, it) },
+            )
+            // These two change what the model SEES, and the honest default is
+            // off until their effect has been measured on real conversations.
+            SettingsSwitchRow(
+                title = stringResource(R.string.mx_feature_tool_router),
+                subtitle = stringResource(R.string.mx_feature_tool_router_subtitle),
+                checked = values[Feature.TOOL_ROUTER] == true,
+                onCheckedChange = { set(Feature.TOOL_ROUTER, it) },
+            )
+            SettingsSwitchRow(
+                title = stringResource(R.string.mx_feature_evidence_gate),
+                subtitle = stringResource(R.string.mx_feature_evidence_gate_subtitle),
+                checked = values[Feature.EVIDENCE_GATE] == true,
+                onCheckedChange = { set(Feature.EVIDENCE_GATE, it) },
+            )
+            SettingsSwitchRow(
+                title = stringResource(R.string.mx_feature_replay),
+                subtitle = stringResource(R.string.mx_feature_replay_subtitle),
+                checked = values[Feature.REPLAY] == true,
+                onCheckedChange = { set(Feature.REPLAY, it) },
+            )
+            SettingsRow(
+                title = stringResource(R.string.mx_replay_title),
+                subtitle = stringResource(R.string.mx_replay_open_subtitle),
+                icon = Icons.Outlined.Restore,
+                iconColor = Color(0xFF8E8E93),
+                onClick = if (values[Feature.REPLAY] == true) onOpenReplay else null,
                 showDivider = false,
             )
         }

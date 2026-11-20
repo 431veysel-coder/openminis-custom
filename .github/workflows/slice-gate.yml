@@ -1,0 +1,163 @@
+name: Slice Gate
+
+# [MINIS-OZEL 11.4] Her özellik dilimini AYRI derler ve AYRI rapor eder.
+#
+# ## Neden ayrı bir iş, neden apk.yml'nin içinde değil
+#
+# apk.yml'nin `tests` işi 40 dakika ve native katmana bağlı; kırmızı olduğunda
+# tek log veriyor. Bir dilim bozuksa o log'da 11 dilimin hatası iç içe gelir.
+# Buradaki iş kotlinc dışında hiçbir şeye bağlı değil (Gradle yok, NDK yok,
+# rclone yok) ve ~4 dakikada bitiyor. Kırmızı olduğunda **hangi dilimin**
+# kırmızı olduğunu söylüyor.
+#
+# ## Neden her push'ta
+#
+# Public depoda dakikalar ücretsiz; bu iş ~4 dakika. Ama asıl sebep maliyet
+# değil: dilim kapısı ancak erken koşarsa işe yarar. Release anında öğrenilen
+# "37088 derlenmiyor" bilgisi, altı commit sonra işe yaramaz.
+#
+# ## Neden yalnız dilim dosyaları değişince
+#
+# Doküman düzeltmesi 4 dakikalık derlemeyi tetiklemesin. `paths` filtresi
+# bunu yapıyor; `workflow_dispatch` her zaman elle koşmaya izin veriyor.
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'src/android/app/src/main/java/com/openminis/app/policy/**'
+      - 'src/android/app/src/main/java/com/openminis/app/budget/**'
+      - 'src/android/app/src/main/java/com/openminis/app/plan/**'
+      - 'src/android/app/src/main/java/com/openminis/app/replay/**'
+      - 'src/android/app/src/main/java/com/openminis/app/remote/**'
+      - 'src/android/app/src/main/java/com/openminis/app/agent/router/**'
+      - 'src/android/app/src/main/java/com/openminis/app/agent/lesson/**'
+      - 'src/android/app/src/main/java/com/openminis/app/agent/evidence/**'
+      - 'src/android/app/src/main/java/com/openminis/app/ozel/health/**'
+      - 'src/android/app/src/main/java/com/openminis/app/ui/chat/diff/**'
+      - 'src/android/app/src/main/java/com/openminis/app/data/journal/**'
+      - 'src/android/app/src/main/java/com/openminis/app/backup/AutoBackupPolicy.kt'
+      - 'src/android/app/src/test/java/com/openminis/app/**'
+      - 'scripts/slice_gate.py'
+      - 'scripts/slices.json'
+      - '.github/workflows/slice-gate.yml'
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      persist:
+        description: "Raporları docs/ozel/slice-report/ altına commit et"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: slice-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Pinned like every other toolchain in this repo: an unpinned compiler turns
+  # "the gate went red" into "the gate changed", and the two are not the same
+  # diagnosis.
+  KOTLIN_VERSION: "2.1.0"
+  JUNIT_VERSION: "4.13.2"
+  HAMCREST_VERSION: "1.3"
+
+jobs:
+  slices:
+    name: Per-slice compile + test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Fetch kotlinc
+        # The compiler zip is ~80 MB and does not change between runs of the
+        # same version, so the cache is what keeps this job short.
+        run: |
+          set -e
+          CACHE_DIR="$RUNNER_TOOL_CACHE/kotlinc-$KOTLIN_VERSION"
+          if [ ! -x "$CACHE_DIR/kotlinc/bin/kotlinc" ]; then
+            echo "downloading kotlinc $KOTLIN_VERSION"
+            curl -fsSL -o /tmp/kotlinc.zip \
+              "https://github.com/JetBrains/kotlin/releases/download/v${KOTLIN_VERSION}/kotlin-compiler-${KOTLIN_VERSION}.zip"
+            mkdir -p "$CACHE_DIR"
+            unzip -q /tmp/kotlinc.zip -d "$CACHE_DIR"
+            chmod +x "$CACHE_DIR/kotlinc/bin/"*
+          fi
+          echo "KOTLINC=$CACHE_DIR/kotlinc/bin/kotlinc" >> "$GITHUB_ENV"
+
+      - name: Fetch test jars
+        # No Gradle: the gate compiles a slice, not the app. Three jars and a
+        # JUnitCore invocation are the whole harness.
+        run: |
+          set -e
+          D=docs/ozel/slice-report/jars
+          mkdir -p "$D"
+          curl -fsSL -o "$D/junit.jar" \
+            "https://repo1.maven.org/maven2/junit/junit/${JUNIT_VERSION}/junit-${JUNIT_VERSION}.jar"
+          curl -fsSL -o "$D/hamcrest.jar" \
+            "https://repo1.maven.org/maven2/org/hamcrest/hamcrest-core/${HAMCREST_VERSION}/hamcrest-core-${HAMCREST_VERSION}.jar"
+          # kotlin-stdlib MUST be on the runtime classpath: kotlinc adds it when
+          # compiling, but `java -cp` does not. Without it every slice compiles
+          # and then dies with NoClassDefFoundError: kotlin/jvm/internal/Intrinsics
+          # — which is exactly what the first run of this gate reported.
+          STDLIB="$(dirname "$(dirname "$KOTLINC")")/lib/kotlin-stdlib.jar"
+          test -f "$STDLIB" || { echo "kotlin-stdlib.jar not found next to kotlinc"; exit 1; }
+          echo "JUNIT_CP=$PWD/$D/junit.jar:$PWD/$D/hamcrest.jar:$STDLIB" >> "$GITHUB_ENV"
+
+      - name: Run the gate
+        # Note: no `|| true`. A failing slice must fail the job — the point is
+        # to see WHICH slice, not to hide that something broke.
+        run: python3 scripts/slice_gate.py
+
+      - name: Job summary
+        if: always()
+        run: |
+          if [ -f docs/ozel/slice-report/SUMMARY.md ]; then
+            cat docs/ozel/slice-report/SUMMARY.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Rapor üretilmedi — kapı erken düştü." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload per-slice reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: slice-report
+          path: docs/ozel/slice-report/
+          # [37094] Same lifetime as run-logs: a slice report is a report,
+          # not a build intermediate, and it is the only per-slice record.
+          retention-days: 90
+          if-no-files-found: warn
+
+      # [37094] The artifact dies after 90 days and the runner is ephemeral, so
+      # "the report survives" needs the report in GIT. Committing from CI on
+      # every push would loop (the commit is a push, the push runs this job), so
+      # this is opt-in: a manual dispatch with persist=true. `[skip ci]` closes
+      # the loop even then — GitHub honours it for push-triggered workflows.
+      - name: Persist reports to git (manual dispatch only)
+        if: always() && inputs.persist
+        run: |
+          set -e
+          D=docs/ozel/slice-report
+          [ -d "$D" ] || { echo "no report dir — nothing to persist"; exit 0; }
+          git add -A "$D"
+          if git diff --cached --quiet; then
+            echo "reports unchanged — nothing to commit"
+            exit 0
+          fi
+          git -c user.name="minis-ci" -c user.email="ci@localhost" \
+            commit -q -m "chore(slice): raporlar $(date -u +%Y-%m-%dT%H:%MZ) [skip ci]"
+          git push
+          echo "persisted: $(git show --stat --oneline HEAD | head -1)"

@@ -4,9 +4,10 @@ import java.io.File
 
 /**
  * [T-android-child-session-delete-storage] The on-disk footprint of a session,
- * in one place. Two roots under `filesDir`:
+ * in one place. Three roots under `filesDir`:
  *
  *   minis-sessions/<sessionId>/…        workspace, attachments, offloads, browser
+ *   minis-spaces/<folderId>/…           [MINIS-OZEL 37070] a PROJECT's shared area
  *   media/<yyyy>/<MM>/<dd>/<sessionId>/… dated media (images, audio) — one
  *                                         session can have dirs under many dates
  *
@@ -18,6 +19,18 @@ import java.io.File
 class SessionStorage(private val filesDir: File) {
 
     val sessionsRoot: File get() = File(filesDir, SESSIONS_DIR)
+
+    /**
+     * [MINIS-OZEL 37070] Project spaces live in their own root, deliberately
+     * outside [sessionsRoot]: `OrphanedSessionFiles` deletes UUID-named
+     * directories under the session root whose id has no DB row, and a project
+     * directory sitting there would be swept the moment its chats were deleted.
+     */
+    val spacesRoot: File get() = File(filesDir, SPACES_DIR)
+
+    /** Bytes under `minis-spaces/` — the project workspaces, all of them. */
+    fun spacesSize(): Long =
+        if (!spacesRoot.isDirectory) 0L else directorySize(spacesRoot)
     val mediaRoot: File get() = File(filesDir, MEDIA_DIR)
 
     fun sessionDir(sessionId: String): File = File(sessionsRoot, sessionId)
@@ -211,6 +224,8 @@ class SessionStorage(private val filesDir: File) {
 
     companion object {
         const val SESSIONS_DIR = "minis-sessions"
+        /** [MINIS-OZEL 37070] Project spaces — own root, see [spacesRoot]. */
+        const val SPACES_DIR = "minis-spaces"
         const val MEDIA_DIR = "media"
 
         /**

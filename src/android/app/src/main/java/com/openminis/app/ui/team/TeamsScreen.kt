@@ -15,6 +15,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,7 +44,14 @@ import com.openminis.app.ui.settings.SettingsSection
  * would produce teams that look finished and do nothing.
  */
 @Composable
-fun TeamsScreen(onBack: () -> Unit, onOpenTeam: (String) -> Unit) {
+fun TeamsScreen(
+    onBack: () -> Unit,
+    onOpenTeam: (String) -> Unit,
+    /** [MINIS-OZEL 11.5 · 37064] Open the council runs list. Null hides the row. */
+    onOpenRuns: (() -> Unit)? = null,
+    /** [37055] Open the task hall. */
+    onOpenTasks: () -> Unit = {},
+) {
     val context = LocalContext.current
     // Re-read on every mutation: the list is a handful of small files, and a
     // cached copy would go stale the moment another screen writes one.
@@ -70,6 +78,39 @@ fun TeamsScreen(onBack: () -> Unit, onOpenTeam: (String) -> Unit) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(bottom = 96.dp),
         ) {
+            if (onOpenRuns != null) {
+                // [37064] Above the rosters on purpose: when a council is
+                // running, "what is it doing" outranks "which teams exist".
+                // Only shown when council mode is switched on — a row that leads
+                // to an always-empty list is worse than no row.
+                val live = com.openminis.app.agent.team.CouncilLiveRegistry
+                    .runs.collectAsState().value
+                SettingsSection(header = stringResource(R.string.council_title)) {
+                    SettingsRow(
+                        title = stringResource(R.string.council_section_running),
+                        subtitle = if (live.isEmpty()) {
+                            stringResource(R.string.council_empty_title)
+                        } else {
+                            live.values.sortedByDescending { it.startedAtMs }
+                                .joinToString(" · ") { it.teamName }
+                        },
+                        showDivider = false,
+                        onClick = onOpenRuns,
+                    )
+                }
+            }
+
+            // [37055] The task hall sits beside the council row: they are the
+            // two things a user comes to this screen for once runs exist.
+            SettingsSection(header = stringResource(R.string.task_hall_title)) {
+                SettingsRow(
+                    title = stringResource(R.string.task_hall_title),
+                    subtitle = stringResource(R.string.task_hall_hint),
+                    showDivider = false,
+                    onClick = onOpenTasks,
+                )
+            }
+
             SettingsSection(
                 header = stringResource(R.string.teams_section_rosters),
                 footer = stringResource(R.string.teams_footer),

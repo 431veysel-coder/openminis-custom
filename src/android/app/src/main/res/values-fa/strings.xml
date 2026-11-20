@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- فارسی (fa). Generated from the English base; keep keys in base order. -->
 <resources>
-    <string name="app_name">Minis Özel</string>
+    <string name="app_name">Minis X</string>
     <string name="new_chat">گفتگوی جدید</string>
     <string name="settings">تنظیمات</string>
     <string name="providers">ارائه‌دهندگان</string>

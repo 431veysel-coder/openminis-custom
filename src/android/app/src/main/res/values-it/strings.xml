@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Italiano (it). Generated from the English base; keep keys in base order. -->
 <resources>
-    <string name="app_name">Minis Özel</string>
+    <string name="app_name">Minis X</string>
     <string name="new_chat">Nuova chat</string>
     <string name="settings">Impostazioni</string>
     <string name="providers">Provider</string>

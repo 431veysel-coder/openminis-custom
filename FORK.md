@@ -1,4 +1,4 @@
-# FORK.md — Minis Özel
+# FORK.md — Minis X
 
 > Bu depo, [OpenMinis/OpenMinis](https://github.com/OpenMinis/OpenMinis)'in
 > (GPLv3) kişisel bir çatalıdır. **Amaç upstream'i kopyalamak değil; sahip
@@ -10,8 +10,8 @@
 | Upstream | `OpenMinis/OpenMinis` — v1.15 (2026-10-26, `a91ff5b`) |
 | Lisans | GPL-3.0 (upstream ile aynı; türev çalışma da GPL-3.0'dır) |
 | Platform | Yalnız Android (iOS macOS/Xcode ister, kapsam dışı) |
-| Uygulama kimliği | `com.veysel.minis` — resmî uygulamayla **yan yana** kurulur |
-| Görünen ad | Minis Özel |
+| Uygulama kimliği | `com.minis.x` — resmî uygulamayla **yan yana** kurulur |
+| Görünen ad | Minis X |
 | Mevcut sürüm | `1.15-ozel.10.1` / `versionCode 37016` |
 | Durum | Upstream'e göre **19 commit ileride, 0 geride** |
 
@@ -81,9 +81,9 @@ Bu depoya dokunan herkesin (gelecekteki ben dahil) uyduğu kurallar:
 
 | Alan | Upstream | Bu çatal |
 |---|---|---|
-| `applicationId` | `com.openminis.app` | `com.veysel.minis` |
+| `applicationId` | `com.openminis.app` | `com.minis.x` |
 | `namespace` | `com.openminis.app` | **aynı bırakıldı** (bkz. §5'teki tuzak) |
-| Uygulama adı | Minis | Minis Özel |
+| Uygulama adı | Minis | Minis X |
 | `versionCode` | 37 | 37014 |
 | `versionName` | 1.15 | 1.15-ozel.9 |
 | İmza | OpenMinis anahtarı | kendi 4096-bit RSA anahtarımız |
@@ -358,10 +358,10 @@ değeri alması gerektiğini doğrular.
 
 | Dosya | Sabit | Olması gereken |
 |---|---|---|
-| `accessibility/MinisAccessibilityService.kt` | `SERVICE_ID` | **applicationId** (`com.veysel.minis`) |
+| `accessibility/MinisAccessibilityService.kt` | `SERVICE_ID` | **applicationId** (`com.minis.x`) |
 | `diagnostics/ResourceWatermark.kt` | `/data/user/0/<id>/` | **applicationId** |
 | `res/xml/shortcuts.xml` (×3) | `targetPackage` | **applicationId** |
-| `res/values/strings.xml` | `app_name` | Minis Özel |
+| `res/values/strings.xml` | `app_name` | Minis X |
 | `data/repository/AppIconRepository.kt` | `PACKAGE_NAME` | **namespace** (`com.openminis.app`) |
 
 > **Tuzak:** `AppIconRepository.PACKAGE_NAME` bir uygulama kimliği değil,
@@ -466,7 +466,7 @@ maliyet şeffaflığı (§3.11), upstream nöbeti (§4.1), sürüm notu otomasyo
 
 | Tarih | Sürüm | Ne |
 |---|---|---|
-| 2026-11-12 | `1.15-ozel.1` | Temiz 1.15 tabanı, kendi kimliği (`com.veysel.minis`), kendi imzası. CI hattı kuruldu (JVM heap, çift NDK 27+r28, kimlik muhafızı `rg`siz, APK testlerden önce yüklenir). `AppIconRepository.PACKAGE_NAME` tuzağı düzeltildi. |
+| 2026-11-12 | `1.15-ozel.1` | Temiz 1.15 tabanı, kendi kimliği (`com.minis.x`), kendi imzası. CI hattı kuruldu (JVM heap, çift NDK 27+r28, kimlik muhafızı `rg`siz, APK testlerden önce yüklenir). `AppIconRepository.PACKAGE_NAME` tuzağı düzeltildi. |
 | 2026-11-13 | `1.15-ozel.2` | Evren API preset'i. Düşünme bloğu çevirisi + Çeviri ayarları ekranı. Araç zinciri ekranı (7 grup). Kendi repodan güncelleme. İncelemesi yapılabilir release derlemeleri. Canlı Görevler paneli. Markdown'da son render-başına regex kaldırıldı (#426). Türkçe string kaçış hatası düzeltildi. |
 | 2026-11-13 | `1.15-ozel.3` | Sürüm damgası (build 37003). |
 | 2026-11-14 | `1.15-ozel.4` | Canlı Görevler: arka plan izin kapıları (`BackgroundGates`). |
@@ -474,7 +474,7 @@ maliyet şeffaflığı (§3.11), upstream nöbeti (§4.1), sürüm notu otomasyo
 | 2026-11-14 | `1.15-ozel.6` | Canlı Görevler: görevi gerçekte yaptığı araç çağrılarına açma (`AgentStepExtractor`). Delegasyon import düzeltmeleri. |
 | 2026-11-14 | `1.15-ozel.7` | **Araç zincirleri 7 → 11 grup:** kabuk araçları, uzak erişim, betik dilleri, Android derleme. `clang` ve `uv` kendi gruplarına eklendi. **Hızlı Ayarlar karosu.** CI artık `main` push'unda da çalışıyor (yalnız belge değişiklikleri hariç). |
 | 2026-11-14 | `1.15-ozel.8` | **Güncelleme imza doğrulaması** (`UpdateSignatureGuard`) — GitHub hesabı ele geçse bile farklı anahtarla imzalanmış APK reddedilir; imza uyuşmazlığı ayrı ve açık bir mesajla gösterilir. **Belirli paket kurulumu** + toplam boyut uyarısı (1.4 GB). **Maliyet şeffaflığı**: çeviri ayarının alt bilgisi ikinci isteğin ücretlendirildiğini söylüyor. **Haftalık upstream nöbeti** (`upstream-sync.yml`) — çakışma raporu tek issue'da. **Sürüm notları commit'lerden üretiliyor.** Yeni belgeler: `SECURITY.md`, `CONTRIBUTING.md`, `PRIVACY.md`, issue/PR şablonları. |
-| 2026-11-16 | `1.15-ozel.9` | **Onarım sürümü.** GeckoView denemesi (12/13) tamamen geri alındı. **DebugServer artık `127.0.0.1`'e bağlanıyor ve loopback'te de jeton istiyor** — önce `0.0.0.0`'a bağlanıp loopback'i jeton'dan muaf tutuyordu, yani cihazdaki her uygulama `provider.export` ile API anahtarlarını okuyabiliyordu. Geliştirici sunucusu varsayılan **kapalı**. **Keystore yoksa release derlemesi kırılır.** `app_name` 22 dilde "Minis Özel". **Özellik anahtarları**: Ayarlar › Görünüm › Minis Özel — Canlı Görevler, Araç zincirleri, Çeviri, Arka plan denetimi, QS karosu, Evren ön ayarı, geliştirici sunucusu. **4 yeni sağlayıcı ön ayarı**: DeepSeek, Together AI, Fireworks AI, Hugging Face. CI: `tags: v*` tetikleyicisi kaldırıldı, aynı etikete düşük `versionCode` ile yayın yapan kapı eklendi, artefakt yolu düzeltildi (v4 ortak kökü buduyor). |
+| 2026-11-16 | `1.15-ozel.9` | **Onarım sürümü.** GeckoView denemesi (12/13) tamamen geri alındı. **DebugServer artık `127.0.0.1`'e bağlanıyor ve loopback'te de jeton istiyor** — önce `0.0.0.0`'a bağlanıp loopback'i jeton'dan muaf tutuyordu, yani cihazdaki her uygulama `provider.export` ile API anahtarlarını okuyabiliyordu. Geliştirici sunucusu varsayılan **kapalı**. **Keystore yoksa release derlemesi kırılır.** `app_name` 22 dilde "Minis X". **Özellik anahtarları**: Ayarlar › Görünüm › Minis X — Canlı Görevler, Araç zincirleri, Çeviri, Arka plan denetimi, QS karosu, Evren ön ayarı, geliştirici sunucusu. **4 yeni sağlayıcı ön ayarı**: DeepSeek, Together AI, Fireworks AI, Hugging Face. CI: `tags: v*` tetikleyicisi kaldırıldı, aynı etikete düşük `versionCode` ile yayın yapan kapı eklendi, artefakt yolu düzeltildi (v4 ortak kökü buduyor). |
 | 2026-11-16 | `1.15-ozel.10` | **Çeviri paketleri** (`TranslationPacks`): dil başına terim sözlüğü, üslup ve çevrilmeyecek tanımlayıcılar taşıyan küçük JSON; Ayarlar › Çeviri › Paketler'den katalogdan veya bağlantıdan kurulur, önbellek anahtarına katılır. **Sunucu yaşam döngüsü**: anahtar açılınca anında başlar, 30 dk sonra kendiliğinden kapanır, jeton ayar ekranında görünür (`DevServerController`). **Geri alma iş akışı** (`rollback.yml`): eski kodu daha yüksek `versionCode` ile yeniden yayınlar — Android düşük sürümü kabul etmediği için tek yol bu. |
 | 2026-11-16 | `1.15-ozel.10.1` | **İki depo, tek APK.** `scripts/sync_upstream.sh` + `apply_identity.py` + yeniden yazılan `upstream-sync.yml`: upstream birleştirmesi artık dal üretiyor, kimliği otomatik geri uyguluyor ve muhafızı kanıt olarak çalıştırıyor; çakışma varsa kararı insana bırakıyor. **Rootfs sürüm işareti** (`.image`) — yeni Alpine tabanı eski kurulumlara ulaşabiliyor ve yeniden çıkarma 1,4 GB'lık araç zincirini artık silmiyor (`USER_TREES` taşınır). FORK.md sürüm tablosu ve çift `ozel.1` kaydı düzeltildi. |
 

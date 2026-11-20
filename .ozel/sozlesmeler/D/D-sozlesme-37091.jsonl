@@ -1,0 +1,6 @@
+{"t": "2026-11-19T23:40:59Z", "id": "D-sozlesme-37091", "op": "ac", "tur": "D", "is": "sozlesme-37091", "oturum": "A", "taban": "ea17ff6", "kademe": "K1", "durma": "audit success", "butce": "", "kapsam": ["audit.yml kapi"], "disi": ["apk"]}
+{"t": "2026-11-19T23:40:59Z", "id": "D-sozlesme-37091", "op": "alan", "alan": "komut", "deger": "python3 scripts/check_workflow_shell.py"}
+{"t": "2026-11-19T23:41:00Z", "id": "D-sozlesme-37091", "op": "alan", "alan": "cikti", "deger": "checked 30 run blocks, 0 problem(s)"}
+{"t": "2026-11-19T23:41:00Z", "id": "D-sozlesme-37091", "op": "alan", "alan": "log", "deger": "run 44639275217"}
+{"t": "2026-11-19T23:41:00Z", "id": "D-sozlesme-37091", "op": "kanit", "deger": "kosu:44639275217:audit"}
+{"t": "2026-11-19T23:41:27Z", "id": "D-sozlesme-37091", "op": "kapat", "sonuc": "TAMAM"}

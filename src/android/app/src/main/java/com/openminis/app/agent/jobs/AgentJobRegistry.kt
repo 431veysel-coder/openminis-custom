@@ -204,6 +204,118 @@ object AgentJobRegistry {
         return maxConcurrentChildJobsPerParent
     }
 
+    // ── [MINIS-OZEL 11.5 · 37062] Run-level sub agent budget ────────────────
+
+    /**
+     * Councils whose members may delegate, and the budget they share.
+     *
+     * The per-parent cap above cannot bound a council: every member is a parent,
+     * so five members × three is fifteen loops and every one of them is "legal".
+     * A run registers itself here with its own slot count, and
+     * [canStartChildJob] consults BOTH caps — the parent's, then the run's.
+     *
+     * A plain map guarded by the registry's own lock discipline (`synchronized`
+     * on this object, same as the job table) rather than a new mechanism: the
+     * entries are tiny and change once per round.
+     */
+    private data class RunGate(
+        val budget: com.openminis.app.agent.team.RunSubAgentBudget,
+        /** Member session ids belonging to this run. */
+        val memberSessions: MutableSet<String>,
+        /** Sub agents this run has started so far, for [RunSubAgentBudget.maxLaunches]. */
+        var launched: Int = 0,
+    )
+
+    private val runGates = HashMap<String, RunGate>()
+    /** member session id → run id, so the admission check is one lookup. */
+    private val runOfMember = HashMap<String, String>()
+
+    /**
+     * Register the members of a council run and the budget they share.
+     *
+     * Called once per run, before the first member turn. [memberSessionIds] may
+     * be empty at that point (members get their sessions lazily), which is why
+     * [registerRunMembers] exists separately.
+     */
+    fun registerRun(
+        runId: String,
+        budget: com.openminis.app.agent.team.RunSubAgentBudget,
+    ) {
+        synchronized(this) {
+            runGates[runId] = RunGate(budget, mutableSetOf())
+        }
+        AppLogger.info(TAG, "[37062] run $runId gate slots=${budget.slots} launches=${budget.maxLaunches}")
+    }
+
+    /** Add one member's session to a run's gate. Idempotent. */
+    fun registerRunMember(runId: String, memberSessionId: String) {
+        synchronized(this) {
+            val gate = runGates[runId] ?: return
+            gate.memberSessions += memberSessionId
+            runOfMember[memberSessionId] = runId
+        }
+    }
+
+    /** Release the gate. Called when the run ends, whatever the outcome. */
+    fun unregisterRun(runId: String) {
+        val members = synchronized(this) {
+            val gate = runGates.remove(runId) ?: return
+            gate.memberSessions.onEach { runOfMember.remove(it) }
+        }
+        // [37062] Drop the members' queued delegations. Without this, the gate
+        // disappearing at run end makes admission succeed for ever, so a sub
+        // agent queued during the run would START after the council finished —
+        // into a session nobody is reading, spending tokens for no answer.
+        members.forEach { dropQueuedDelegations(it, "council run $runId ended") }
+    }
+
+    /** Active child jobs of one run, counted across ALL its members. */
+    fun runningRunChildJobCount(runId: String): Int {
+        val members = synchronized(this) { runGates[runId]?.memberSessions?.toSet() } ?: return 0
+        if (members.isEmpty()) return 0
+        return _jobs.value.values.count { it.isActive && it.target.parentSessionIdOrNull in members }
+    }
+
+    /**
+     * The run a member session belongs to, or null. Public so the refusal text
+     * can name the run and so the member screen can show the budget.
+     */
+    fun runOfMemberSession(memberSessionId: String): String? = synchronized(this) {
+        runOfMember[memberSessionId]
+    }
+
+    /**
+     * Admission for a child job, consulting the run gate when the parent is a
+     * council member. Returns null when admission is allowed, or the text to
+     * give the model when it is not.
+     */
+    fun runGateRefusal(parentSessionId: String): String? {
+        val (gate, active) = synchronized(this) {
+            val runId = runOfMember[parentSessionId] ?: return null
+            val g = runGates[runId] ?: return null
+            g to runningRunChildJobCount(runId)
+        }
+        if (gate.budget.admit(active, gate.launched)) return null
+        return gate.budget.refusal(active, gate.launched)
+    }
+
+    /** Record one admitted start against the run's launch ceiling. */
+    fun noteRunChildLaunched(parentSessionId: String) {
+        synchronized(this) {
+            val runId = runOfMember[parentSessionId] ?: return
+            runGates[runId]?.let { it.launched += 1 }
+        }
+    }
+
+    /** Diagnostics for the run screen: (active, launched, slots, maxLaunches). */
+    fun runGateSnapshot(runId: String): IntArray? = synchronized(this) {
+        val gate = runGates[runId] ?: return null
+        intArrayOf(
+            runningRunChildJobCount(runId), gate.launched,
+            gate.budget.slots, gate.budget.maxLaunches,
+        )
+    }
+
     private val _jobs = MutableStateFlow<Map<String, AgentJob>>(emptyMap())
     val jobs: StateFlow<Map<String, AgentJob>> = _jobs.asStateFlow()
 
@@ -255,6 +367,12 @@ object AgentJobRegistry {
             agentName = agentName, runSessionId = runSessionId, wasResumed = wasResumed,
         )
         _jobs.value = _jobs.value + (job.id to job)
+        // [37062] Count it against the run's launch ceiling when this job's
+        // parent is a council member. Counted at REGISTER, not at start: a job
+        // that is registered and then cancelled before its first turn still
+        // spent the run's allowance, which is the behaviour we want (the ceiling
+        // exists to stop a loop that delegates and abandons).
+        target.parentSessionIdOrNull?.let { noteRunChildLaunched(it) }
         AppLogger.info(TAG, "REGISTER ${job.logLabel} then=$resolvedThen")
         return job
     }
@@ -294,7 +412,12 @@ object AgentJobRegistry {
 
     /** [T-new-limits] Whether [parentSessionId] may start one more child job now. */
     fun canStartChildJob(parentSessionId: String): Boolean =
-        runningChildJobCount(parentSessionId) < maxConcurrentChildJobsPerParent
+        runningChildJobCount(parentSessionId) < maxConcurrentChildJobsPerParent &&
+            // [37062] A council member's parent cap is necessary but not
+            // sufficient: the RUN shares one budget across all its members, or
+            // five members × three would be fifteen live agent loops and every
+            // one of them would read as within limits.
+            runGateRefusal(parentSessionId) == null
 
     /**
      * [T-new-limits] Wait until [parentSessionId] has a free child slot, at most

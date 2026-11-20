@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Minis Özel</string>
+    <string name="app_name">Minis X</string>
     <string name="new_chat">Yeni Sohbet</string>
     <string name="settings">Ayarlar</string>
     <string name="providers">Sağlayıcılar</string>
@@ -54,7 +54,7 @@
     <string name="check_update_open_release">Sürüm sayfasını aç</string>
     <string name="check_update_verify_failed">İndirilen dosya doğrulamayı geçemedi. Lütfen tekrar deneyin.</string>
     <string name="check_update_package_invalid">İndirilen paket Minis\'in daha yeni bir sürümü değil, bu yüzden yüklenmedi.</string>
-    <string name="check_update_signature_mismatch">Bu güncelleme, kurulu uygulamayla aynı anahtarla imzalanmamış — bu yüzden reddedildi. Gerçek bir Minis Özel güncellemesi her zaman bu cihazdaki anahtarla imzalanır. Bu dosyayı elle kurmayın.</string>
+    <string name="check_update_signature_mismatch">Bu güncelleme, kurulu uygulamayla aynı anahtarla imzalanmamış — bu yüzden reddedildi. Gerçek bir Minis X güncellemesi her zaman bu cihazdaki anahtarla imzalanır. Bu dosyayı elle kurmayın.</string>
     <string name="check_update_checking">Denetleniyor…</string>
     <string name="check_update_up_to_date">En son sürümü kullanıyorsunuz.</string>
     <string name="check_update_no_release">Henüz yayımlanmış bir sürüm yok.</string>
@@ -2080,7 +2080,7 @@
     <string name="mcp_signin_not_signed_in">Oturum açılmadı</string>
     <string name="mcp_signin_sign_in">Oturum Aç</string>
     <string name="mcp_signin_reset_confirm">Sıfırla</string>
-    <!-- [MINIS-OZEL] Ayarlar › Görünüm › Minis Özel: bu çatalın eklediği her
+    <!-- [MINIS-OZEL] Ayarlar › Görünüm › Minis X: bu çatalın eklediği her
          özellik için bir anahtar. Kapatmak giriş noktasını gizler; veri silmez. -->
     <string name="model_tag_free">ücretsiz</string>
     <string name="model_tag_limited">limit takipli</string>
@@ -2140,7 +2140,7 @@
     <string name="notes_delete_title">Silinsin mi?</string>
     <string name="notes_delete_message">“%1$s” kaldırılacak. Bu geri alınamaz.</string>
     <string name="notes_undecryptable">Bu cihazda çözülemiyor — anahtar cihaz aktarımında ya da yeniden kurulumda kayboldu. Değeri yeniden gir.</string>
-    <string name="ozel_features_title">Minis Özel Özellikleri</string>
+    <string name="ozel_features_title">Minis X Özellikleri</string>
     <string name="ozel_features_subtitle">Bu çatalın eklediği özellikleri aç veya kapat</string>
     <string name="ozel_features_section_interface">Arayüz</string>
     <string name="ozel_features_interface_footer">Bir özelliği kapatmak yalnız giriş noktasını gizler. Kurduğun, kaydettiğin veya oluşturduğun hiçbir şey silinmez; yeniden açtığında olduğu gibi geri gelir.</string>
@@ -2167,6 +2167,60 @@
     <string name="ozel_notes_open">Notları aç</string>
     <string name="ozel_notes_open_subtitle">Oku, yaz, düzenle — ve kasa</string>
     <string name="ozel_feature_provider_test">Bağlantı testi</string>
+    <!-- [37080-37090] Özellik paketi -->
+    <string name="mx_section_teams">Ekip</string>
+    <string name="mx_teams_footer">Ekip, tek bir görevi devredebileceğiniz bir model listesidir. Konsey modunda sırayla çalışmak yerine tek bir cevap için tartışırlar.</string>
+    <string name="mx_feature_council">Konsey modu</string>
+    <string name="mx_feature_council_subtitle">Üyeler bağımsız cevap verir, sonra iddia listesi oturana kadar tartışır. Kapalıyken yeni konsey koşusu reddedilir; kayıtlı ekipler, koşular ve raporlar diskte kalır.</string>
+    <string name="mx_section_safety">Güvenlik ve maliyet</string>
+    <string name="mx_safety_footer">Ajan, geri alınamayan bir şeye kalkışmadan önce sorar. Her onay seçtiğiniz kapsamda hatırlanır: bu sohbet, bu proje ya da her yerde.</string>
+    <string name="mx_section_agent">Ajan kalitesi</string>
+    <string name="mx_agent_footer">Bunlar ajanın planlamasını, doğrulamasını ve raporlamasını değiştirir. Kapalıyken davranış üst projedeki gibidir.</string>
+
+    <string name="mx_feature_approval_gate">Yıkıcı işlemlerden önce sor</string>
+    <string name="mx_feature_approval_gate_subtitle">Dosya silme, zorla push, cihaz ayarı değiştirme ve dışarı veri gönderme bir kart açar: nedeni, geri alınabilir mi, nereye dokunuyor. Güvenli komutlar sormadan çalışır.</string>
+    <string name="mx_feature_budget_cap">Harcama tavanı</string>
+    <string name="mx_feature_budget_cap_subtitle">Bu sohbet, bugün ya da bu ay sınırı geçince yeni tur başlamaz. Siz sayı girene kadar hiçbir şey sınırlanmaz.</string>
+    <string name="mx_feature_auto_backup">Otomatik yedek</string>
+    <string name="mx_feature_auto_backup_subtitle">Bir şey değiştiyse, seçtiğiniz saatten sonra kendi kendine yedek alır ve en yenilerini saklar. Varsayılan kapalı: pil ve depolama harcar.</string>
+
+    <string name="mx_feature_plan_preview">Uzun işi önizle</string>
+    <string name="mx_feature_plan_preview_subtitle">Dakikalarca sürecek ya da çok harcayacak bir işten önce tek kart: ne yapacak, kaç dosya, ne geri gelmez. Kısa işler sormaz.</string>
+    <string name="mx_feature_turn_diff">Bu turda ne değişti</string>
+    <string name="mx_feature_turn_diff_subtitle">Her turdan sonra tek satır: kaç dosya, kaç satır. Tüm turu tek dokunuşla geri alın, düzenlemeleri tek tek değil.</string>
+    <string name="mx_feature_lesson_book">Hatalardan ders al</string>
+    <string name="mx_feature_lesson_book_subtitle">Aynı araç iki kez üst üste hata verirse ya da siz düzelttiyseniz, hatırlanacak tek bir not önerir. Siz onaylamadan hafızaya yazmaz.</string>
+    <string name="mx_feature_write_intent">Paylaşılan dosyada uyar</string>
+    <string name="mx_feature_write_intent_subtitle">İki ajan aynı dosyada çalışıyorsa ikincisine kimin orada olduğu ve yazmadan önce yeniden okuması gerektiği söylenir.</string>
+    <string name="mx_feature_tool_router">Tur başına daha az araç</string>
+    <string name="mx_feature_tool_router_subtitle">Yalnız isteğe uyan araçları gönderir, gerisi bir çağrı ötede. Bağlam ve yanlış seçim kazandırır ama modelin gördüğünü değiştirir: açık tutmadan önce ölçün.</string>
+    <string name="mx_feature_evidence_gate">\"Bitti\" demeden önce kanıt</string>
+    <string name="mx_feature_evidence_gate_subtitle">Tamamlandı iddiası son turlardan bir sonuç ister: test koşusu, derleme, dosya, ekran görüntüsü. Bazı işler kanıtlanamadığı için varsayılan kapalı.</string>
+    <string name="mx_budget_title">Harcama tavanı</string>
+    <string name="mx_budget_open_subtitle">Sayıların girildiği yer</string>
+    <string name="mx_budget_header">Token tavanları</string>
+    <string name="mx_budget_footer">Boş = sınır yok. Tavan dolduğunda YENİ tur başlamaz — ortada kesilen tur yarım bir araç çağrısı bırakır.</string>
+    <string name="mx_budget_chat">Bu sohbet</string>
+    <string name="mx_budget_day">Bugün</string>
+    <string name="mx_budget_month">Bu ay</string>
+    <string name="mx_budget_saved">Kaydedildi.</string>
+    <string name="mx_budget_state">Şu anki kullanım</string>
+    <string name="mx_budget_save">Kaydet</string>
+    <string name="mx_budget_clear">Tüm tavanları temizle</string>
+    <string name="mx_budget_usd">Dolar tavanı (henüz değil)</string>
+    <string name="mx_budget_usd_reason">Her model için fiyat gerekir; katalog bunu tüm sağlayıcılar için taşımıyor. Hiçbir şey yapmayan bir alan daha kötü olurdu.</string>
+    <string name="mx_budget_usd_note">Token tavanı bugün her sağlayıcıda çalışıyor; bu sürüm onu getiriyor.</string>
+    <string name="mx_replay_title">Yeniden oynatma</string>
+    <string name="mx_replay_open_subtitle">Sohbeti kaydet, araç çağrılarını tekrar koş</string>
+    <string name="mx_replay_header">Kayıtlar</string>
+    <string name="mx_replay_footer">Kayıt, araç çıktılarını dondurur; böylece bir koşu ağa ve dosyalarınıza dokunmadan tekrarlanabilir.</string>
+    <string name="mx_replay_record_current">Son sohbeti kaydet</string>
+    <string name="mx_replay_record_current_sub">Araç çağrılarının ve sonuçlarının kopyasını alır. Sohbette hiçbir şey değişmez.</string>
+    <string name="mx_replay_empty">Henüz kayıt yok.</string>
+    <string name="mx_replay_run">Yeniden koş</string>
+    <string name="mx_replay_result">Sonuç</string>
+    <string name="mx_feature_replay">Geçmiş koşuyu yeniden oynat</string>
+    <string name="mx_feature_replay_subtitle">Kayıtlı bir sohbeti araç çıktıları dondurulmuş hâlde yeniden koşturur; iki model aynı işte karşılaştırılır. Geliştirici aleti.</string>
     <string name="ozel_features_section_station">İstasyon ve düzenleme modu</string>
     <string name="ozel_features_station_footer">İstasyon, tek görevde birden çok sağlayıcı ve modeli yan yana çalıştırır; her biri kendi alanında, kendi terminali ve tarayıcı sekmeleriyle.</string>
     <string name="ozel_feature_station">İstasyon</string>
@@ -2240,7 +2294,7 @@
     <string name="ozel_scope_read_only_desc">Hiç yazma yok; kabuk yalnızca okuma olduğu kanıtlanabilen komutları çalıştırır.</string>
     <string name="ozel_scope_workspace">Çalışma alanı</string>
     <string name="ozel_scope_workspace_desc">Yazma yalnızca /var/minis/workspace altında (/tmp dahil). Bağlı klasörler kapsam dışında kalır.</string>
-    <string name="ozel_scope_footer">Kapsam ancak her değişiklik deftere yazıldığı için savunulabilir: kaçan bir şey Ayarlar › Minis Özel › Eylem defteri üzerinden geri alınabilir. Reddedilen çağrılar ajana gerekçesiyle hata olarak döner, böylece ısrar etmek yerine uyum sağlar.</string>
+    <string name="ozel_scope_footer">Kapsam ancak her değişiklik deftere yazıldığı için savunulabilir: kaçan bir şey Ayarlar › Minis X › Eylem defteri üzerinden geri alınabilir. Reddedilen çağrılar ajana gerekçesiyle hata olarak döner, böylece ısrar etmek yerine uyum sağlar.</string>
     <string name="ozel_scope_open_row">Ajan yetki kapsamı</string>
     <string name="ozel_scope_open_row_subtitle">Ajanın bu cihaz üzerinde ne kadar serbest olduğu</string>
 

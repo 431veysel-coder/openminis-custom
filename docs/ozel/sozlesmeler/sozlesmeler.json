@@ -1,0 +1,692 @@
+{
+  "_comment": [
+    "Sözleşme kayıtları — kaynak: scripts/sozlesme_tanimlari.py",
+    "Bu dosya kapılar tarafından okunur; belgelerle aynı veriden üretilir.",
+    "required: kapatmadan önce dolu olması gereken alanlar."
+  ],
+  "version": 1,
+  "kademeler": {
+    "K0": "kucuk",
+    "K1": "normal",
+    "K2": "surum"
+  },
+  "kanit_bicimleri": [
+    "komut:",
+    "test:",
+    "dosya:",
+    "kosu:"
+  ],
+  "reddedilen_kanitlar": [
+    "derlendi",
+    "testler gecti",
+    "calisiyor",
+    "kontrol ettim",
+    "ok",
+    "tamam"
+  ],
+  "baglar": {
+    "_comment": "denetle bu grafiği okur; döngü ve gerekçesiz bağ hata",
+    "zorunlu": {
+      "S": [
+        "K",
+        "V",
+        "R",
+        "IZN"
+      ],
+      "V": [
+        "T",
+        "K"
+      ],
+      "A": [
+        "Y"
+      ],
+      "F": [
+        "T"
+      ],
+      "P": [
+        "C"
+      ],
+      "D": [
+        "P"
+      ],
+      "T": [
+        "P"
+      ],
+      "UY": [
+        "OLC"
+      ],
+      "IZN": [
+        "E"
+      ],
+      "N": [
+        "Z"
+      ],
+      "M": [
+        "G"
+      ]
+    },
+    "tamamlayici": {
+      "G": [
+        "M",
+        "P"
+      ],
+      "K": [
+        "R"
+      ],
+      "OLC": [
+        "UY"
+      ],
+      "E": [
+        "D"
+      ],
+      "B": [
+        "O"
+      ],
+      "Z": [
+        "N"
+      ],
+      "SH": [
+        "L"
+      ]
+    },
+    "celiski": {
+      "R": [
+        "Z"
+      ],
+      "S": [
+        "E"
+      ],
+      "H": [
+        "IZN"
+      ]
+    },
+    "kademe_asgari": {
+      "K0": [
+        "G",
+        "P",
+        "C",
+        "M"
+      ],
+      "K1": [
+        "G",
+        "P",
+        "C",
+        "T",
+        "D",
+        "M"
+      ],
+      "K2": [
+        "G",
+        "P",
+        "C",
+        "T",
+        "D",
+        "M",
+        "K",
+        "S",
+        "V",
+        "IZN",
+        "R",
+        "Z"
+      ]
+    },
+    "gerekce": {
+      "S→K": "Onaysız yayın: 1 kez oldu, imza/anahtar hatasıyla geri dönüşsüz",
+      "S→V": "Göç test edilmeden yayın: kullanıcı verisi sessizce bozulur",
+      "S→R": "Yayının freni yazılı olmalı; 'onaysız yayın' kırmızı çizgi",
+      "S→IZN": "Yayın izni (contents: write) en dar işte olmalı",
+      "V→K": "Yıkıcı göç (kolon düşürme/veri dönüşümü) karar kaydı ister",
+      "G⇄P": "Görev sınırı kodun kapsamını, kod görevin sınırını sınar",
+      "V→T": "14→15 göçü test edilmedi; şema dosyası 3 sürüm boyunca yoktu",
+      "A→Y": "COUNCIL anahtarı vardı, ayar satırı yoktu → kullanıcı kurtaramadı",
+      "F→T": "Hata düzeltildi ama kapı eklenmedi → aynı hata tekrar eder",
+      "P→C": "İki oturum aynı ağaçta; kilit olmadan yazma birbirini ezer",
+      "D→P": "'Derlendi' iddiası hangi kod kaydına ait belli değilse doğrulanamaz",
+      "T→P": "Test hangi davranışı sabitlediği bilinmeden sayı olmaktan çıkmaz",
+      "UY→OLC": "Chip 96dp/10sp sınırı ölçülmeden 'küçük oldu' denemez",
+      "IZN→E": "Artifact süresi belirsizse sır ne kadar yayında kalacağı bilinmez",
+      "N→Z": "Bütçesiz devir: 16 dk timeout, çıktı yok, iş yeniden",
+      "M→G": "Görev sınırı yoksa cevabın kapsamı da belirsiz",
+      "G⇄M": "Görev sınırı cevabın dürüstlüğünü, cevap görevin kapsamını sınar",
+      "K⇄R": "Karar riski, risk kararı gerektirir",
+      "R✗Z": "'Yapmayacağız' ile 'bütçeyi artır' çelişirse K kaydı zorunlu",
+      "S✗E": "Yayın kalıcı, budama geçici — aynı işte ikisi açıksa karar gerekir",
+      "H✗IZN": "Hatırlamaya sır yazılmamalı; İzin sır taşır → çelişki kontrolü",
+      "OLC⇄UY": "Ölçüm göstergeyi, gösterge ölçümü haklı çıkarır",
+      "E⇄D": "Artifact ömrü derleme çıktısına bağlı",
+      "B⇄O": "Bağımlılık ortama, ortam bağımlılığa bağlı (araç sürümü)",
+      "Z⇄N": "Bütçe devri, devir bütçeyi sınar",
+      "SH⇄L": "Kabuk komutu terminal oturumunda yaşar"
+    }
+  },
+  "turler": {
+    "M": {
+      "ad": "Mesaj",
+      "kisa": "Kullanıcıya ne söyleniyor, ne söylenmiyor",
+      "kademe": "K0",
+      "oncelik": 1,
+      "required": [
+        "kapsam",
+        "kanit",
+        "soylenmeyen"
+      ],
+      "optional": [
+        "belirsizlik"
+      ],
+      "alert": [
+        "M1",
+        "M2",
+        "M3",
+        "M4"
+      ],
+      "kapi": "Cevapta 'derlendi/çalışıyor/testler geçti' geçiyorsa yanında kanıt biçimi yoksa uyarı",
+      "belge": "docs/ozel/sozlesmeler/M-Mesaj.md"
+    },
+    "K": {
+      "ad": "Karar",
+      "kisa": "Neyi neden seçtik, nasıl geri alırız",
+      "kademe": "K1",
+      "oncelik": 1,
+      "required": [
+        "karar",
+        "gerekce",
+        "alternatif",
+        "geri_alma"
+      ],
+      "optional": [
+        "etki"
+      ],
+      "alert": [
+        "K1",
+        "K2",
+        "K3",
+        "K4"
+      ],
+      "kapi": "K2 kademeli işte K kaydı yoksa iş kapanamaz; `geri_alma` boşsa hata",
+      "belge": "docs/ozel/sozlesmeler/K-Karar.md"
+    },
+    "G": {
+      "ad": "Görev",
+      "kisa": "Bir işin sınırı ve durma koşulu",
+      "kademe": "K0",
+      "oncelik": 1,
+      "required": [
+        "kapsam",
+        "disi",
+        "durma",
+        "kademe"
+      ],
+      "optional": [
+        "butce"
+      ],
+      "alert": [
+        "G1",
+        "G2",
+        "G3",
+        "G4"
+      ],
+      "kapi": "`durma` alanı bir komut içermiyorsa hata; `disi` boşsa uyarı",
+      "belge": "docs/ozel/sozlesmeler/G-Görev.md"
+    },
+    "Y": {
+      "ad": "Yapılacaklar",
+      "kisa": "Kim, neyi, ne zaman kapatacak",
+      "kademe": "K0",
+      "oncelik": 1,
+      "required": [
+        "ne",
+        "tur",
+        "sahip",
+        "kapanis"
+      ],
+      "optional": [
+        "yas"
+      ],
+      "alert": [
+        "Y1",
+        "Y2",
+        "Y3",
+        "Y4"
+      ],
+      "kapi": "`sahip` boşsa hata; 7 günden eski açık kayıt uyarı olarak basılır",
+      "belge": "docs/ozel/sozlesmeler/Y-Yapılacaklar.md"
+    },
+    "A": {
+      "ad": "Ayar",
+      "kisa": "Yapılandırma: varsayılan, anahtar, kapsam",
+      "kademe": "K1",
+      "oncelik": 1,
+      "required": [
+        "anahtar",
+        "varsayilan",
+        "okuyan",
+        "kapali_davranis",
+        "satir"
+      ],
+      "optional": [],
+      "alert": [
+        "A1",
+        "A2",
+        "A3",
+        "A4"
+      ],
+      "kapi": "`okuyan` boşsa hata (ölü anahtar); anahtar var + satır yoksa uyarı",
+      "belge": "docs/ozel/sozlesmeler/A-Ayar.md"
+    },
+    "P": {
+      "ad": "Programlama",
+      "kisa": "Kod: sahiplik, biçim, tekrar, geri alma",
+      "kademe": "K0",
+      "oncelik": 1,
+      "required": [
+        "dosya",
+        "once_hash",
+        "sonra_hash",
+        "deneme",
+        "kanit"
+      ],
+      "optional": [],
+      "alert": [
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5"
+      ],
+      "kapi": "`deneme` > 3 ise hata; `sonra_hash` == `once_hash` ise kayıt anlamsız (uyarı)",
+      "belge": "docs/ozel/sozlesmeler/P-Programlama.md"
+    },
+    "D": {
+      "ad": "Derleme",
+      "kisa": "Build: hangi komut, hangi çıktı, hangi log",
+      "kademe": "K0",
+      "oncelik": 1,
+      "required": [
+        "komut",
+        "cikti",
+        "log"
+      ],
+      "optional": [
+        "sure"
+      ],
+      "alert": [
+        "D1",
+        "D2",
+        "D3",
+        "D4"
+      ],
+      "kapi": "`log` alanı boşsa uyarı: log'suz derleme iddiası doğrulanamaz",
+      "belge": "docs/ozel/sozlesmeler/D-Derleme.md"
+    },
+    "T": {
+      "ad": "Test",
+      "kisa": "Hangi davranış, hangi sınır, hangi kanıt",
+      "kademe": "K1",
+      "oncelik": 1,
+      "required": [
+        "test",
+        "olcen",
+        "sinir",
+        "calistiran"
+      ],
+      "optional": [
+        "kapsam_disi"
+      ],
+      "alert": [
+        "T1",
+        "T2",
+        "T3",
+        "T4"
+      ],
+      "kapi": "`test` alanındaki ad repoda bulunamazsa hata (uydurma test)",
+      "belge": "docs/ozel/sozlesmeler/T-Test.md"
+    },
+    "F": {
+      "ad": "Geri bildirim",
+      "kisa": "Hata → sınıf → önleyici kapı",
+      "kademe": "K1",
+      "oncelik": 1,
+      "required": [
+        "hata",
+        "sinif",
+        "deneme",
+        "onleyici",
+        "kanit"
+      ],
+      "optional": [],
+      "alert": [
+        "F1",
+        "F2",
+        "F3",
+        "F4"
+      ],
+      "kapi": "`onleyici` boşsa kayıt kapanamaz (Ç7)",
+      "belge": "docs/ozel/sozlesmeler/F-Geri bildirim.md"
+    },
+    "H": {
+      "ad": "Hatırlama",
+      "kisa": "Ne hatırlanacak, ne hatırlanmayacak",
+      "kademe": "K1",
+      "oncelik": 2,
+      "required": [
+        "ne",
+        "kapsam",
+        "neden",
+        "sir"
+      ],
+      "optional": [],
+      "alert": [
+        "H1",
+        "H2",
+        "H3",
+        "H4"
+      ],
+      "kapi": "Kayıtta sır deseni (token/PEM/uzun base64) varsa hata",
+      "belge": "docs/ozel/sozlesmeler/H-Hatırlama.md"
+    },
+    "SH": {
+      "ad": "Kabuk",
+      "kisa": "Shell: boru, çıkış kodu, tırnak",
+      "kademe": "K1",
+      "oncelik": 1,
+      "required": [
+        "komut",
+        "kabuk",
+        "cikis"
+      ],
+      "optional": [
+        "etki"
+      ],
+      "alert": [
+        "Ş1",
+        "Ş2",
+        "Ş3",
+        "Ş4"
+      ],
+      "kapi": "pipefail açık adımda `| head`/`| grep -q` → hata (L0 ci-shell)",
+      "belge": "docs/ozel/sozlesmeler/SH-Kabuk.md"
+    },
+    "L": {
+      "ad": "Terminal",
+      "kisa": "Uzun/etkileşimli süreç: oturum, kesinti, çıktı",
+      "kademe": "K1",
+      "oncelik": 2,
+      "required": [
+        "komut",
+        "sure",
+        "cikti",
+        "kesinti"
+      ],
+      "optional": [],
+      "alert": [
+        "L1",
+        "L2",
+        "L3",
+        "L4"
+      ],
+      "kapi": "Arka plan süreci redirect'siz başlatılırsa uyarı",
+      "belge": "docs/ozel/sozlesmeler/L-Terminal.md"
+    },
+    "O": {
+      "ad": "Ortam",
+      "kisa": "Nerede çalışıyoruz: araç, sürüm, sınır",
+      "kademe": "K1",
+      "oncelik": 2,
+      "required": [
+        "ortam",
+        "arac",
+        "sinir"
+      ],
+      "optional": [
+        "cozum"
+      ],
+      "alert": [
+        "O1",
+        "O2",
+        "O3",
+        "O4"
+      ],
+      "kapi": "Sır değeri içeren kayıt reddedilir; `arac` sürümsüzse uyarı",
+      "belge": "docs/ozel/sozlesmeler/O-Ortam.md"
+    },
+    "S": {
+      "ad": "Sürüm",
+      "kisa": "versionCode, yayın, imza, geri dönüş yok",
+      "kademe": "K2",
+      "oncelik": 1,
+      "required": [
+        "surum",
+        "yayin",
+        "imza",
+        "onceki",
+        "geri_alma"
+      ],
+      "optional": [],
+      "alert": [
+        "S1",
+        "S2",
+        "S3",
+        "S4",
+        "S5"
+      ],
+      "kapi": "Yayın işinde S kaydı yoksa hata; yayındaki numara ≤ yeni numara değilse hata",
+      "belge": "docs/ozel/sozlesmeler/S-Sürüm.md"
+    },
+    "V": {
+      "ad": "Veri",
+      "kisa": "Şema, göç, geri uyum",
+      "kademe": "K2",
+      "oncelik": 1,
+      "required": [
+        "surum",
+        "goc",
+        "sema_dosyasi",
+        "test",
+        "geri"
+      ],
+      "optional": [],
+      "alert": [
+        "V1",
+        "V2",
+        "V3",
+        "V4"
+      ],
+      "kapi": "Şema sürümü değişmiş ama `schemas/<db>/<n>.json` yoksa hata",
+      "belge": "docs/ozel/sozlesmeler/V-Veri.md"
+    },
+    "IZN": {
+      "ad": "Izin",
+      "kisa": "Token, sır, yetki kapsamı",
+      "kademe": "K2",
+      "oncelik": 1,
+      "required": [
+        "kaynak",
+        "kapsam",
+        "saklama",
+        "sizinti"
+      ],
+      "optional": [],
+      "alert": [
+        "İ1",
+        "İ2",
+        "İ3",
+        "İ4"
+      ],
+      "kapi": "Artifact'a log yükleyen işte scrub adımı yoksa uyarı",
+      "belge": "docs/ozel/sozlesmeler/IZN-Izin.md"
+    },
+    "C": {
+      "ad": "Claim",
+      "kisa": "Dosya/satır sahipliği ve çakışma",
+      "kademe": "K1",
+      "oncelik": 1,
+      "required": [
+        "dosya",
+        "aralik",
+        "sahip",
+        "bitis"
+      ],
+      "optional": [],
+      "alert": [
+        "C1",
+        "C2",
+        "C3",
+        "C4"
+      ],
+      "kapi": "Kilitli dosyaya ikinci yazma → hata; çakışma kararsızsa uyarı",
+      "belge": "docs/ozel/sozlesmeler/C-Claim.md"
+    },
+    "UY": {
+      "ad": "Arayuz",
+      "kisa": "Yerleşim, ölçü, erişilebilirlik",
+      "kademe": "K1",
+      "oncelik": 2,
+      "required": [
+        "yer",
+        "olcu",
+        "erisim",
+        "durumlar"
+      ],
+      "optional": [],
+      "alert": [
+        "U1",
+        "U2",
+        "U3",
+        "U4"
+      ],
+      "kapi": "Yeni composable'da `contentDescription` yoksa uyarı",
+      "belge": "docs/ozel/sozlesmeler/UY-Arayuz.md"
+    },
+    "B": {
+      "ad": "Bağımlılık",
+      "kisa": "Sürüm, pin, lisans, yükseltme",
+      "kademe": "K1",
+      "oncelik": 2,
+      "required": [
+        "ad",
+        "surum",
+        "pin",
+        "yukseltme"
+      ],
+      "optional": [
+        "lisans"
+      ],
+      "alert": [
+        "B1",
+        "B2",
+        "B3",
+        "B4"
+      ],
+      "kapi": "Üçüncü taraf action etikette kalmışsa uyarı",
+      "belge": "docs/ozel/sozlesmeler/B-Bağımlılık.md"
+    },
+    "OLC": {
+      "ad": "Olcum",
+      "kisa": "Hangi metrik, nasıl, eşik ne",
+      "kademe": "K1",
+      "oncelik": 2,
+      "required": [
+        "metrik",
+        "kaynak",
+        "esik",
+        "orneklem"
+      ],
+      "optional": [],
+      "alert": [
+        "Ö1",
+        "Ö2",
+        "Ö3",
+        "Ö4"
+      ],
+      "kapi": "`kaynak` kod satırı içermiyorsa uyarı (ölçüm uydurma riski)",
+      "belge": "docs/ozel/sozlesmeler/OLC-Olcum.md"
+    },
+    "E": {
+      "ad": "Emeklilik",
+      "kisa": "Saklama, süre, budama, silme",
+      "kademe": "K1",
+      "oncelik": 2,
+      "required": [
+        "nesne",
+        "omur",
+        "budama"
+      ],
+      "optional": [
+        "maliyet"
+      ],
+      "alert": [
+        "E1",
+        "E2",
+        "E3",
+        "E4"
+      ],
+      "kapi": "Yeni artifact'ta `retention-days` yoksa uyarı",
+      "belge": "docs/ozel/sozlesmeler/E-Emeklilik.md"
+    },
+    "N": {
+      "ad": "Nakil",
+      "kisa": "Devir: alt ajana ne verilir, ne döner",
+      "kademe": "K1",
+      "oncelik": 2,
+      "required": [
+        "kime",
+        "brief",
+        "butce",
+        "beklenen",
+        "sonuc"
+      ],
+      "optional": [],
+      "alert": [
+        "N1",
+        "N2",
+        "N3",
+        "N4"
+      ],
+      "kapi": "`brief` alanı boşsa hata; timeout sonrası `sonuc` zorunlu",
+      "belge": "docs/ozel/sozlesmeler/N-Nakil.md"
+    },
+    "R": {
+      "ad": "Risk",
+      "kisa": "Kırmızı çizgi: neyi yapmayacağız",
+      "kademe": "K2",
+      "oncelik": 1,
+      "required": [
+        "risk",
+        "tetik",
+        "etki",
+        "fren"
+      ],
+      "optional": [],
+      "alert": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ],
+      "kapi": "K2 işte `fren` alanı boşsa hata",
+      "belge": "docs/ozel/sozlesmeler/R-Risk.md"
+    },
+    "Z": {
+      "ad": "Zaman",
+      "kisa": "Bütçe: süre, tur, jeton, para",
+      "kademe": "K1",
+      "oncelik": 2,
+      "required": [
+        "butce",
+        "harcanan",
+        "esik"
+      ],
+      "optional": [
+        "kalan"
+      ],
+      "alert": [
+        "Z1",
+        "Z2",
+        "Z3",
+        "Z4"
+      ],
+      "kapi": "`butce` aşılmış ve `kalan` boşsa uyarı (yarım iş)",
+      "belge": "docs/ozel/sozlesmeler/Z-Zaman.md"
+    }
+  }
+}

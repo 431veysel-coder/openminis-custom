@@ -30,8 +30,8 @@ STRINGS = f"{RES}/values/strings.xml"
 GRADLE = "src/android/app/build.gradle.kts"
 MAIN_JAVA = "src/android/app/src/main/java"
 
-APP_LABEL = "Minis Özel"
-APP_ID = "com.veysel.minis"
+APP_LABEL = "Minis X"
+APP_ID = "com.minis.x"
 NAMESPACE = "com.openminis.app"
 RELEASE_REPO = "431veysel-coder/openminis-custom"
 

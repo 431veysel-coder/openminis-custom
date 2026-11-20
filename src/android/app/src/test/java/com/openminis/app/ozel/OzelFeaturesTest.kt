@@ -55,13 +55,37 @@ class OzelFeaturesTest {
         // ON state costs something the user did not ask for:
         //  - DEV_SERVER opens a local socket that can read provider keys;
         //  - VAULT_AGENT_READ sends a stored secret to the model provider;
-        //  - EDIT_MODE draws an overlay on top of every screen.
+        //  - (EDIT_MODE was here until 37091; the flag is gone because the
+        //    overlay it described was never built. A removed flag needs no
+        //    exception — the set is about flags that EXIST and default off.)
         // A new flag that defaults to OFF belongs in this set WITH a reason;
         // anything else defaulting to off is the regression this test exists for.
+        //
+        // [37080–37090] Five more, same rule, and the reason matters more than
+        // the flag: each of these costs something a user who did not ask for it
+        // would not want.
+        //  - AUTO_BACKUP writes a package every night: battery, storage, and a
+        //    second copy of their data they did not request;
+        //  - TOOL_ROUTER changes which tools the MODEL sees, which is a quality
+        //    change nobody can evaluate from a switch — off until measured;
+        //  - EVIDENCE_GATE can add a turn to work that cannot be proven
+        //    ("the user liked it"), so it is right only where it is wanted;
+        //  - REPLAY is a developer measurement tool with no place in a normal
+        //    conversation;
+        //  - REMOTE_CONSOLE has no implementation yet (permission model only),
+        //    and a switch for a surface that is not built would be a lie;
+        //  - STATION is in the same position since 37091: the switch existed,
+        //    defaulted ON, and no production code read it (measured: 0 call
+        //    sites). OFF until the panels ship in 37093.
         val deliberateOff = setOf(
             OzelFeatures.Feature.DEV_SERVER,
             OzelFeatures.Feature.VAULT_AGENT_READ,
-            OzelFeatures.Feature.EDIT_MODE,
+            OzelFeatures.Feature.STATION,
+            OzelFeatures.Feature.AUTO_BACKUP,
+            OzelFeatures.Feature.TOOL_ROUTER,
+            OzelFeatures.Feature.EVIDENCE_GATE,
+            OzelFeatures.Feature.REPLAY,
+            OzelFeatures.Feature.REMOTE_CONSOLE,
         )
         val userFacing = OzelFeatures.Feature.entries - deliberateOff
         userFacing.forEach { f ->

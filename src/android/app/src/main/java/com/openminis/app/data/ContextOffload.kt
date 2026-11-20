@@ -56,7 +56,8 @@ object ContextOffload {
      * writing.
      */
     fun toolsDir(context: Context, sessionId: String): File =
-        File(context.filesDir, "minis-sessions/$sessionId/offloads/tools")
+        // [MINIS-OZEL 37070] space key → host dir
+        File(com.openminis.app.sandbox.FsSpace.subDir(context.filesDir, sessionId, "offloads"), "tools")
 
     private fun ensureToolsDir(context: Context, sessionId: String): File {
         val dir = toolsDir(context, sessionId)

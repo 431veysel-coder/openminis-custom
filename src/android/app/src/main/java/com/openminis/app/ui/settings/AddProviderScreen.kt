@@ -226,7 +226,7 @@ private val protocolChoices = listOf(
  * vendors. Presets sit after the protocols they build on so the upstream
  * ordering stays recognisable.
  *
- * A preset the user switched off in Settings › Minis Özel disappears from this
+ * A preset the user switched off in Settings › Minis X disappears from this
  * list only. An instance created before the switch was flipped keeps decoding,
  * rendering and running — it is an ordinary provider of its protocol by then,
  * with its own copied base URL. That is the same rule [CopilotFeatureFlag]

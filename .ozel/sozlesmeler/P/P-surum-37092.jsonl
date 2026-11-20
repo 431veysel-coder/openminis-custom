@@ -1,0 +1,7 @@
+{"t": "2026-11-20T01:13:12Z", "id": "P-surum-37092", "op": "ac", "tur": "P", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "-", "butce": "", "kapsam": ["build.gradle.kts surum"], "disi": ["app kodu"]}
+{"t": "2026-11-20T01:13:12Z", "id": "P-surum-37092", "op": "alan", "alan": "dosya", "deger": "src/android/app/build.gradle.kts:74-75"}
+{"t": "2026-11-20T01:13:13Z", "id": "P-surum-37092", "op": "alan", "alan": "once_hash", "deger": "000000000000"}
+{"t": "2026-11-20T01:13:13Z", "id": "P-surum-37092", "op": "alan", "alan": "sonra_hash", "deger": "111111111111"}
+{"t": "2026-11-20T01:13:13Z", "id": "P-surum-37092", "op": "alan", "alan": "deneme", "deger": "1"}
+{"t": "2026-11-20T01:13:13Z", "id": "P-surum-37092", "op": "alan", "alan": "kanit", "deger": "check_identity.sh"}
+{"t": "2026-11-20T01:13:14Z", "id": "P-surum-37092", "op": "kanit", "deger": "komut:bash scripts/check_identity.sh"}

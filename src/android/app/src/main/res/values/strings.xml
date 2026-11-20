@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Minis Özel</string>
+    <string name="app_name">Minis X</string>
     <string name="new_chat">New Chat</string>
     <string name="settings">Settings</string>
     <string name="providers">Providers</string>
@@ -58,7 +58,7 @@
     <string name="check_update_open_release">Open Release Page</string>
     <string name="check_update_verify_failed">The download did not pass verification. Please try again.</string>
     <string name="check_update_package_invalid">The downloaded package is not a newer version of Minis, so it was not installed.</string>
-    <string name="check_update_signature_mismatch">This update is not signed with the same key as the installed app, so it was refused. A genuine Minis Özel update is always signed with the key already on this device. Do not install this file manually.</string>
+    <string name="check_update_signature_mismatch">This update is not signed with the same key as the installed app, so it was refused. A genuine Minis X update is always signed with the key already on this device. Do not install this file manually.</string>
     <string name="check_update_checking">Checking…</string>
     <string name="check_update_up_to_date">You\'re on the latest version.</string>
     <string name="check_update_no_release">No release published yet.</string>
@@ -2845,7 +2845,7 @@
     <string name="mcp_dcr_registration_unreadable">The registration response could not be read.</string>
     <string name="mcp_dcr_http_status">%1$s returned HTTP %2$d.</string>
     <string name="mcp_dcr_unreadable">%1$s returned data that could not be read.</string>
-    <!-- [MINIS-OZEL] Settings › Appearance › Minis Özel: one switch per feature
+    <!-- [MINIS-OZEL] Settings › Appearance › Minis X: one switch per feature
          this fork added. Off hides the entry point; it never deletes data. -->
     <string name="model_tag_free">free</string>
     <string name="model_tag_limited">limit tracked</string>
@@ -2905,7 +2905,7 @@
     <string name="notes_delete_title">Delete this?</string>
     <string name="notes_delete_message">“%1$s” will be removed. This cannot be undone.</string>
     <string name="notes_undecryptable">Cannot be decrypted on this device — the key was lost in a device transfer or reinstall. Enter the value again.</string>
-    <string name="ozel_features_title">Minis Özel Features</string>
+    <string name="ozel_features_title">Minis X Features</string>
     <string name="ozel_features_subtitle">Turn the features this fork added on or off</string>
     <string name="ozel_features_section_interface">Interface</string>
     <string name="ozel_features_interface_footer">Switching a feature off hides its entry point. Nothing you already installed, saved or created is deleted — turn it back on and it returns as it was.</string>
@@ -2931,6 +2931,80 @@
     <string name="ozel_feature_vault_read_subtitle">Off by default. Enabling it lets the assistant read a vault value when a task needs it — which means the secret is sent to your model provider.</string>
     <string name="ozel_notes_open">Open Notes</string>
     <string name="ozel_notes_open_subtitle">Read, write, edit — and the vault</string>
+    <!-- [37080-37090] Özellik paketi — "Minis X" adıyla. -->
+    <string name="mx_section_teams">Teams</string>
+    <string name="mx_teams_footer">A team is a roster of models you can hand one task to. Council mode makes them argue to a single answer instead of taking turns.</string>
+    <string name="mx_feature_council">Council mode</string>
+    <string name="mx_feature_council_subtitle">Members answer independently, then argue until the claim list settles. Turning it off refuses new council runs; saved teams, runs and reports stay on disk.</string>
+    <string name="mx_section_safety">Safety and cost</string>
+    <string name="mx_safety_footer">The agent asks before anything that cannot be undone. Each approval is remembered in the scope you choose: this chat, this project, or everywhere.</string>
+    <string name="mx_section_agent">Agent quality</string>
+    <string name="mx_agent_footer">These change how the agent plans, verifies and reports. Off is the upstream behaviour.</string>
+
+    <string name="mx_feature_approval_gate">Ask before destructive actions</string>
+    <string name="mx_feature_approval_gate_subtitle">Deleting files, force-pushing, changing device settings and uploading data show a card with the reason, whether it can be undone, and the scope it touches. Safe commands run without asking.</string>
+    <string name="mx_feature_budget_cap">Spending limits</string>
+    <string name="mx_feature_budget_cap_subtitle">Stop starting new turns once this chat, today or this month passes its limit. Nothing is limited until you set a number.</string>
+    <string name="mx_feature_auto_backup">Automatic backups</string>
+    <string name="mx_feature_auto_backup_subtitle">Takes a backup on its own when something changed, after the chosen hour, and keeps the newest few. Off by default: it uses battery and storage.</string>
+
+    <string name="mx_feature_plan_preview">Preview long runs</string>
+    <string name="mx_feature_plan_preview_subtitle">Shows one card before a job that will take minutes or spend a lot: what it will do, how many files, what cannot be undone. Short jobs do not ask.</string>
+    <string name="mx_feature_turn_diff">What changed this turn</string>
+    <string name="mx_feature_turn_diff_subtitle">A one-line summary after each turn: how many files, how many lines. Undo the whole turn in one tap instead of one edit at a time.</string>
+    <string name="mx_feature_lesson_book">Learn from mistakes</string>
+    <string name="mx_feature_lesson_book_subtitle">When the same tool fails twice or you correct the agent, it offers one note to remember. It never writes to memory without you.</string>
+    <string name="mx_feature_write_intent">Warn on shared files</string>
+    <string name="mx_feature_write_intent_subtitle">When two agents work on the same file, the second is told who else is there and that it must re-read before writing.</string>
+    <string name="mx_feature_tool_router">Fewer tool choices per turn</string>
+    <string name="mx_feature_tool_router_subtitle">Sends only the tools that fit the request, with the rest one call away. Saves context and wrong picks, but changes what the model sees: measure before keeping it on.</string>
+    <string name="mx_feature_evidence_gate">Proof before "done"</string>
+    <string name="mx_feature_evidence_gate_subtitle">A completion claim needs a result from the last few turns: a test run, a build, a file, a screenshot. Off by default because some work cannot be proven.</string>
+    <string name="mx_budget_title">Spending limits</string>
+    <string name="mx_budget_open_subtitle">Where the numbers are typed</string>
+    <string name="mx_budget_header">Token caps</string>
+    <string name="mx_budget_footer">Empty means no limit. When a cap is reached no NEW turn starts — a turn cut in the middle would leave a half-finished tool call behind.</string>
+    <string name="mx_budget_chat">This chat</string>
+    <string name="mx_budget_day">Today</string>
+    <string name="mx_budget_month">This month</string>
+    <string name="mx_budget_saved">Saved.</string>
+    <string name="mx_budget_state">Current usage</string>
+    <string name="mx_budget_save">Save</string>
+    <string name="mx_budget_clear">Clear all limits</string>
+    <string name="mx_budget_usd">Dollar limit (not yet)</string>
+    <string name="mx_budget_usd_reason">Needs a price for every model; the catalogue does not carry one for all providers. A field that does nothing would be worse.</string>
+    <string name="mx_budget_usd_note">Token caps work for every provider today, so they are what this release ships.</string>
+    <string name="mx_replay_title">Replay</string>
+    <string name="mx_replay_open_subtitle">Record a chat, run its tool calls again</string>
+    <string name="mx_replay_header">Recordings</string>
+    <string name="mx_replay_footer">A recording keeps the tool outputs frozen, so a run can be repeated without touching the network or your files.</string>
+    <string name="mx_replay_record_current">Record the last chat</string>
+    <string name="mx_replay_record_current_sub">Takes a copy of its tool calls and results. Nothing in the chat changes.</string>
+    <string name="mx_replay_empty">No recordings yet.</string>
+    <string name="mx_replay_run">Run again</string>
+    <string name="mx_replay_result">Result</string>
+    <string name="mx_feature_replay">Replay a past run</string>
+    <string name="mx_feature_replay_subtitle">Runs a recorded conversation again with its tool outputs frozen, so two models can be compared on the same task. Developer tool.</string>
+    <!-- [37095] Sohbet sağlık göstergesi. Sayılar biçimlendirilmiş gelir
+         ("820ms", "2/3"); burada yalnız etiket ve erişilebilirlik metni var. -->
+    <string name="mx_health_idle">Ready</string>
+    <string name="mx_health_waiting">Waiting for the reply</string>
+    <string name="mx_health_streaming">Replying</string>
+    <string name="mx_health_retrying">Retrying %1$d/%2$d</string>
+    <string name="mx_health_error">Failed: %1$s</string>
+    <string name="mx_health_offline">Provider unreachable</string>
+    <string name="mx_health_chip_desc">Response health: %1$s</string>
+    <string name="mx_health_sheet_title">Response health</string>
+    <string name="mx_health_median">Median first byte</string>
+    <string name="mx_health_p90">Slowest 10%</string>
+    <string name="mx_health_last_total">Last reply</string>
+    <string name="mx_health_rate">Output speed</string>
+    <string name="mx_health_samples">Samples</string>
+    <string name="mx_health_probe">Measure now</string>
+    <string name="mx_health_probe_running">Measuring…</string>
+    <string name="mx_health_empty">No measurement yet. Send a message or tap “Measure now”.</string>
+    <string name="mx_feature_chat_health">Response health indicator</string>
+    <string name="mx_feature_chat_health_subtitle">Small chip in the chat header: time to first byte, retries and error codes. Read-only — it changes no request.</string>
     <string name="ozel_features_section_station">Station and edit mode</string>
     <string name="ozel_features_station_footer">The Station runs several providers and models on one task side by side, each in its own space with its own terminal and browser tabs.</string>
     <string name="ozel_feature_station">Station</string>
@@ -3005,7 +3079,7 @@
     <string name="ozel_scope_read_only_desc">No writes at all; the shell runs only commands that are provably reads.</string>
     <string name="ozel_scope_workspace">Workspace</string>
     <string name="ozel_scope_workspace_desc">Writes only under /var/minis/workspace (plus /tmp). Mounted folders stay outside.</string>
-    <string name="ozel_scope_footer">A scope is only defensible because every change is journalled: whatever slips through can be taken back from Settings › Minis Özel › Action journal. Refusals come back to the agent as errors with a reason, so it adapts instead of retrying.</string>
+    <string name="ozel_scope_footer">A scope is only defensible because every change is journalled: whatever slips through can be taken back from Settings › Minis X › Action journal. Refusals come back to the agent as errors with a reason, so it adapts instead of retrying.</string>
     <string name="ozel_scope_open_row">Agent scope</string>
     <string name="ozel_scope_open_row_subtitle">How much freedom the agent has over this device</string>
 
@@ -3061,4 +3135,58 @@
     <string name="teams_pick_model">Choose model</string>
     <string name="teams_no_models">No models are available. Add a provider first.</string>
     <string name="teams_model_missing">Model missing — will fall back</string>
+    <!-- [MINIS-OZEL 11.5 · 37060] Council: mode, per-member role and belt. -->
+    <string name="teams_section_mode">How this team works</string>
+    <string name="teams_mode_handoff">Handoff</string>
+    <string name="teams_mode_handoff_desc">An orchestrator plans the work and hands one step at a time to the members, then checks the result. Best when the deliverable is an artefact: a file, a fix, a build.</string>
+    <string name="teams_mode_fanout">Compare</string>
+    <string name="teams_mode_fanout_desc">Every member answers the same task independently and the answers are shown side by side. No discussion. Best when you want to see what each model says.</string>
+    <string name="teams_mode_council">Council</string>
+    <string name="teams_mode_council_desc">Members answer independently, argue over numbered claims round by round, and one synthesised answer comes out with the dissent kept. Best for decisions, research and design.</string>
+    <string name="teams_mode_label">Mode</string>
+    <string name="teams_mode_current">%1$s</string>
+    <string name="teams_council_off">Council mode is switched off in Settings › Minis X, so a council run will be refused.</string>
+
+    <string name="teams_member_role_chip_researcher">Researcher</string>
+    <string name="teams_member_role_chip_engineer">Engineer</string>
+    <string name="teams_member_role_chip_reviewer">Reviewer</string>
+    <string name="teams_member_role_chip_critic">Critic</string>
+    <string name="teams_member_belt">Tool access</string>
+    <string name="teams_member_belt_hint">Leave empty to inherit the role’s default. A member never gets team_run — it is already inside a team.</string>
+    <string name="teams_member_belt_custom">Custom (%1$d tools)</string>
+    <string name="teams_member_belt_role">Role default (%1$d tools)</string>
+    <string name="teams_member_belt_allowed">Allowed for a member</string>
+    <string name="teams_member_belt_reset">Reset to role default</string>
+    <string name="teams_member_tools_empty">No tool selected</string>
+    <string name="teams_member_tool_count">%1$d tools</string>
+
+    <!-- [MINIS-OZEL 11.5 · 37064] Council run screen. -->
+    <string name="council_title">Konsey</string>
+    <string name="council_section_running">Running now</string>
+    <string name="council_section_past">Finished runs</string>
+    <string name="council_empty_title">No council runs yet</string>
+    <string name="council_empty_hint">Set a team to council mode, then run it with team_run.</string>
+    <string name="council_tab_floor">Floor</string>
+    <string name="council_tab_agenda">Agenda</string>
+    <string name="council_tab_decision">Decision</string>
+    <string name="council_member_absent">Sat this round out</string>
+    <string name="council_no_claims">No claims yet — the chair has not folded the positions.</string>
+    <string name="council_no_report">No report stored for this run.</string>
+    <string name="council_unverified">This report did not pass the citation check.</string>
+    <string name="council_dissent">Dissent</string>
+    <string name="council_run_gone">This run is no longer in memory</string>
+    <string name="council_run_gone_hint">It finished earlier in another session, or the app was restarted.</string>
+    <string name="council_row_member_session">Open live session</string>
+    <!-- [MINIS-OZEL 11.5 · 37050–37055] Task board and task hall. -->
+    <string name="task_hall_title">Görevler</string>
+    <string name="task_hall_hint">What the councils decided to do, across every team. A task only reaches "done" with evidence attached.</string>
+    <string name="task_hall_empty">Nothing here. A council run opens tasks as it goes.</string>
+    <string name="task_hall_run_header">Tasks from this run</string>
+    <string name="task_state_open">Open</string>
+    <string name="task_state_doing">Doing</string>
+    <string name="task_state_done">Done</string>
+    <string name="task_state_dropped">Dropped</string>
+    <string name="task_filter_all">All</string>
+    <string name="task_unassigned">unassigned</string>
+    <string name="task_tab">Tasks</string>
 </resources>

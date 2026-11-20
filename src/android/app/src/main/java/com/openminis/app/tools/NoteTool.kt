@@ -24,7 +24,7 @@ import org.json.JSONObject
  *
  * - NOTE: list, read, write, append, search, delete. Free.
  * - VAULT: list names always; read a value ONLY when the user turned on
- *   Settings › Minis Özel › "Agent may read the vault". Creating, editing or
+ *   Settings › Minis X › "Agent may read the vault". Creating, editing or
  *   deleting a vault entry is never possible from a tool — [NoteStore.writeVault]
  *   and [NoteStore.deleteVault] require a call only the UI makes.
  *
@@ -121,7 +121,7 @@ object NoteTool {
             return ToolResult(false, "invalid arguments: ${it.message}")
         }
         if (!OzelFeatures.isEnabled(context, OzelFeatures.Feature.NOTES)) {
-            return ToolResult(false, "notes are turned off in Settings › Minis Özel")
+            return ToolResult(false, "notes are turned off in Settings › Minis X")
         }
         val store = NoteStore.get(context)
         val action = args.optString("action").trim().lowercase()
@@ -231,7 +231,7 @@ object NoteTool {
 
     private suspend fun vaultList(context: Context, store: NoteStore): ToolResult {
         if (!OzelFeatures.isEnabled(context, OzelFeatures.Feature.VAULT)) {
-            return ToolResult(false, "the vault is turned off in Settings › Minis Özel")
+            return ToolResult(false, "the vault is turned off in Settings › Minis X")
         }
         val rows = store.vaultEntries()
         if (rows.isEmpty()) return ToolResult(true, "The vault is empty.")
@@ -244,13 +244,13 @@ object NoteTool {
 
     private suspend fun vaultRead(context: Context, store: NoteStore, rawId: String): ToolResult {
         if (!OzelFeatures.isEnabled(context, OzelFeatures.Feature.VAULT)) {
-            return ToolResult(false, "the vault is turned off in Settings › Minis Özel")
+            return ToolResult(false, "the vault is turned off in Settings › Minis X")
         }
         if (!OzelFeatures.isEnabled(context, OzelFeatures.Feature.VAULT_AGENT_READ)) {
             return ToolResult(
                 false,
                 "The user has not allowed agents to read vault values. Ask them to enable " +
-                    "Settings › Minis Özel › \"Agent may read the vault\", or to paste the value " +
+                    "Settings › Minis X › \"Agent may read the vault\", or to paste the value " +
                     "themselves.",
             )
         }

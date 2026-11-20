@@ -310,9 +310,9 @@ def main() -> int:
                 'package com.openminis.app\n\n'
                 'fun greet(name: String) = "hello " + name.lowercase()\n')
         t.write(f"{RES}/values/strings.xml",
-                '<resources><string name="app_name">Minis Özel</string></resources>\n')
+                '<resources><string name="app_name">Minis X</string></resources>\n')
         t.write(f"{RES}/values-tr/strings.xml",
-                "<resources><string name=\"app_name\">Minis Özel</string></resources>\n")
+                "<resources><string name=\"app_name\">Minis X</string></resources>\n")
         errors = [f for f in code_audit.scan_locale_case(t.root) if f.severity == "error"]
         errors += [f for f in compliance_audit.scan_locales(t.root) if f.severity == "error"]
         total += 1

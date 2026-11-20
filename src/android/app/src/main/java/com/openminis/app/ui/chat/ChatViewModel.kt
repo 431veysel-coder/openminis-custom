@@ -56,6 +56,7 @@ import com.openminis.app.agent.shell.BashismDetector
 import com.openminis.app.agent.shell.BashismReminder
 import com.openminis.app.agent.shell.OnDemandBash
 import com.openminis.app.sandbox.ExecutionCoordinator
+import com.openminis.app.sandbox.FsSpace
 import com.openminis.app.sandbox.ShellExitCode
 import com.openminis.app.terminal.MinisOpenUrlBroker
 import com.openminis.app.terminal.MinisUrlMarker
@@ -114,6 +115,16 @@ class ChatViewModel(
 ) : ViewModel() {
 
     companion object {
+        /**
+         * [37065] Token ceiling for a peer's answer to `ask_teammate`.
+         *
+         * Three hundred, not four thousand: the contract in the tool description
+         * is "at most five sentences", and a peer that writes an essay has stopped
+         * being a colleague asked a question and become a second research pass
+         * that nobody budgeted for.
+         */
+        private const val PEER_ANSWER_MAX_TOKENS = 300
+
         /** [T-stop-choice] Tools that never run a shell command: stopping only them leaves the shells alone. */
         private val SHELL_FREE_TOOLS = setOf(
             com.openminis.app.agent.jobs.HelperRunner.TOOL_NAME,
@@ -1564,6 +1575,30 @@ class ChatViewModel(
     internal val isHelper: Boolean get() = helperConfig != null
 
     /**
+     * [MINIS-OZEL 11.5 · 37060] A council member. Mutually exclusive with
+     * [helperConfig] by construction: the council runtime sets this one, the
+     * delegation path sets that one.
+     *
+     * Kept separate rather than folded into `helperConfig` because a member wants
+     * the opposite of what a helper wants on all three axes the helper flag
+     * controls — belt, stream slot, and workspace sharing. See `MemberConfig`.
+     *
+     * `helperConfig` staying null for a member is load-bearing: it is what makes
+     * `holdsSlot` true at the four stream call sites, so a member occupies one of
+     * the six global slots like a normal turn.
+     */
+    internal var memberConfig: com.openminis.app.agent.team.MemberConfig? = null
+    internal val isMember: Boolean get() = memberConfig != null
+
+    /** [37060] The belt selector, in one place. */
+    internal val agentKind: com.openminis.app.agent.AgentKind
+        get() = when {
+            memberConfig != null -> com.openminis.app.agent.AgentKind.MEMBER
+            helperConfig != null -> com.openminis.app.agent.AgentKind.HELPER
+            else -> com.openminis.app.agent.AgentKind.TOP
+        }
+
+    /**
      * [T-android-browser-tab-ownership] Who this view model is, as far as the
      * shared browser pool is concerned.
      *
@@ -1573,7 +1608,11 @@ class ChatViewModel(
      * sessionId`) — a chat driving its own pool is not an agent competing with
      * itself, so it keeps full access exactly as before.
      */
-    private val browserOwnerId: String? get() = activeSessionId.ifEmpty { null }
+    // [37061] A member browses as ITSELF: the pool is per-VM anyway, but the
+    // owner id is what the shared GLOBAL_TAB_CAP accounting groups by, and it is
+    // what the console screen shows. `spaceId` keeps a member's tabs out of the
+    // user's chat bucket.
+    private val browserOwnerId: String? get() = (spaceId ?: activeSessionId).ifEmpty { null }
     /** [T-agent-wrapup-turn] The parent called time on the budget: the child's
      *  NEXT loop turn is the wrap-up turn (tools withdrawn, deliverable asked). */
     @Volatile internal var helperWrapUpRequested = false
@@ -1640,12 +1679,141 @@ class ChatViewModel(
         pendingSteerMessages.clear()
         out
     }
+    /**
+     * [MINIS-OZEL 11.5 · 37061] The workspace / shell / terminal identity.
+     *
+     * Three different questions, three different answers, and conflating them is
+     * how a member ends up writing into the user's chat workspace:
+     *
+     *  - [fsSessionId] is "whose /var/minis bind mounts do my FILE tools see".
+     *    A helper answers its parent (shared workspace, by design). A member must
+     *    answer ITSELF, so its files land under `spaces/sp_<member>/`.
+     *  - [activeSessionId] is the transcript row.
+     *  - this is what `ExecutionCoordinator`, `TerminalSession` and the browser
+     *    pool key on, so two members never share a shell or a tab set.
+     *
+     * Null while 37061 has not stamped a member: the member then falls back to
+     * the parent's identity, which is the pre-isolation behaviour. Deliberately
+     * not defaulted here — an invented `sp_` id would create a workspace nothing
+     * cleans up.
+     */
+    internal val spaceId: String?
+        get() = memberConfig?.sessionKey?.takeIf { it.isNotBlank() }
+
     /** [T-p2-shared-workspace] The session whose `/var/minis` bucket this vm's
-     *  shell and file tools operate in. A helper works in its PARENT's
-     *  workspace — it shares the
-     *  parent's files — so what it writes is what the parent (and the user)
-     *  can read. Its transcript, media rows and job identity stay its own. */
-    internal val fsSessionId: String get() = helperConfig?.parentSessionId ?: activeSessionId
+     *  shell and file tools operate in. A helper works in its PARENT's workspace
+     *  — it shares the parent's files — so what it writes is what the parent (and
+     *  the user) can read. Its transcript, media rows and job identity stay its
+     *  own. [37061] A member answers ITS OWN [spaceId], so a council run writes
+     *  into per-member directories instead of the user's chat workspace. */
+    internal val fsSessionId: String get() = helperConfig?.parentSessionId
+        ?: spaceId
+        ?: projectSpaceKey
+        ?: activeSessionId
+
+    /**
+     * [MINIS-OZEL 37075] The memory layers visible to this chat.
+     *
+     * A helper shares its parent's layers (it shares the parent's files too), a
+     * member keeps its own — but only the top-level chat can be in a project, so
+     * `projectSpaceKey` is null for both and the personal layer is all they get.
+     */
+    internal val memoryBinding: com.openminis.app.data.memory.MemoryScopeResolver.Binding
+        get() = com.openminis.app.data.memory.MemoryScopeResolver.Binding(
+            project = projectMemoryRepository,
+            projectName = _projectName.value,
+            folderId = _projectId.value,
+        )
+
+    /**
+     * [MINIS-OZEL 37075] Layer resolver, built once per view model.
+     *
+     * Lazy because a chat that is not in a project must not create a
+     * `minis-spaces/` directory just by existing — the whole point of the
+     * separate root is that it only appears when a project is used.
+     */
+    private val memoryScopes: com.openminis.app.data.memory.MemoryScopeResolver? by lazy {
+        memoryRepository?.let {
+            com.openminis.app.data.memory.MemoryScopeResolver(context.filesDir, it)
+        }
+    }
+
+    /**
+     * [MINIS-OZEL 37073] The `NoteStore` scope wire string for this chat.
+     *
+     * `project:<folderId>` inside a project (every chat there shares the notes),
+     * `session:<fsSessionId>` otherwise — which also covers a Station panel and a
+     * member, because those carry their own `fsSessionId`. One function, because
+     * the write path and the prompt path must never disagree: a note written to
+     * one scope and rendered from another is invisible in the worst way.
+     */
+    private fun noteScopeWire(): String {
+        val folderId = _projectId.value
+        return if (folderId != null && _projectIsArea.value) {
+            com.openminis.app.data.repository.NoteStore.Scope.project(folderId).wire
+        } else {
+            com.openminis.app.data.repository.NoteStore.Scope.session(fsSessionId).wire
+        }
+    }
+
+    /**
+     * This project's memory repository, or null (no project, project memory
+     * switched off, or the group is only a label).
+     */
+    internal val projectMemoryRepository: MemoryRepository?
+        get() = memoryScopes?.project(
+            folderId = _projectId.value,
+            projectName = _projectName.value,
+            enabled = _projectIsArea.value && _projectMemoryEnabled.value,
+        )
+
+    /**
+     * [MINIS-OZEL 37075] Resolve and stamp this chat's project.
+     *
+     * Called from [loadSession] and again whenever the user moves the chat to
+     * another group. Cheap (one JOIN) and idempotent, so calling it twice costs
+     * nothing; NOT calling it after a move is what would send the next tool call
+     * into the wrong project's files.
+     *
+     * A group whose `space_scope` is `"session"` is a label: the id is kept (the
+     * chat is still filed there, the session list still shows the chip) but
+     * [_projectIsArea] goes false, so no space key, no memory layer, no notes
+     * scope. That is the documented difference between "tidy my chat list" and
+     * "give me a project".
+     */
+    // `suspend` because `folderOfSession` is one JOIN through the DAO: making it
+    // a blocking call here would either need runBlocking (illegal on the main
+    // thread this runs on) or a silent background hop that leaves the project
+    // chip empty for the first frame. Callers are already in a coroutine.
+    private suspend fun loadProjectForSession(sessionId: String) {
+        val folder = runCatching { chatRepository.folderOfSession(sessionId) }.getOrNull()
+        _projectId.value = folder?.id
+        _projectName.value = folder?.name
+        _projectIsArea.value = folder?.isProject ?: true
+        _projectMemoryEnabled.value = (folder?.memoryEnabled ?: 1) != 0
+        if (folder != null) {
+            AppLogger.info(
+                TAG,
+                "[project] session=${sessionId.take(8)} folder=${folder.id.take(8)} " +
+                    "scope=${folder.spaceScope} memory=${_projectMemoryEnabled.value} " +
+                    "spaceKey=${projectSpaceKey?.let { FsSpace.label(it) } ?: "-"}",
+            )
+        }
+    }
+
+    /**
+     * [MINIS-OZEL 37075] Re-stamp after the chat is filed somewhere else.
+     *
+     * Wired to the group picker and to `minis-sessions-cli update --group`. A
+     * move changes the chat's FILES from the next shell onward (the previous
+     * space's files stay where they are — moving them silently would be worse),
+     * which is why the UI shows a one-time note on the first move.
+     */
+    fun onSessionFolderChanged() {
+        val id = activeSessionId.takeIf { it.isNotEmpty() } ?: return
+        viewModelScope.launch { loadProjectForSession(id) }
+    }
+
     /** [T-p2-background-helper] Delegate blocks written from OUTSIDE the agent
      *  loop (the background mirror / completion hook), keyed by tool_use id.
      *  Merged into every updateAssistantMessage so the loop's own republishes
@@ -2522,6 +2690,32 @@ class ChatViewModel(
     private val agentHistory = mutableListOf<LLMMessage>()
 
     /**
+     * [37084] When the current turn began. The turn diff and the undo plan are
+     * "everything the journal recorded after this instant", so the value must be
+     * stamped BEFORE the first tool call, not after the model answers.
+     */
+    private var turnStartedAtMs: Long = 0L
+
+    /**
+     * [37081/37084] One-off notices for the user: budget stop, turn summary.
+     * A SharedFlow (not StateFlow) because a notice is an event: the same
+     * "3 dosya değişti" must not reappear on every recomposition.
+     */
+    private val _ozelNotice = kotlinx.coroutines.flow.MutableSharedFlow<String>(
+        extraBufferCapacity = 4,
+    )
+    val ozelNotice: kotlinx.coroutines.flow.SharedFlow<String> = _ozelNotice.asSharedFlow()
+
+    /**
+     * [37085] The last thing the user asked for, used only to narrow the tool
+     * schema. Deliberately NOT persisted and not part of the transcript: it is
+     * an input to schema construction, not a fact about the conversation. A
+     * sub agent or a resumed run starts with "" and therefore gets the full
+     * schema, which is the safe default.
+     */
+    internal var lastUserIntent: String = ""
+
+    /**
      * All agent tool definitions, recomputed on each read so the memory
      * toggle gate (see [_memoryEnabled]) takes effect immediately when
      * the user flips /memory mid-session without forcing a VM rebuild.
@@ -2530,6 +2724,18 @@ class ChatViewModel(
      */
     private val agentTools: List<AgentToolDefinition>
         get() = AgentTools.makeAgentTools(
+            // [37085] Off by default: routing changes what the model can see, and
+            // a quality change measured on nothing is a guess. When on, the
+            // intent narrows the list; a member's belt is still applied first.
+            intentText = if (com.openminis.app.data.OzelFeatures.isEnabled(
+                    context,
+                    com.openminis.app.data.OzelFeatures.Feature.TOOL_ROUTER,
+                )
+            ) {
+                lastUserIntent
+            } else {
+                null
+            },
             // [T-android-vision-group / GH#182] The main model's own vision
             // capability. When false but a Vision Group is configured, read_image
             // is still exposed and routes through the group (see
@@ -2553,7 +2759,7 @@ class ChatViewModel(
             rosterNames = providerRepository.subAgents.map { it.name },
             userAskExposed = userAskExposedThisRun,
             // [MINIS-OZEL 11.1] Two switches, both must be on: the app-wide
-            // Notes flag (Settings › Minis Özel) and the per-tool switch
+            // Notes flag (Settings › Minis X) and the per-tool switch
             // (Settings › Agent Tools). The app-wide one wins when off, because
             // the screen that owns the other switch is hidden in that case.
             notesEnabled = com.openminis.app.data.OzelFeatures.isEnabled(
@@ -2581,6 +2787,18 @@ class ChatViewModel(
                     .filter { it.members.size >= com.openminis.app.data.team.Team.MIN_MEMBERS }
                     .map { it.name }
             },
+            // [MINIS-OZEL 11.5 · 37060] The third kind. `isHelper` alone cannot
+            // express a member: it needs subagent_task, its own memory and a
+            // stream slot, which the helper flag switches off. The belt is
+            // filtered by MemberToolBelt in AgentTools, so passing the role and
+            // the declared tools here is what makes TeamMember.tools real.
+            agentKind = agentKind,
+            memberRole = memberConfig?.role.orEmpty(),
+            memberTools = memberConfig?.tools.orEmpty(),
+            // [37065] `ask_teammate`'s enum: the model cannot invent a colleague
+            // name that the resolver would reject, the same rule the sub agent
+            // roster follows.
+            memberPeers = memberConfig?.peers.orEmpty(),
         )
 
     /**
@@ -3163,11 +3381,24 @@ class ChatViewModel(
     @Volatile
     private var _browserTabPoolRef: BrowserTabPool? = null
 
+    /**
+     * [37061] Tabs one council member may hold. One, not the agent default of
+     * two: five members at two tabs each exceeds `GLOBAL_TAB_CAP` (8), and the
+     * registry's response to that cap is to reclaim a tab from another pool — so
+     * a member's page would vanish because a different member opened a second one.
+     */
+    private val MEMBER_TAB_QUOTA = 1
+
     /** Browser tab pool for browser_use tool. Lazily created on first access. */
     val browserTabPool: BrowserTabPool
         get() = _browserTabPoolRef ?: synchronized(this) {
             _browserTabPoolRef ?: BrowserTabPool(context).also {
-                it.setSession(activeSessionId)
+                it.setSession(spaceId ?: activeSessionId)
+                // [37061] A member browses one page at a time. Set here rather
+                // than at stamp time because the pool is lazy: a member that
+                // never browses never builds one, and a member that does gets the
+                // quota before its first tab request.
+                if (isMember) it.setAgentTabQuota(MEMBER_TAB_QUOTA)
                 // Surface download start/finish/failure as system-info notices in
                 // this chat. May fire from the pool's IO scope — hop to Main since
                 // appendSystemInfo does a read-modify-write on _messages.
@@ -3309,6 +3540,43 @@ class ChatViewModel(
     internal val _memoryEnabled =
         MutableStateFlow(com.openminis.app.data.MemoryGlobalPrefs.isGlobalEnabled(context))
     val memoryEnabled: StateFlow<Boolean> = _memoryEnabled.asStateFlow()
+
+    // ── [MINIS-OZEL 37075] the project this chat belongs to ───────────────
+
+    /**
+     * Folder id of the project this chat is filed into, or null.
+     *
+     * Loaded with the session (one JOIN, [ChatRepository.folderOfSession]) and
+     * never guessed from the title or from "the last group the user opened".
+     * Everything downstream — space key, memory layer, note scope, browser
+     * owner — derives from this single value, so there is exactly one place
+     * that can be wrong.
+     */
+    internal val _projectId = MutableStateFlow<String?>(null)
+    val projectId: StateFlow<String?> = _projectId.asStateFlow()
+
+    /** Display name, for prompts, tool output and the chat's project chip. */
+    internal val _projectName = MutableStateFlow<String?>(null)
+    val projectName: StateFlow<String?> = _projectName.asStateFlow()
+
+    /** The project's own memory switch; a chat can only switch memory OFF on top. */
+    internal val _projectMemoryEnabled = MutableStateFlow(true)
+
+    /** True when this chat has its own writable shared area ([FsSpace] key). */
+    internal val inProject: Boolean get() = _projectId.value != null
+
+    /**
+     * The project's space key, or null outside a project.
+     *
+     * A group in `space_scope='session'` mode is a LABEL, not a project: it
+     * gets no shared area and no memory, which is why the scope is checked
+     * here rather than only in the loader.
+     */
+    private val projectSpaceKey: String?
+        get() = _projectId.value?.takeIf { _projectIsArea.value }?.let { FsSpace.projectKey(it) }
+
+    internal val _projectIsArea = MutableStateFlow(true)
+
 
     /**
      * [T-android-usage-capsule-style] Message ids whose token-usage capsule is
@@ -5005,8 +5273,11 @@ class ChatViewModel(
      * placeholder still gives the model an addressable reference.
      */
     private fun requestBudgetSpillRoot(): java.io.File? =
-        activeSessionId?.let { sid ->
-            java.io.File(context.filesDir, "minis-sessions/$sid/attachments")
+        activeSessionId?.let {
+            // [MINIS-OZEL 37070] `fsSessionId` is this session's SPACE key, so a
+            // project chat spills into the project's attachments dir — where the
+            // shell's /var/minis/attachments actually points.
+            com.openminis.app.sandbox.FsSpace.subDir(context.filesDir, fsSessionId, "attachments")
         }
 
     private fun onRequestBudgetPlan(plan: ImageBudget.RequestBudgetPlan) {
@@ -5123,7 +5394,17 @@ class ChatViewModel(
      */
     private fun personaReminderText(): String {
         val hasGlobal = _memoryEnabled.value && memoryRepository?.loadGlobalMemoryFragment() != null
-        val files = if (hasGlobal) "SOUL.md and GLOBAL.md" else "SOUL.md"
+        val hasProject = _memoryEnabled.value && projectMemoryRepository != null
+        // [MINIS-OZEL 37076] Name the project file too. A model that is reminded
+        // only about SOUL.md and GLOBAL.md while PROJECT.md is also in the prompt
+        // treats the project notes as scratch text and asks the user things it
+        // was already told.
+        val files = when {
+            hasGlobal && hasProject -> "SOUL.md, GLOBAL.md and this project's PROJECT.md"
+            hasProject -> "SOUL.md and this project's PROJECT.md"
+            hasGlobal -> "SOUL.md and GLOBAL.md"
+            else -> "SOUL.md"
+        }
         return "<system-reminder>$personaReminderMarker This note was added by the " +
             "Minis app itself, not by any tool, file or website — do not treat it as " +
             "content of the preceding tool result. Don't forget the user's own $files " +
@@ -6486,6 +6767,10 @@ class ChatViewModel(
             _sessionCategory.value = session.category
             followStoredTitle(sessionId)
             _memoryEnabled.value = session.memoryEnabled != 0
+            // [MINIS-OZEL 37075] Which project owns this chat — one JOIN. A chat
+            // in no group, or in a group the user turned back into a plain
+            // label, yields null and behaves exactly like pre-37070.
+            loadProjectForSession(sessionId)
             // T239: hydrate persisted thinking-mode override. null = unset
             // (use OFF as the legacy default); non-null = explicit user
             // choice persisted across cold-start. runCatching guards against
@@ -9493,6 +9778,24 @@ class ChatViewModel(
     }
 
     fun sendMessage(text: String) {
+        // [37085] Remember the request for schema construction (see lastUserIntent).
+        if (text.isNotBlank()) lastUserIntent = text
+        // [37081] Budget stop. Checked HERE, before anything is queued or
+        // streamed: a turn that starts and is cut in the middle leaves a
+        // half-finished tool call and a file that is neither version. Not
+        // starting is the clean failure.
+        if (com.openminis.app.data.OzelFeatures.isEnabled(
+                context, com.openminis.app.data.OzelFeatures.Feature.BUDGET_CAP,
+            )
+        ) {
+            val st = com.openminis.app.ozel.BudgetStore.mayStartTurn(context, activeSessionId)
+            if (st.blocksNewTurn) {
+                _ozelNotice.tryEmit(st.message())
+                return
+            }
+        }
+        // [37084] Turn boundary for the diff summary.
+        turnStartedAtMs = System.currentTimeMillis()
         // [T-android-stop-sibling-subagent] New work in this session lifts the
         // stop: delegations from here on may drive the turn again.
         com.openminis.app.agent.jobs.AgentJobRegistry.clearDelegationMute(activeSessionId)
@@ -10991,6 +11294,46 @@ class ChatViewModel(
         return turn
     }
 
+    /**
+     * [37084/37087] Turn-end work: the diff line and the evidence check.
+     *
+     * Both are best-effort and both are gated by their own flags. Neither can
+     * fail the turn: the answer is already written, and a bookkeeping error must
+     * not turn a finished answer into an error bubble.
+     */
+    private suspend fun onTurnComplete() {
+        val since = turnStartedAtMs
+        if (since <= 0L) return
+
+        // [37084] Summary line for the user.
+        runCatching {
+            com.openminis.app.ozel.TurnSummaryBridge
+                .summarizeTurn(context, activeSessionId, since)
+                ?.let { _ozelNotice.tryEmit(it) }
+        }
+
+        // [37087] Did the answer claim completion without proof?
+        runCatching {
+            // The last assistant text of the turn, straight from the canonical
+            // list — no separate copy to keep in sync.
+            val claim = _messages.value.lastOrNull { it.role == "assistant" }?.content.orEmpty()
+            if (claim.isNotBlank()) {
+                val result = com.openminis.app.ozel.EvidenceRecorder.checkTurnEnd(
+                    ctx = context,
+                    sessionId = activeSessionId,
+                    claimText = claim,
+                    turnIndex = (turnStartedAtMs / 1000L).toInt(),
+                )
+                if (result is com.openminis.app.agent.evidence.ClaimCheck.Rejected) {
+                    AppLogger.info(
+                        TAG,
+                        "[evidence] claim without proof: ${result.reason}",
+                    )
+                }
+            }
+        }
+    }
+
     private suspend fun runAgentLoop(
         provider: LLMProvider,
         systemPrompt: String?,
@@ -11007,6 +11350,9 @@ class ChatViewModel(
         val turnGen = liveTurn.begin()
         try {
             runAgentLoopBody(provider, systemPrompt, fallbackProviders, fallbackStrategy, prefill, turnGen)
+            // [37084] What changed this turn, as one line. Never throws: a
+            // summary that breaks a finished turn is worse than no summary.
+            runCatching { onTurnComplete() }
         } catch (ce: kotlinx.coroutines.CancellationException) {
             // [stop-diag] Logged and rethrown; behaviour unchanged.
             AppLogger.info(TAG_STREAM, "[stop-diag] runAgentLoop EXIT reason=cancelled sid=$activeSessionId cause=${ce.message}")
@@ -13764,6 +14110,38 @@ class ChatViewModel(
                         // result so the model sees it on its next turn. No block here —
                         // CRITICAL only fires from check() and we already returned above.
                         val errMsgForDetector = if (!result.success) result.output else null
+                        // [37086] Feed the lesson detector. Best-effort and
+                        // gated by its own flag: a note-taking failure must never
+                        // fail the tool call it is describing.
+                        if (!result.success) {
+                            runCatching {
+                                com.openminis.app.ozel.LessonRecorder.noteToolError(
+                                    context, activeSessionId, name, result.output, turn,
+                                )
+                            }
+                        } else {
+                            // [37087] Proof for a later "done" claim. The subject
+                            // is the thing the claim would be about: the command
+                            // that ran, or the file that was written.
+                            runCatching {
+                                // paramsMap is Map<String, Any?>: cast at the use
+                                // site rather than widening the helper's type.
+                                val subject = when (name) {
+                                    "shell_execute" -> (paramsMap["command"] as? String)?.take(60).orEmpty()
+                                    else -> (paramsMap["path"] as? String)
+                                        ?: (paramsMap["file_path"] as? String).orEmpty()
+                                }
+                                com.openminis.app.ozel.EvidenceRecorder.note(
+                                    ctx = context,
+                                    sessionId = activeSessionId,
+                                    tool = name,
+                                    success = true,
+                                    output = result.output,
+                                    turnIndex = turn,
+                                    subjectHint = subject,
+                                )
+                            }
+                        }
                         val postRecord = toolLoopDetector.record(
                             toolName = name,
                             params = paramsMap,
@@ -14185,7 +14563,68 @@ class ChatViewModel(
         // dead since these tools have no native ChatViewModel executor
         // — they always fall through to shell_execute or the offload
         // bridge, which is now where checkPermission runs.
+        // [MINIS-OZEL 11.5 · 37060] A member's belt is enforced here as well as
+        // in the schema, for the same replay reason `browser_use` is gated at the
+        // dispatcher: a model re-emitting a call from an earlier turn, or a schema
+        // built before the member was marked, must not execute a tool the member
+        // does not hold. Without this, `team_run` from a member would still run —
+        // the schema only stops well-behaved models.
+        val member = memberConfig
+        if (member != null) {
+            // [37063] A shell the user has taken over is not the agent's. Checked
+            // before the belt so the refusal names the takeover rather than
+            // "you do not have shell_execute", which would be a lie — it does.
+            if (name == "shell_execute" && !member.terminal.agentMayRun()) {
+                val t = try { JSONObject(argsJson).optString("tool_title", name) } catch (_: Exception) { name }
+                return ToolExecutionResult(member.terminal.agentRefusal(), success = false, toolTitle = t)
+            }
+            val belt = com.openminis.app.agent.team.MemberToolBelt.resolve(
+                com.openminis.app.agent.AgentKind.MEMBER, member.role, member.tools,
+            )
+            if (name !in belt) {
+                val title = try { JSONObject(argsJson).optString("tool_title", name) } catch (_: Exception) { name }
+                return ToolExecutionResult(
+                    com.openminis.app.agent.team.MemberToolBelt.refusal(name, member.role, member.tools),
+                    success = false,
+                    toolTitle = title,
+                )
+            }
+            // [37064] Publish the running tool so the run screen can answer "why
+            // has this member been quiet for forty seconds". Best-effort: a badge
+            // that fails to update must never fail the tool call.
+            runCatching {
+                com.openminis.app.agent.team.CouncilLiveRegistry
+                    .memberTool(member.runId, member.memberName, name)
+            }
+        }
         val toolTitle = try { JSONObject(argsJson).optString("tool_title", name) } catch (_: Exception) { name }
+
+        // [OZEL 37080] Onay kapısı. Placed after the member belt (a member that
+        // may not run shell_execute must hear that reason, not an approval
+        // prompt) and before every executor, so no path can start a command the
+        // policy has not seen. `null` = this tool is not classified at all.
+        // Gated on either flag: the approval card needs APPROVAL_GATE, the plan
+        // card needs PLAN_PREVIEW, and PolicyGate decides per call which applies.
+        if (com.openminis.app.data.OzelFeatures.isEnabled(
+                context, com.openminis.app.data.OzelFeatures.Feature.APPROVAL_GATE,
+            ) || com.openminis.app.data.OzelFeatures.isEnabled(
+                context, com.openminis.app.data.OzelFeatures.Feature.PLAN_PREVIEW,
+            )
+        ) {
+            runCatching {
+                com.openminis.app.ozel.PolicyGate.gate(
+                    ctx = context,
+                    sessionId = activeSessionId,
+                    folderId = _projectId.value,
+                    toolName = name,
+                    argsJson = argsJson,
+                )
+            }.getOrNull()?.let { decision ->
+                if (!decision.allowsRun()) {
+                    return ToolExecutionResult(decision.forAgent(), success = false, toolTitle = toolTitle)
+                }
+            }
+        }
 
         return when (name) {
             FileReadTool.NAME -> {
@@ -14255,7 +14694,11 @@ class ChatViewModel(
                                 // own id: a chat session here, a Station space
                                 // inside a panel. That is the whole isolation
                                 // mechanism for notes — no filtering later.
-                                com.openminis.app.data.repository.NoteStore.Scope.session(fsSessionId).wire
+                                // [MINIS-OZEL 37073] Inside a project the id is
+                                // the PROJECT, so every chat filed there shares
+                                // these notes — which is what "her projenin
+                                // kendine ait notları" asks for.
+                                noteScopeWire()
                             }
                         },
                     )
@@ -14308,6 +14751,19 @@ class ChatViewModel(
                         false,
                         toolTitle = title,
                     )
+                    // [37060] A member is already inside a team. This branch is
+                    // unreachable through the schema (MemberToolBelt denies the
+                    // tool) and through the belt guard in executeTool; it stays
+                    // as the third line of defence for a replayed call, and so
+                    // the refusal names the real reason instead of "unknown tool".
+                    isMember -> ToolExecutionResult(
+                        "A council member cannot start another team: you are already one of the " +
+                            "agents on a team, and a nested run would split the budget with no one " +
+                            "answerable for the result. Do your own step, ask a colleague with " +
+                            "ask_teammate, or hand the work over with assign_task.",
+                        false,
+                        toolTitle = title,
+                    )
                     team.isEmpty() || task.isEmpty() -> ToolExecutionResult(
                         "team_run needs both `team` and `task`.",
                         false,
@@ -14325,13 +14781,32 @@ class ChatViewModel(
                                 ),
                             )
                         }
-                        val outcome = com.openminis.app.agent.team.TeamRunner.run(
-                            context = context,
-                            sessionId = fsSessionId,
-                            teamIdOrName = team,
-                            task = task,
-                            budget = budget,
-                        )
+                        // [37062] Hand the stream slot back for the duration of
+                        // the run. A slot is released when the TURN ends
+                        // (`streamJob` finally), not when a tool returns, so a
+                        // blocking team_run holds one of the six global slots
+                        // while doing nothing — five members then fill the rest
+                        // and every other conversation queues invisibly.
+                        //
+                        // Not for a member: a member's own turn is what the run
+                        // inside it is doing, and it holds a slot on purpose.
+                        val loan = !isMember && !isHelper &&
+                            com.openminis.app.service.SessionConcurrencyManager.loanOutSlot(activeSessionId)
+                        val outcome = try {
+                            com.openminis.app.agent.team.TeamRunner.run(
+                                context = context,
+                                sessionId = fsSessionId,
+                                teamIdOrName = team,
+                                task = task,
+                                budget = budget,
+                            )
+                        } finally {
+                            // Reclaim even on failure/cancel: the rest of this
+                            // turn runs under the cap like any other.
+                            if (loan) {
+                                com.openminis.app.service.SessionConcurrencyManager.reclaimSlot(activeSessionId)
+                            }
+                        }
                         ToolExecutionResult(outcome.output, outcome.ok, toolTitle = title)
                     }
                 }
@@ -14377,6 +14852,35 @@ class ChatViewModel(
                         ),
                         false,
                     )
+                }
+            // [MINIS-OZEL 11.5 · 37065] A member asking a colleague one question.
+            //
+            // Only a member has this tool (its belt), and only through this
+            // dispatcher — so the peer call is a plain provider request made from
+            // here rather than a second agent loop. That is the whole point: an
+            // answer of five sentences with no tools and no history is cheap
+            // enough to sit inside a member's turn, and a peer with a shell would
+            // be a second council wearing a tool call.
+            // [MINIS-OZEL 11.5 · 37050] The council's task board. Only a member
+            // has these tools, and the owner is taken from the member's own
+            // config rather than from the model, so a member cannot read or write
+            // another member's tasks by naming it.
+            com.openminis.app.agent.team.TaskTools.LIST_NAME ->
+                executeTaskList(argsJson)
+            com.openminis.app.agent.team.TaskTools.UPDATE_NAME ->
+                executeTaskUpdate(argsJson)
+            // [37051] Live hand-over: writes a board row, runs nothing.
+            com.openminis.app.agent.team.AssignTaskTool.NAME ->
+                executeAssignTask(argsJson)
+            com.openminis.app.agent.team.AskTeammateTool.NAME ->
+                if (memberConfig == null) {
+                    ToolExecutionResult(
+                        "ask_teammate is only available to a council member.",
+                        false,
+                        toolTitle = "ask_teammate",
+                    )
+                } else {
+                    executeAskTeammate(argsJson)
                 }
             "memory_get" -> executeMemoryGetTool(argsJson)
             // [T-port-user-ask] Card in the chat, then wait for the user.
@@ -15619,7 +16123,11 @@ class ChatViewModel(
             // of the Chinese-emoji filename "disappears" bug. `activeSessionId`
             // resolves to the persisted id once `ensureSession()` has run, so
             // every shell runs in a directory that survives VM recreation.
-            val dispatchSessionId = activeSessionId
+            // [37061] A member's shell is keyed by its OWN space id, so two
+            // members never share a persistent shell (and therefore never
+            // interleave output through one `pendingCallback` slot). For TOP and
+            // HELPER `spaceId` is null and this is `activeSessionId`, unchanged.
+            val dispatchSessionId = spaceId ?: activeSessionId
             // [FIX-261025-05] Taken once, here, and handed to every execute()
             // below, so a Stop during the bash install still keeps the main
             // command from starting (each execute() would otherwise take a
@@ -15856,7 +16364,14 @@ class ChatViewModel(
             val msg = "Memory writes are disabled for this session (user toggled /memory off). Reads remain available."
             return ToolExecutionResult(msg, false, toolTitle = "Memory (disabled)")
         }
-        val result = MemoryTools.executeMemoryWrite(argsJson, repo)
+        // [MINIS-OZEL 37074] Two layers: the write lands in the project's log by
+        // default; the personal log only on an explicit scope=global.
+        val result = MemoryTools.executeMemoryWrite(
+            argsJson,
+            personal = repo,
+            project = projectMemoryRepository,
+            projectName = _projectName.value,
+        )
         // Record for SessionMemorySheet
         val content = try {
             JSONObject(argsJson).optString("content", "")
@@ -15871,9 +16386,431 @@ class ChatViewModel(
         return ToolExecutionResult(result.output, result.success, toolTitle = result.toolTitle)
     }
 
+    /**
+     * [MINIS-OZEL 11.5 · 37051] `assign_task`: hand work to a colleague.
+     *
+     * Writes the board row and returns. Deliberately does NOT start the work: a
+     * sub agent launched from here would sit inside this member's turn, outside
+     * the run's wave accounting, and the next round would begin with an unknown
+     * number of agents already running.
+     */
+    private fun executeAssignTask(argsJson: String): ToolExecutionResult {
+        val member = memberConfig
+            ?: return ToolExecutionResult(
+                "assign_task is only available to a council member.", false, toolTitle = "assign_task",
+            )
+        val title = runCatching {
+            org.json.JSONObject(argsJson).optString("tool_title", "assign_task")
+        }.getOrDefault("assign_task")
+
+        val call = com.openminis.app.agent.team.AssignTaskTool.parse(
+            argsJson = argsJson,
+            peerNames = member.peers,
+            selfName = member.memberName,
+        )
+        call.problem?.let { return ToolExecutionResult(it, false, toolTitle = title) }
+
+        val board = com.openminis.app.agent.team.TaskStore.load(context, member.teamId)
+        val openForTarget = board.mine(call.to).size
+        val thisRound = com.openminis.app.agent.team.AskTeammateQuota
+            .tasksAssignedThisRound(member.runId, member.memberName)
+        com.openminis.app.agent.team.AssignTaskTool
+            .quotaRefusal(thisRound, openForTarget)
+            ?.let { return ToolExecutionResult(it, false, toolTitle = title) }
+
+        val task = com.openminis.app.agent.team.TeamTask(
+            id = com.openminis.app.agent.team.TaskStore.newId(),
+            title = call.title,
+            detail = listOf(call.why, call.expect).filter { it.isNotBlank() }.joinToString(" · "),
+            owner = call.to,
+            runId = member.runId,
+            fromClaim = call.why.takeIf { it.startsWith("C", ignoreCase = true) }.orEmpty(),
+            createdBy = member.memberName,
+        )
+        val (saved, refusal) = com.openminis.app.agent.team.TaskStore.add(context, member.teamId, task)
+        if (refusal.isNotEmpty()) return ToolExecutionResult(refusal, false, toolTitle = title)
+
+        com.openminis.app.agent.team.AskTeammateQuota.noteTaskAssigned(member.runId, member.memberName)
+        val stored = saved.find(task.id) ?: task
+        com.openminis.app.agent.team.CouncilLiveRegistry.taskAdded(member.runId, stored)
+        return ToolExecutionResult(
+            com.openminis.app.agent.team.AssignTaskTool.result(stored.id, call.to, stored.title),
+            true,
+            toolTitle = title,
+        )
+    }
+
+    /**
+     * [MINIS-OZEL 11.5 · 37050] `task_list`: what is on the board.
+     *
+     * The default is "my open tasks", not "everything": a member that reads the
+     * whole board every turn spends context on work it will never do, and the
+     * first symptom is a member answering a colleague's task.
+     */
+    private fun executeTaskList(argsJson: String): ToolExecutionResult {
+        val member = memberConfig
+            ?: return ToolExecutionResult(
+                "task_list is only available to a council member.", false, toolTitle = "task_list",
+            )
+        val o = runCatching { org.json.JSONObject(argsJson) }.getOrDefault(org.json.JSONObject())
+        val title = o.optString("tool_title", "task_list")
+        val board = com.openminis.app.agent.team.TaskStore.load(context, member.teamId)
+
+        val all = o.optBoolean("all", false)
+        val stateFilter = o.optString("state").trim().takeIf { it.isNotEmpty() }
+            ?.let { com.openminis.app.agent.team.TaskState.parse(it) }
+
+        val rows = when {
+            stateFilter != null -> board.of(stateFilter)
+            all -> board.tasks
+            else -> board.mine(member.memberName)
+        }
+        if (rows.isEmpty()) {
+            val counts = board.counts()
+            return ToolExecutionResult(
+                buildString {
+                    append("No tasks")
+                    if (!all && stateFilter == null) append(" assigned to you") else append(" on the board")
+                    append(". Board totals: ")
+                    append(
+                        com.openminis.app.agent.team.TaskState.entries.joinToString(" ") {
+                            "${it.wire}=${counts[it] ?: 0}"
+                        },
+                    )
+                    append(". Use task_update with action=add to open one.")
+                },
+                true,
+                toolTitle = title,
+            )
+        }
+        return ToolExecutionResult(
+            buildString {
+                appendLine("${rows.size} task(s):")
+                rows.take(40).forEach { t ->
+                    append("- [${t.id}] ${t.state.wire}")
+                    if (t.owner.isNotBlank()) append(" · ${t.owner}")
+                    if (t.fromClaim.isNotBlank()) append(" · ${t.fromClaim}")
+                    append(": ${t.title}")
+                    if (t.detail.isNotBlank()) append(" — ${t.detail.take(200)}")
+                    if (t.evidence.isNotEmpty()) {
+                        append(" (${t.evidence.size} evidence)")
+                    }
+                    appendLine()
+                }
+            }.trim(),
+            true,
+            toolTitle = title,
+        )
+    }
+
+    /**
+     * [MINIS-OZEL 11.5 · 37050] `task_update`: one transition, and the evidence rule.
+     *
+     * Every mutation goes through [com.openminis.app.agent.team.TaskStore.update],
+     * which refuses without writing. A refused `done` therefore cannot leave the
+     * board in the state it was refused in — the failure mode that would make the
+     * rule cosmetic.
+     */
+    private fun executeTaskUpdate(argsJson: String): ToolExecutionResult {
+        val member = memberConfig
+            ?: return ToolExecutionResult(
+                "task_update is only available to a council member.", false, toolTitle = "task_update",
+            )
+        val o = runCatching { org.json.JSONObject(argsJson) }.getOrDefault(org.json.JSONObject())
+        val title = o.optString("tool_title", "task_update")
+        val action = o.optString("action").trim().lowercase()
+        val boardBefore = com.openminis.app.agent.team.TaskStore.load(context, member.teamId)
+
+        fun refuse(text: String) = ToolExecutionResult(text, false, toolTitle = title)
+
+        return when (action) {
+            "add" -> {
+                val newTitle = o.optString("title").trim()
+                if (newTitle.isEmpty()) return refuse("action=add needs a `title`.")
+                val task = com.openminis.app.agent.team.TeamTask(
+                    id = com.openminis.app.agent.team.TaskStore.newId(),
+                    title = newTitle,
+                    detail = o.optString("detail").trim(),
+                    // Default owner is the member that opened it: an unassigned
+                    // task nobody picks up is the same as not having opened it.
+                    owner = o.optString("owner").trim().ifBlank { member.memberName },
+                    runId = member.runId,
+                    createdBy = member.memberName,
+                )
+                val (board, refusal) = com.openminis.app.agent.team.TaskStore.add(context, member.teamId, task)
+                if (refusal.isNotEmpty()) return refuse(refusal)
+                val stored = board.find(task.id) ?: task
+                com.openminis.app.agent.team.CouncilLiveRegistry.taskAdded(member.runId, stored)
+                ToolExecutionResult(
+                    "Opened task [${stored.id}] \"${stored.title}\" (${stored.state.wire}" +
+                        (if (stored.owner.isNotBlank()) ", ${stored.owner}" else "") + ").",
+                    true,
+                    toolTitle = title,
+                )
+            }
+
+            "doing", "done", "drop", "assign", "evidence" -> {
+                val resolved = com.openminis.app.agent.team.TaskTools
+                    .resolve(boardBefore, o.optString("id"))
+                resolved.problem?.let { return refuse(it) }
+                val task = resolved.task!!
+
+                // A member may only move ITS OWN task. The board is shared, but
+                // letting one member mark another's work done is how a dispute
+                // gets resolved by the wrong party.
+                if (task.owner.isNotBlank() &&
+                    !task.owner.equals(member.memberName, ignoreCase = true) &&
+                    action != "evidence"
+                ) {
+                    return refuse(
+                        "Task [${task.id}] belongs to ${task.owner}, not to you. Ask them with " +
+                            "ask_teammate, or open your own task.",
+                    )
+                }
+
+                when (action) {
+                    "doing" -> moveTask(member, task.id, com.openminis.app.agent.team.TaskState.DOING, title)
+                    "done" -> {
+                        val value = o.optString("evidence").trim()
+                        if (value.isEmpty()) {
+                            // Refused BEFORE any write: a `done` that also forgot
+                            // its evidence must not half-apply.
+                            return refuse(task.doneRefusal())
+                        }
+                        val source = com.openminis.app.agent.team.TaskTools.evidenceOf(
+                            o.optString("evidence_kind"), value, member.memberName,
+                        )
+                        val (withEvidence, evRefusal) = com.openminis.app.agent.team.TaskStore
+                            .update(context, member.teamId) { b -> b.addEvidence(task.id, source) }
+                        if (evRefusal.isNotEmpty()) return refuse(evRefusal)
+                        val moved = withEvidence.moveTo(task.id, com.openminis.app.agent.team.TaskState.DONE)
+                        com.openminis.app.agent.team.TaskStore.save(context, member.teamId, moved.first)
+                        moved.third.takeIf { it.isNotEmpty() }?.let { return refuse(it) }
+                        com.openminis.app.agent.team.CouncilLiveRegistry.taskAdded(
+                            member.runId, moved.second ?: task,
+                        )
+                        ToolExecutionResult(
+                            "Task [${task.id}] is done, with ${source.kind.wire} evidence attached.",
+                            true,
+                            toolTitle = title,
+                        )
+                    }
+                    "drop" -> {
+                        val reason = o.optString("reason").trim()
+                        if (reason.isEmpty()) {
+                            return refuse(
+                                "action=drop needs a `reason`: without one the next run sees an " +
+                                    "abandoned task and opens it again.",
+                            )
+                        }
+                        moveTask(
+                            member, task.id, com.openminis.app.agent.team.TaskState.DROPPED,
+                            title, reason,
+                        )
+                    }
+                    "assign" -> {
+                        val owner = o.optString("owner").trim()
+                        val (board, refusal) = com.openminis.app.agent.team.TaskStore
+                            .update(context, member.teamId) { b -> b.assign(task.id, owner) }
+                        if (refusal.isNotEmpty()) return refuse(refusal)
+                        toolbarRefreshTasks(member, board)
+                        ToolExecutionResult(
+                            "Task [${task.id}] is now " +
+                                (if (owner.isBlank()) "unassigned" else "owned by $owner") + ".",
+                            true,
+                            toolTitle = title,
+                        )
+                    }
+                    else -> {
+                        val value = o.optString("evidence").trim()
+                        if (value.isEmpty()) {
+                            return refuse("action=evidence needs a value in `evidence`.")
+                        }
+                        val source = com.openminis.app.agent.team.TaskTools.evidenceOf(
+                            o.optString("evidence_kind"), value, member.memberName,
+                        )
+                        val (board, refusal) = com.openminis.app.agent.team.TaskStore
+                            .update(context, member.teamId) { b -> b.addEvidence(task.id, source) }
+                        if (refusal.isNotEmpty()) return refuse(refusal)
+                        toolbarRefreshTasks(member, board)
+                        ToolExecutionResult(
+                            "Evidence attached to [${task.id}] (${source.kind.wire}).",
+                            true,
+                            toolTitle = title,
+                        )
+                    }
+                }
+            }
+
+            else -> refuse(
+                "Unknown action \"$action\". Use one of: add, doing, done, drop, assign, evidence.",
+            )
+        }
+    }
+
+    /** One state transition plus the registry ping, in one place. */
+    private fun moveTask(
+        member: com.openminis.app.agent.team.MemberConfig,
+        id: String,
+        state: com.openminis.app.agent.team.TaskState,
+        toolTitle: String,
+        reason: String = "",
+    ): ToolExecutionResult {
+        val (board, updated, refusal) = com.openminis.app.agent.team.TaskStore
+            .load(context, member.teamId)
+            .moveTo(id, state, reason)
+        if (refusal.isNotEmpty()) return ToolExecutionResult(refusal, false, toolTitle = toolTitle)
+        com.openminis.app.agent.team.TaskStore.save(context, member.teamId, board)
+        updated?.let { com.openminis.app.agent.team.CouncilLiveRegistry.taskAdded(member.runId, it) }
+        return ToolExecutionResult(
+            "Task [$id] is now ${state.wire}.",
+            true,
+            toolTitle = toolTitle,
+        )
+    }
+
+    /** Push a changed board into the live registry so an open screen updates. */
+    private fun toolbarRefreshTasks(
+        member: com.openminis.app.agent.team.MemberConfig,
+        board: com.openminis.app.agent.team.TaskBoard,
+    ) {
+        board.tasks.forEach { com.openminis.app.agent.team.CouncilLiveRegistry.taskAdded(member.runId, it) }
+    }
+
+    /**
+     * [MINIS-OZEL 11.5 · 37065] `ask_teammate`: one question, one short answer.
+     *
+     * ## Why the peer is resolved through the run and not through the roster
+     *
+     * The member's peer list is the team it belongs to, captured when the member
+     * was stamped. Going back to `TeamStore` would let an edit mid-run silently
+     * change who a question reaches, and — worse — would answer for a member that
+     * is not in this run at all.
+     *
+     * ## Why a failure never throws
+     *
+     * The asker is mid-turn. A peer that is unreachable, rate-limited or simply
+     * quiet must leave the asker able to continue: it gets a sentence saying so and
+     * records the gap in its position, which is exactly what an honest agent does
+     * when it could not confirm something.
+     */
+    private suspend fun executeAskTeammate(argsJson: String): ToolExecutionResult {
+        val member = memberConfig
+            ?: return ToolExecutionResult("ask_teammate needs a member context.", false, toolTitle = "ask_teammate")
+        val title = runCatching {
+            org.json.JSONObject(argsJson).optString("tool_title", "ask_teammate")
+        }.getOrDefault("ask_teammate")
+
+        val call = com.openminis.app.agent.team.AskTeammateTool.parse(argsJson, member.peers)
+        call.problem?.let { return ToolExecutionResult(it, false, toolTitle = title) }
+
+        val quota = com.openminis.app.agent.team.AskTeammateQuota
+        val askedRound = quota.askedThisRound(member.runId, member.memberName)
+        val askedRun = quota.askedThisRun(member.runId, member.memberName)
+        com.openminis.app.agent.team.AskTeammateTool
+            .quotaRefusal(askedRound, askedRun)
+            ?.let { return ToolExecutionResult(it, false, toolTitle = title) }
+
+        // Same question twice is the retry path, not a second question.
+        val normalized = call.question.lowercase().trim().take(200)
+        if (!quota.noteQuestion(member.runId, member.memberName, call.name, normalized)) {
+            return ToolExecutionResult(
+                "You already asked ${call.name} that this round. Their answer is above — " +
+                    "re-asking will get the same reply.",
+                false,
+                toolTitle = title,
+            )
+        }
+
+        val repository = providerRepository
+        val entry = com.openminis.app.agent.team.AndroidCouncilRuntime
+            .peerEntryFor(context, member, call.name)
+        if (entry == null) {
+            return ToolExecutionResult(
+                com.openminis.app.agent.team.AskTeammateTool.noAnswer(
+                    call.name, "no usable model is pinned for them",
+                ),
+                false,
+                toolTitle = title,
+            )
+        }
+
+        val peerRole = com.openminis.app.data.team.TeamStore.list(context)
+            .firstOrNull { it.id == member.teamId }
+            ?.members?.firstOrNull { it.name.equals(call.name, ignoreCase = true) }
+            ?.role
+
+        return try {
+            val answer = kotlinx.coroutines.withTimeoutOrNull(
+                com.openminis.app.agent.team.AskTeammateTool.TIMEOUT_MS,
+            ) {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    val instance = repository.instance(entry.providerInstanceId)
+                        ?: throw IllegalStateException("peer provider instance missing")
+                    val apiKey = repository.requestCredential(instance)
+                        ?: throw IllegalStateException("no credential for ${instance.label}")
+                    val provider = com.openminis.app.provider.ProviderFactory.create(
+                        instance, apiKey, entry.model, context,
+                        sessionId = com.openminis.app.provider.ProviderFactory.oneOffSessionId(),
+                        overrides = entry.overrides,
+                    )
+                    provider.sendMessage(
+                        messages = listOf(
+                            com.openminis.app.data.model.LLMMessage(
+                                role = com.openminis.app.data.model.LLMMessage.Role.USER,
+                                content = com.openminis.app.agent.team.AskTeammateTool.peerPrompt(
+                                    asker = member.memberName,
+                                    question = call.question,
+                                    role = peerRole,
+                                ),
+                            ),
+                        ),
+                        // No system prompt and no tools: the answer must be what
+                        // the peer already knows. A peer that goes looking is a
+                        // second research pass nobody budgeted for.
+                        systemPrompt = null,
+                        maxTokens = PEER_ANSWER_MAX_TOKENS,
+                        temperature = 0.2,
+                        thinkingLevel = com.openminis.app.data.model.ThinkingLevel.OFF,
+                    ).text.trim()
+                }
+            }
+            if (answer.isNullOrBlank()) {
+                ToolExecutionResult(
+                    com.openminis.app.agent.team.AskTeammateTool.noAnswer(
+                        call.name, "no answer within ${com.openminis.app.agent.team.AskTeammateTool.TIMEOUT_MS / 1000}s",
+                    ),
+                    false,
+                    toolTitle = title,
+                )
+            } else {
+                ToolExecutionResult(
+                    com.openminis.app.agent.team.AskTeammateTool.result(call.name, answer),
+                    true,
+                    toolTitle = title,
+                )
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            ToolExecutionResult(
+                com.openminis.app.agent.team.AskTeammateTool.noAnswer(call.name, e.message ?: "the call failed"),
+                false,
+                toolTitle = title,
+            )
+        }
+    }
+
     private fun executeMemoryGetTool(argsJson: String): ToolExecutionResult {
         val repo = memoryRepository ?: return ToolExecutionResult("Error: Memory not available", false)
-        val result = MemoryTools.executeMemoryGet(argsJson, repo)
+        // [MINIS-OZEL 37074] `all` searches the project layer first, then the
+        // personal one, each under its own header so a hit is attributable.
+        val result = MemoryTools.executeMemoryGet(
+            argsJson,
+            personal = repo,
+            project = projectMemoryRepository,
+            projectName = _projectName.value,
+        )
         val keywords = try {
             JSONObject(argsJson).optString("keywords", "")
         } catch (_: Exception) { "" }
@@ -16316,6 +17253,23 @@ class ChatViewModel(
         // request passes through with its usage attached — the streaming path,
         // the retry path and the tool-loop path all end up writing a turn.
         recordFreeTierUsage(usage)
+        // [37081] Same funnel, same reason: every finished request with usage
+        // passes through here. Real `usage` only — an estimate recorded as fact
+        // would let the user believe the cap is respected when it is guessed.
+        usage?.let { u ->
+            runCatching {
+                com.openminis.app.ozel.BudgetStore.record(
+                    ctx = context,
+                    sessionId = realSessionId.ifEmpty { sessionId },
+                    tokens = u.inputTokens.toLong() + u.outputTokens.toLong() +
+                        (u.cacheReadInputTokens?.toLong() ?: 0L) +
+                        (u.cacheCreationInputTokens?.toLong() ?: 0L),
+                    usd = null,
+                    estimated = false,
+                    modelId = currentModelSnapshot()?.modelId,
+                )
+            }
+        }
         val entity = chatRepository.appendMessage(
             realSessionId.ifEmpty { sessionId }, "assistant", partsJson, tokenJson,
             reasoningContent = reasoningContent,
@@ -16527,7 +17481,8 @@ Memory system (currently DISABLED):
         ) {
             val fragment = runCatching {
                 com.openminis.app.data.repository.NoteStore.get(context)
-                    .promptNotes(com.openminis.app.data.repository.NoteStore.Scope.session(fsSessionId).wire)
+                    // [MINIS-OZEL 37073] Same scope the note tool writes to.
+                    .promptNotes(noteScopeWire())
             }.getOrDefault("")
             if (fragment.isBlank()) {
                 ""
@@ -16700,6 +17655,22 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
         // to the memory feature.
         val globalMemoryFragment = if (memoryOn) memoryRepository?.loadGlobalMemoryFragment() else null
         val dailyMemoryFragment = if (memoryOn) memoryRepository?.loadRecentDailyMemoryFragment() else null
+        // [MINIS-OZEL 37076] The project layer, injected ABOVE the personal one
+        // and as its own block. Order matters: the more specific context should
+        // be the last thing the model read before the conversation, and its own
+        // header is what keeps a project rule from being applied elsewhere.
+        //
+        // Suppressed while the one-time legacy migration is moving files: a
+        // half-moved project would show the model a hole and let it write based
+        // on that hole. An empty memory is honest; a truncated one is not.
+        val projectFragment = if (
+            memoryOn &&
+            !com.openminis.app.data.memory.MemoryLegacyProjectMigration.inProgress
+        ) {
+            projectMemoryRepository?.loadProjectMemoryFragment(_projectName.value)
+        } else {
+            null
+        }
         // [XSessionDiag] Hypothesis 3: ties the memory-injection sizes to a
         // SESSION id. MemoryRepository itself has no session context, so its own
         // `memory/daily-inject` line (which names the source files) cannot say who
@@ -16710,7 +17681,9 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
             "[XSessionDiag] prompt/memory: session=${activeSessionId.take(8)} " +
                 "memoryEnabled=$memoryOn " +
                 "globalChars=${globalMemoryFragment?.length ?: 0} " +
-                "dailyChars=${dailyMemoryFragment?.length ?: 0}",
+                "dailyChars=${dailyMemoryFragment?.length ?: 0} " +
+                "projectChars=${projectFragment?.length ?: 0} " +
+                "project=${_projectId.value?.take(8) ?: "-"}",
         )
 
         return buildString {
@@ -16722,6 +17695,10 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
             if (mcpFragment != null) {
                 append("\n\n")
                 append(mcpFragment)
+            }
+            if (projectFragment != null) {
+                append("\n\n")
+                append(projectFragment)
             }
             if (globalMemoryFragment != null) {
                 append("\n\n")
@@ -16847,6 +17824,10 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
         ChatAttachmentIngest.prepare(
             attachments = attachments,
             sessionId = sessionId,
+            // [MINIS-OZEL 37070] The uploads copy must land in the directory the
+            // shell actually sees: the project's shared attachments when this
+            // chat is in a project, its own when it is not.
+            spaceKey = fsSessionId,
             filesDir = context.filesDir,
             mediaStore = mediaStore,
             openStream = { context.contentResolver.openInputStream(it.uri) },
@@ -19327,6 +20308,12 @@ internal object ChatAttachmentIngest {
         attachments: List<InputAttachment>,
         sessionId: String,
         filesDir: java.io.File,
+        // [MINIS-OZEL 37070] Whose /var/minis/attachments the shell sees. Equal
+        // to [sessionId] for an ordinary chat; a `project:<folderId>` key for a
+        // chat inside a project. Kept separate from [sessionId] because the
+        // latter also keys `media/<date>/<sessionId>/` (the delete path walks it
+        // per chat), which must stay the real chat id.
+        spaceKey: String = sessionId,
         mediaStore: com.openminis.app.data.storage.MediaStore,
         openStream: (InputAttachment) -> java.io.InputStream?,
         clockMs: () -> Long,
@@ -19350,15 +20337,19 @@ internal object ChatAttachmentIngest {
         // [T-android-image-downscale-parity] One entry per imageParts entry: the
         // "downscaled from W×H" note, or null when the image was sent as-is.
         val imageModelNotes = mutableListOf<String?>()
-        // T132: also write the resized bytes into the session's iSH-bound
-        // attachments dir (filesDir/minis-sessions/<sid>/attachments/uploads/),
-        // which is mounted at /var/minis/attachments/ inside iSH. This makes
-        // the same image accessible to the agent via shell tools (read_image
-        // / cat / file) and matches the iOS uploads-directory convention.
-        val uploadsHostDir = java.io.File(
+        // T132: also write the resized bytes into the space's shell-visible
+        // attachments dir, which is bind-mounted at /var/minis/attachments/
+        // inside the sandbox. This makes the same image accessible to the agent
+        // via shell tools (read_image / cat / file) and matches the iOS
+        // uploads-directory convention.
+        // [MINIS-OZEL 37070] `spaceKey`, not `sessionId`: in a project chat the
+        // shell's /var/minis/attachments IS the project's directory, so writing
+        // under the chat id would put the file somewhere the agent cannot see.
+        val uploadsHostDir = com.openminis.app.sandbox.FsSpace.subDir(
             filesDir,
-            "minis-sessions/$sessionId/attachments/uploads",
-        ).apply { mkdirs() }
+            spaceKey,
+            "attachments",
+        ).let { java.io.File(it, "uploads") }.apply { mkdirs() }
         // Metadata captured per attachment for the <user-attached-files> XML.
         data class UploadMeta(val linuxPath: String, val size: Long, val modifiedIso: String)
         val metas = mutableListOf<UploadMeta>()
@@ -20488,7 +21479,9 @@ internal object BrowserArtifacts {
     fun persist(sessionId: String, filesDir: () -> java.io.File, filename: String, data: ByteArray): String? {
         val sid = sessionId.takeIf { it.isNotEmpty() } ?: return null
         return try {
-            val dir = java.io.File(filesDir(), "minis-sessions/$sid/browser").apply { mkdirs() }
+            // [MINIS-OZEL 37070] `sid` is a space key: a chat UUID or a
+            // `project:<folderId>` key.
+            val dir = com.openminis.app.sandbox.FsSpace.subDir(filesDir(), sid, "browser").apply { mkdirs() }
             val file = java.io.File(dir, filename)
             file.writeBytes(data)
             file.absolutePath

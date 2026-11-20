@@ -112,7 +112,7 @@ PLACEHOLDER = re.compile(
 # Known-safe literals that would otherwise hit the generic rule.
 GENERIC_ALLOWLIST = (
     "minis-toolchain-setup",
-    "com.veysel.minis",
+    "com.minis.x",
     "com.openminis.app",
 )
 

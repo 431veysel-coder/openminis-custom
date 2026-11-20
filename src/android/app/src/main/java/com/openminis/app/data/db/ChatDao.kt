@@ -247,8 +247,75 @@ interface ChatDao {
     @Query("DELETE FROM folders WHERE id = :id")
     suspend fun deleteFolder(id: String)
 
+    // ── [MINIS-OZEL 37071] project fields ─────────────────────────────────
+
+    /** Active (non-archived) groups for the session list and pickers. */
+    @Query("SELECT * FROM folders WHERE id != '' AND archived_at IS NULL ORDER BY updated_at DESC")
+    suspend fun listActiveFolders(): List<FolderEntity>
+
+    @Query("SELECT * FROM folders WHERE id != '' AND archived_at IS NULL ORDER BY updated_at DESC")
+    fun observeActiveFolders(): Flow<List<FolderEntity>>
+
+    /**
+     * The group a session belongs to, in one query. The chat view model needs
+     * this on every session load (to know its space key), so it must not be
+     * "list the folders and filter in Kotlin".
+     */
+    @Query(
+        """
+        SELECT f.* FROM folders f
+        JOIN sessions s ON s.folder_id = f.id
+        WHERE s.id = :sessionId AND f.id != ''
+        LIMIT 1
+        """,
+    )
+    suspend fun folderOfSession(sessionId: String): FolderEntity?
+
+    @Query("UPDATE folders SET space_scope = :scope, updated_at = :updatedAt WHERE id = :id")
+    suspend fun setFolderSpaceScope(id: String, scope: String, updatedAt: Long)
+
+    @Query("UPDATE folders SET memory_enabled = :enabled, updated_at = :updatedAt WHERE id = :id")
+    suspend fun setFolderMemoryEnabled(id: String, enabled: Int, updatedAt: Long)
+
+    @Query("UPDATE folders SET memory_prompt = :prompt, updated_at = :updatedAt WHERE id = :id")
+    suspend fun setFolderMemoryPrompt(id: String, prompt: String?, updatedAt: Long)
+
+    @Query(
+        """
+        UPDATE folders
+        SET default_model_id = COALESCE(:modelId, default_model_id),
+            default_team_id = COALESCE(:teamId, default_team_id),
+            updated_at = :updatedAt
+        WHERE id = :id
+        """,
+    )
+    suspend fun setFolderDefaults(
+        id: String,
+        modelId: String?,
+        teamId: String?,
+        updatedAt: Long,
+    )
+
+    @Query("UPDATE folders SET archived_at = :archivedAt, updated_at = :updatedAt WHERE id = :id")
+    suspend fun setFolderArchived(id: String, archivedAt: Long?, updatedAt: Long)
+
     @Query("SELECT id FROM sessions WHERE folder_id = :folderId ORDER BY updated_at DESC")
     suspend fun sessionIdsInFolder(folderId: String): List<String>
+
+    /**
+     * [MINIS-OZEL 37072] Sessions that belong to no group. Child (helper)
+     * sessions are excluded on purpose: they are hidden implementation detail
+     * of a parent turn, and filing them under a project would make the
+     * migration look far bigger than it is without changing any behaviour.
+     */
+    @Query(
+        """
+        SELECT id FROM sessions
+        WHERE folder_id IS NULL AND parent_session_id IS NULL
+        ORDER BY updated_at DESC
+        """,
+    )
+    suspend fun sessionIdsWithNoFolder(): List<String>
 
     /**
      * [T-autogroup-folder-titles] Titled, non-child member sessions of every

@@ -779,7 +779,11 @@ object PRootKernel {
         return cmd
     }
 
-    /** Subdirs that live under `minis-sessions/<sessionId>/` rather than the global pool. */
+    /**
+     * Subdirs that live under a per-space root (`minis-sessions/<key>/` or
+     * `minis-spaces/<key>/`) rather than the global pool. The subdir NAMES are
+     * shared; only the root differs — see [FsSpace].
+     */
     private val perSessionSubdirs = SessionMounts.SESSION_SUBDIRS.toSet()
 
     /**
@@ -798,7 +802,11 @@ object PRootKernel {
         val slash = rest.indexOf('/')
         val subdir = if (slash < 0) rest else rest.substring(0, slash)
         if (subdir !in perSessionSubdirs) return resolveHostPath(linuxPath)
-        val sessionBase = File(context.filesDir, "minis-sessions/$sessionId/$subdir")
+        // [MINIS-OZEL 37070] `sessionId` is a space key here — a chat UUID or a
+        // `project:<folderId>` key; FsSpace decides the root. Never hand-build
+        // `minis-sessions/$id/...` in this file: that is exactly the shape that
+        // silently reads the wrong project's directory.
+        val sessionBase = FsSpace.subDir(context.filesDir, sessionId, subdir)
         val tail = if (slash < 0) "" else rest.substring(slash + 1)
         return if (tail.isEmpty()) sessionBase else File(sessionBase, tail)
     }
@@ -831,8 +839,11 @@ object PRootKernel {
             if (sid != null && filesDir != null) {
                 legacyResolveCount++
                 val rest = linuxPath.removePrefix("/var/minis/")
-                Log.d(TAG, "legacy session resolve $linuxPath -> session $sid")
-                return File(filesDir, "minis-sessions/$sid/$rest")
+                Log.d(TAG, "legacy resolve $linuxPath -> space ${FsSpace.label(sid)}")
+                // `sid` is a space key, so the root rule comes from FsSpace.
+                val base = FsSpace.subDir(filesDir, sid, rest.substringBefore('/'))
+                val tail = rest.substringAfter('/', "")
+                return if (tail.isEmpty()) base else File(base, tail)
             }
         }
 

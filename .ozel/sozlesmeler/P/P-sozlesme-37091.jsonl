@@ -1,0 +1,8 @@
+{"t": "2026-11-19T23:40:55Z", "id": "P-sozlesme-37091", "op": "ac", "tur": "P", "is": "sozlesme-37091", "oturum": "A", "taban": "ea17ff6", "kademe": "K1", "durma": "bash -n 30/30", "butce": "", "kapsam": ["sozlesme.py, preflight.py, audit.yml"], "disi": ["app kodu"]}
+{"t": "2026-11-19T23:40:55Z", "id": "P-sozlesme-37091", "op": "alan", "alan": "dosya", "deger": "scripts/sozlesme.py"}
+{"t": "2026-11-19T23:40:56Z", "id": "P-sozlesme-37091", "op": "alan", "alan": "once_hash", "deger": "000000000000"}
+{"t": "2026-11-19T23:40:56Z", "id": "P-sozlesme-37091", "op": "alan", "alan": "sonra_hash", "deger": "111111111111"}
+{"t": "2026-11-19T23:40:56Z", "id": "P-sozlesme-37091", "op": "alan", "alan": "deneme", "deger": "1"}
+{"t": "2026-11-19T23:40:57Z", "id": "P-sozlesme-37091", "op": "alan", "alan": "kanit", "deger": "bash -n"}
+{"t": "2026-11-19T23:41:40Z", "id": "P-sozlesme-37091", "op": "kanit", "deger": "komut:python3 -m pytest scripts/tests/test_sozlesme.py -q"}
+{"t": "2026-11-19T23:41:41Z", "id": "P-sozlesme-37091", "op": "kapat", "sonuc": "TAMAM"}

@@ -221,10 +221,10 @@ object ResourceWatermark {
             field++
         }
         val name = if (field < 5 || i >= line.length) "[anon]" else line.substring(i).trim()
-        val dataDir = name.indexOf("/com.veysel.minis/")
+        val dataDir = name.indexOf("/com.minis.x/")
         val short = if (dataDir >= 0 && name.startsWith("/data/")) {
             // Keep the app-relative top directory (files, cache, databases...) only.
-            val rest = name.substring(dataDir + "/com.veysel.minis/".length)
+            val rest = name.substring(dataDir + "/com.minis.x/".length)
             "<app>/" + rest.substringBefore('/')
         } else name
         return nameKey(short)

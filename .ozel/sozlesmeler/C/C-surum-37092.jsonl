@@ -1,0 +1,6 @@
+{"t": "2026-11-20T01:13:14Z", "id": "C-surum-37092", "op": "ac", "tur": "C", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "-", "butce": "", "kapsam": ["yayin dali"], "disi": ["-"]}
+{"t": "2026-11-20T01:13:14Z", "id": "C-surum-37092", "op": "alan", "alan": "dosya", "deger": "build.gradle.kts, docs/ozel/arsiv"}
+{"t": "2026-11-20T01:13:15Z", "id": "C-surum-37092", "op": "alan", "alan": "aralik", "deger": "tum dosya"}
+{"t": "2026-11-20T01:13:15Z", "id": "C-surum-37092", "op": "alan", "alan": "sahip", "deger": "A"}
+{"t": "2026-11-20T01:13:15Z", "id": "C-surum-37092", "op": "alan", "alan": "bitis", "deger": "release sonrasi"}
+{"t": "2026-11-20T01:13:16Z", "id": "C-surum-37092", "op": "kanit", "deger": "komut:git status --short"}

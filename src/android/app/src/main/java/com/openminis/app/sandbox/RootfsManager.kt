@@ -315,8 +315,10 @@ class RootfsManager private constructor(private val context: Context) {
      * Ensure session-specific directories exist on the host filesystem.
      */
     fun ensureSessionDirs(sessionId: String) {
-        val sessionBase = File(context.filesDir, "minis-sessions/$sessionId")
-        val subdirs = listOf("attachments", "offloads", "workspace", "browser")
+        // [MINIS-OZEL 37070] `sessionId` is a space key (chat UUID or
+        // `project:<folderId>`); FsSpace picks the root.
+        val sessionBase = com.openminis.app.sandbox.FsSpace.baseDir(context.filesDir, sessionId)
+        val subdirs = com.openminis.app.sandbox.SessionMounts.SESSION_SUBDIRS
         for (subdir in subdirs) {
             File(sessionBase, subdir).mkdirs()
         }
