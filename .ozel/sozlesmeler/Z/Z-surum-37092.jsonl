@@ -1,0 +1,5 @@
+{"t": "2026-11-20T01:12:22Z", "id": "Z-surum-37092", "op": "ac", "tur": "Z", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "-", "butce": "", "kapsam": ["CI butcesi"], "disi": ["-"]}
+{"t": "2026-11-20T01:12:22Z", "id": "Z-surum-37092", "op": "alan", "alan": "butce", "deger": "release kosusu ~15 dk"}
+{"t": "2026-11-20T01:12:23Z", "id": "Z-surum-37092", "op": "alan", "alan": "harcanan", "deger": "debug kosusu 12m42s"}
+{"t": "2026-11-20T01:12:23Z", "id": "Z-surum-37092", "op": "alan", "alan": "esik", "deger": "20 dk asarsa dur, log incele"}
+{"t": "2026-11-20T01:12:23Z", "id": "Z-surum-37092", "op": "kanit", "deger": "kosu:44622129907"}

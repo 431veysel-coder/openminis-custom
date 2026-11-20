@@ -1,0 +1,5 @@
+{"t": "2026-11-20T01:13:20Z", "id": "E-surum-37092", "op": "ac", "tur": "E", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "-", "butce": "", "kapsam": ["artifact omru"], "disi": ["-"]}
+{"t": "2026-11-20T01:13:20Z", "id": "E-surum-37092", "op": "alan", "alan": "nesne", "deger": "run-logs-*, slice-report, APK"}
+{"t": "2026-11-20T01:13:20Z", "id": "E-surum-37092", "op": "alan", "alan": "omur", "deger": "log 90g, rapor 90g, APK release'te kalici"}
+{"t": "2026-11-20T01:13:21Z", "id": "E-surum-37092", "op": "alan", "alan": "budama", "deger": "GitHub otomatik; APK elle silinmez"}
+{"t": "2026-11-20T01:13:21Z", "id": "E-surum-37092", "op": "kanit", "deger": "komut:rg -n retention-days .github/workflows/apk.yml"}

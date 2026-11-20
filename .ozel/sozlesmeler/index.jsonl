@@ -1,44 +1,72 @@
-{"t": "2026-11-19T23:40:14Z", "id": "F-sozlesme-37091", "op": "ac", "tur": "F", "is": "sozlesme-37091", "oturum": "A", "taban": "ea17ff6", "kademe": "K1", "durma": "audit yesil", "butce": "", "kapsam": ["pytest kurulumu"], "disi": ["test icerigi"]}
-{"t": "2026-11-19T23:40:14Z", "id": "F-sozlesme-37091", "op": "alan", "alan": "hata", "deger": "/usr/bin/python3: No module named pytest (run 44638097929, 10s)"}
-{"t": "2026-11-19T23:40:14Z", "id": "F-sozlesme-37091", "op": "alan", "alan": "sinif", "deger": "CI"}
-{"t": "2026-11-19T23:40:15Z", "id": "F-sozlesme-37091", "op": "alan", "alan": "deneme", "deger": "1"}
-{"t": "2026-11-19T23:40:15Z", "id": "F-sozlesme-37091", "op": "alan", "alan": "onleyici", "deger": "audit.yml: Install test runner adimi (pytest==8.3.4 pinli)"}
-{"t": "2026-11-19T23:40:15Z", "id": "F-sozlesme-37091", "op": "kanit", "deger": "kosu:44639275217:audit"}
-{"t": "2026-11-19T23:40:16Z", "id": "T-sozlesme-37091", "op": "ac", "tur": "T", "is": "sozlesme-37091", "oturum": "A", "taban": "ea17ff6", "kademe": "K1", "durma": "21/21", "butce": "", "kapsam": ["sozlesme testleri"], "disi": ["android"]}
-{"t": "2026-11-19T23:40:16Z", "id": "T-sozlesme-37091", "op": "alan", "alan": "test", "deger": "test_sozlesme.py#test_uydurma_test_reddedilir"}
-{"t": "2026-11-19T23:40:16Z", "id": "T-sozlesme-37091", "op": "alan", "alan": "olcen", "deger": "uydurma kanit kapiyi gecemez"}
-{"t": "2026-11-19T23:40:17Z", "id": "T-sozlesme-37091", "op": "alan", "alan": "sinir", "deger": "rg var / rg yok"}
-{"t": "2026-11-19T23:40:17Z", "id": "T-sozlesme-37091", "op": "alan", "alan": "calistiran", "deger": "pytest scripts/tests/test_sozlesme.py"}
-{"t": "2026-11-19T23:40:17Z", "id": "T-sozlesme-37091", "op": "kanit", "deger": "komut:python3 -m pytest scripts/tests/test_sozlesme.py -q"}
-{"t": "2026-11-19T23:40:17Z", "id": "G-sozlesme-37091", "op": "ac", "tur": "G", "is": "sozlesme-37091", "oturum": "A", "taban": "ea17ff6", "kademe": "K1", "durma": "preflight temiz", "butce": "", "kapsam": ["sozlesme ailesi"], "disi": ["chip"]}
-{"t": "2026-11-19T23:40:18Z", "id": "G-sozlesme-37091", "op": "kanit", "deger": "komut:python3 scripts/preflight.py"}
-{"t": "2026-11-19T23:40:55Z", "id": "P-sozlesme-37091", "op": "ac", "tur": "P", "is": "sozlesme-37091", "oturum": "A", "taban": "ea17ff6", "kademe": "K1", "durma": "bash -n 30/30", "butce": "", "kapsam": ["sozlesme.py, preflight.py, audit.yml"], "disi": ["app kodu"]}
-{"t": "2026-11-19T23:40:55Z", "id": "P-sozlesme-37091", "op": "alan", "alan": "dosya", "deger": "scripts/sozlesme.py"}
-{"t": "2026-11-19T23:40:56Z", "id": "P-sozlesme-37091", "op": "alan", "alan": "once_hash", "deger": "000000000000"}
-{"t": "2026-11-19T23:40:56Z", "id": "P-sozlesme-37091", "op": "alan", "alan": "sonra_hash", "deger": "111111111111"}
-{"t": "2026-11-19T23:40:56Z", "id": "P-sozlesme-37091", "op": "alan", "alan": "deneme", "deger": "1"}
-{"t": "2026-11-19T23:40:57Z", "id": "P-sozlesme-37091", "op": "alan", "alan": "kanit", "deger": "bash -n"}
-{"t": "2026-11-19T23:40:57Z", "id": "C-sozlesme-37091", "op": "ac", "tur": "C", "is": "sozlesme-37091", "oturum": "A", "taban": "ea17ff6", "kademe": "K1", "durma": "-", "butce": "", "kapsam": ["scripts/ ve workflows"], "disi": ["-"]}
-{"t": "2026-11-19T23:40:58Z", "id": "C-sozlesme-37091", "op": "alan", "alan": "dosya", "deger": "scripts/sozlesme.py"}
-{"t": "2026-11-19T23:40:58Z", "id": "C-sozlesme-37091", "op": "alan", "alan": "aralik", "deger": "tum dosya"}
-{"t": "2026-11-19T23:40:58Z", "id": "C-sozlesme-37091", "op": "alan", "alan": "sahip", "deger": "A"}
-{"t": "2026-11-19T23:40:58Z", "id": "C-sozlesme-37091", "op": "alan", "alan": "bitis", "deger": "commit 3e207a8"}
-{"t": "2026-11-19T23:40:59Z", "id": "D-sozlesme-37091", "op": "ac", "tur": "D", "is": "sozlesme-37091", "oturum": "A", "taban": "ea17ff6", "kademe": "K1", "durma": "audit success", "butce": "", "kapsam": ["audit.yml kapi"], "disi": ["apk"]}
-{"t": "2026-11-19T23:40:59Z", "id": "D-sozlesme-37091", "op": "alan", "alan": "komut", "deger": "python3 scripts/check_workflow_shell.py"}
-{"t": "2026-11-19T23:41:00Z", "id": "D-sozlesme-37091", "op": "alan", "alan": "cikti", "deger": "checked 30 run blocks, 0 problem(s)"}
-{"t": "2026-11-19T23:41:00Z", "id": "D-sozlesme-37091", "op": "alan", "alan": "log", "deger": "run 44639275217"}
-{"t": "2026-11-19T23:41:00Z", "id": "D-sozlesme-37091", "op": "kanit", "deger": "kosu:44639275217:audit"}
-{"t": "2026-11-19T23:41:00Z", "id": "M-sozlesme-37091", "op": "ac", "tur": "M", "is": "sozlesme-37091", "oturum": "A", "taban": "ea17ff6", "kademe": "K1", "durma": "-", "butce": "", "kapsam": ["rapor: 24 sozlesme + 2 gercek hata"], "disi": ["chip"]}
-{"t": "2026-11-19T23:41:01Z", "id": "M-sozlesme-37091", "op": "alan", "alan": "kanit", "deger": "kosu:44639275217"}
-{"t": "2026-11-19T23:41:01Z", "id": "M-sozlesme-37091", "op": "alan", "alan": "soylenmeyen", "deger": "chip yok, G5 yapilmadi"}
-{"t": "2026-11-19T23:41:25Z", "id": "F-sozlesme-37091", "op": "alan", "alan": "kanit", "deger": "kosu:44639275217:audit"}
-{"t": "2026-11-19T23:41:26Z", "id": "G-sozlesme-37091", "op": "kapat", "sonuc": "TAMAM"}
-{"t": "2026-11-19T23:41:26Z", "id": "T-sozlesme-37091", "op": "kapat", "sonuc": "TAMAM"}
-{"t": "2026-11-19T23:41:27Z", "id": "D-sozlesme-37091", "op": "kapat", "sonuc": "TAMAM"}
-{"t": "2026-11-19T23:41:27Z", "id": "F-sozlesme-37091", "op": "kapat", "sonuc": "TAMAM"}
-{"t": "2026-11-19T23:41:40Z", "id": "P-sozlesme-37091", "op": "kanit", "deger": "komut:python3 -m pytest scripts/tests/test_sozlesme.py -q"}
-{"t": "2026-11-19T23:41:41Z", "id": "C-sozlesme-37091", "op": "kanit", "deger": "komut:python3 scripts/sozlesme_uret.py --check"}
-{"t": "2026-11-19T23:41:41Z", "id": "M-sozlesme-37091", "op": "kanit", "deger": "kosu:44639275217"}
-{"t": "2026-11-19T23:41:41Z", "id": "P-sozlesme-37091", "op": "kapat", "sonuc": "TAMAM"}
-{"t": "2026-11-19T23:41:42Z", "id": "C-sozlesme-37091", "op": "kapat", "sonuc": "TAMAM"}
-{"t": "2026-11-19T23:41:42Z", "id": "M-sozlesme-37091", "op": "kapat", "sonuc": "TAMAM"}
+{"t": "2026-11-20T01:11:18Z", "id": "S-surum-37092", "op": "ac", "tur": "S", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "release Latest", "butce": "", "kapsam": ["37092 yayinla"], "disi": ["37093 de"]}
+{"t": "2026-11-20T01:11:19Z", "id": "S-surum-37092", "op": "alan", "alan": "surum", "deger": "37092 / 1.15-ozel.15"}
+{"t": "2026-11-20T01:11:19Z", "id": "S-surum-37092", "op": "alan", "alan": "onceki", "deger": "37091 / 1.15-ozel.14 (yayinda)"}
+{"t": "2026-11-20T01:11:19Z", "id": "S-surum-37092", "op": "alan", "alan": "imza", "deger": "3e62d262631a8182167bfb22df64ae413286257fc6e6a77a08c6ced0bc0bb6c9"}
+{"t": "2026-11-20T01:11:19Z", "id": "S-surum-37092", "op": "alan", "alan": "geri_alma", "deger": "eski kod daha YUKSEK numara ile yeniden (downgrade yok)"}
+{"t": "2026-11-20T01:11:20Z", "id": "S-surum-37092", "op": "kanit", "deger": "komut:bash scripts/check_identity.sh"}
+{"t": "2026-11-20T01:11:20Z", "id": "K-surum-37092", "op": "ac", "tur": "K", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "-", "butce": "", "kapsam": ["yayin karari"], "disi": ["-"]}
+{"t": "2026-11-20T01:11:20Z", "id": "K-surum-37092", "op": "alan", "alan": "karar", "deger": "toplama-11.4 -> ozel-11.4, 37092"}
+{"t": "2026-11-20T01:11:20Z", "id": "K-surum-37092", "op": "alan", "alan": "gerekce", "deger": "kullanici onayi alindi; 42 commit'lik paket + sozlesme ailesi"}
+{"t": "2026-11-20T01:11:21Z", "id": "K-surum-37092", "op": "alan", "alan": "alternatif", "deger": "once debug APK - kullanici 'yayinla' dedi"}
+{"t": "2026-11-20T01:11:21Z", "id": "K-surum-37092", "op": "alan", "alan": "geri_alma", "deger": "ileri surum 37093"}
+{"t": "2026-11-20T01:11:21Z", "id": "K-surum-37092", "op": "kanit", "deger": "komut:python3 scripts/sozlesme.py liste"}
+{"t": "2026-11-20T01:11:22Z", "id": "V-surum-37092", "op": "ac", "tur": "V", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "-", "butce": "", "kapsam": ["Room 14->15 goc"], "disi": ["sema dosyasi (ayri is)"]}
+{"t": "2026-11-20T01:11:22Z", "id": "V-surum-37092", "op": "alan", "alan": "surum", "deger": "14 -> 15"}
+{"t": "2026-11-20T01:11:22Z", "id": "V-surum-37092", "op": "alan", "alan": "goc", "deger": "folders tablosu +6 kolon, MIGRATION_15_14"}
+{"t": "2026-11-20T01:11:23Z", "id": "V-surum-37092", "op": "alan", "alan": "sema_dosyasi", "deger": "YOK - room-schemas artifact'indan alinacak"}
+{"t": "2026-11-20T01:11:23Z", "id": "V-surum-37092", "op": "alan", "alan": "test", "deger": "yok (sema dosyasi gelince)"}
+{"t": "2026-11-20T01:11:23Z", "id": "V-surum-37092", "op": "alan", "alan": "geri", "deger": "ileri goc; downgrade yok"}
+{"t": "2026-11-20T01:11:24Z", "id": "V-surum-37092", "op": "kanit", "deger": "komut:rg -n CODE_DB_VERSION src/android/app/src/main/java"}
+{"t": "2026-11-20T01:12:18Z", "id": "R-surum-37092", "op": "ac", "tur": "R", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "-", "butce": "", "kapsam": ["yayin freni"], "disi": ["-"]}
+{"t": "2026-11-20T01:12:19Z", "id": "R-surum-37092", "op": "alan", "alan": "risk", "deger": "imza uyusmazligi -> kimse guncelleyemez"}
+{"t": "2026-11-20T01:12:19Z", "id": "R-surum-37092", "op": "alan", "alan": "tetik", "deger": "secrets eksik / yanlis anahtar"}
+{"t": "2026-11-20T01:12:19Z", "id": "R-surum-37092", "op": "alan", "alan": "etki", "deger": "geri donusu yok"}
+{"t": "2026-11-20T01:12:20Z", "id": "R-surum-37092", "op": "alan", "alan": "fren", "deger": "Prepare signing key: release'de anahtar yoksa KIRILIR (debug'a dusmez)"}
+{"t": "2026-11-20T01:12:20Z", "id": "R-surum-37092", "op": "kanit", "deger": "komut:rg -n 'ANDROID_KEYSTORE_BASE64 is not set' .github/workflows/apk.yml"}
+{"t": "2026-11-20T01:12:20Z", "id": "IZN-surum-37092", "op": "ac", "tur": "IZN", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "-", "butce": "", "kapsam": ["yayin izni"], "disi": ["-"]}
+{"t": "2026-11-20T01:12:21Z", "id": "IZN-surum-37092", "op": "alan", "alan": "kaynak", "deger": "GITHUB_TOKEN contents"}
+{"t": "2026-11-20T01:12:21Z", "id": "IZN-surum-37092", "op": "alan", "alan": "kapsam", "deger": "akista read, yalniz build isinde write"}
+{"t": "2026-11-20T01:12:21Z", "id": "IZN-surum-37092", "op": "alan", "alan": "saklama", "deger": "GitHub secrets (4 imza sirri)"}
+{"t": "2026-11-20T01:12:21Z", "id": "IZN-surum-37092", "op": "alan", "alan": "sizinti", "deger": "log artifact maskelenmez -> scrub_logs.py yukleme oncesi"}
+{"t": "2026-11-20T01:12:22Z", "id": "IZN-surum-37092", "op": "kanit", "deger": "komut:rg -n 'contents:' .github/workflows/apk.yml"}
+{"t": "2026-11-20T01:12:22Z", "id": "Z-surum-37092", "op": "ac", "tur": "Z", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "-", "butce": "", "kapsam": ["CI butcesi"], "disi": ["-"]}
+{"t": "2026-11-20T01:12:22Z", "id": "Z-surum-37092", "op": "alan", "alan": "butce", "deger": "release kosusu ~15 dk"}
+{"t": "2026-11-20T01:12:23Z", "id": "Z-surum-37092", "op": "alan", "alan": "harcanan", "deger": "debug kosusu 12m42s"}
+{"t": "2026-11-20T01:12:23Z", "id": "Z-surum-37092", "op": "alan", "alan": "esik", "deger": "20 dk asarsa dur, log incele"}
+{"t": "2026-11-20T01:12:23Z", "id": "Z-surum-37092", "op": "kanit", "deger": "kosu:44622129907"}
+{"t": "2026-11-20T01:12:24Z", "id": "M-surum-37092", "op": "ac", "tur": "M", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "-", "butce": "", "kapsam": ["yayin raporu"], "disi": ["-"]}
+{"t": "2026-11-20T01:12:24Z", "id": "M-surum-37092", "op": "alan", "alan": "kanit", "deger": "release URL + APK sha256"}
+{"t": "2026-11-20T01:12:24Z", "id": "M-surum-37092", "op": "alan", "alan": "soylenmeyen", "deger": "37093 isleri, chip arayuzu"}
+{"t": "2026-11-20T01:12:25Z", "id": "M-surum-37092", "op": "kanit", "deger": "komut:gh release list --limit 1"}
+{"t": "2026-11-20T01:13:11Z", "id": "G-surum-37092", "op": "ac", "tur": "G", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "release Latest", "butce": "", "kapsam": ["37092 yayini"], "disi": ["yeni ozellik"]}
+{"t": "2026-11-20T01:13:12Z", "id": "G-surum-37092", "op": "kanit", "deger": "komut:python3 scripts/preflight.py"}
+{"t": "2026-11-20T01:13:12Z", "id": "P-surum-37092", "op": "ac", "tur": "P", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "-", "butce": "", "kapsam": ["build.gradle.kts surum"], "disi": ["app kodu"]}
+{"t": "2026-11-20T01:13:12Z", "id": "P-surum-37092", "op": "alan", "alan": "dosya", "deger": "src/android/app/build.gradle.kts:74-75"}
+{"t": "2026-11-20T01:13:13Z", "id": "P-surum-37092", "op": "alan", "alan": "once_hash", "deger": "000000000000"}
+{"t": "2026-11-20T01:13:13Z", "id": "P-surum-37092", "op": "alan", "alan": "sonra_hash", "deger": "111111111111"}
+{"t": "2026-11-20T01:13:13Z", "id": "P-surum-37092", "op": "alan", "alan": "deneme", "deger": "1"}
+{"t": "2026-11-20T01:13:13Z", "id": "P-surum-37092", "op": "alan", "alan": "kanit", "deger": "check_identity.sh"}
+{"t": "2026-11-20T01:13:14Z", "id": "P-surum-37092", "op": "kanit", "deger": "komut:bash scripts/check_identity.sh"}
+{"t": "2026-11-20T01:13:14Z", "id": "C-surum-37092", "op": "ac", "tur": "C", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "-", "butce": "", "kapsam": ["yayin dali"], "disi": ["-"]}
+{"t": "2026-11-20T01:13:14Z", "id": "C-surum-37092", "op": "alan", "alan": "dosya", "deger": "build.gradle.kts, docs/ozel/arsiv"}
+{"t": "2026-11-20T01:13:15Z", "id": "C-surum-37092", "op": "alan", "alan": "aralik", "deger": "tum dosya"}
+{"t": "2026-11-20T01:13:15Z", "id": "C-surum-37092", "op": "alan", "alan": "sahip", "deger": "A"}
+{"t": "2026-11-20T01:13:15Z", "id": "C-surum-37092", "op": "alan", "alan": "bitis", "deger": "release sonrasi"}
+{"t": "2026-11-20T01:13:16Z", "id": "C-surum-37092", "op": "kanit", "deger": "komut:git status --short"}
+{"t": "2026-11-20T01:13:16Z", "id": "T-surum-37092", "op": "ac", "tur": "T", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "-", "butce": "", "kapsam": ["sozlesme + dilim testleri"], "disi": ["android testleri (CI'da)"]}
+{"t": "2026-11-20T01:13:16Z", "id": "T-surum-37092", "op": "alan", "alan": "test", "deger": "test_sozlesme.py#test_k1_tam_zincir_kapanir"}
+{"t": "2026-11-20T01:13:17Z", "id": "T-surum-37092", "op": "alan", "alan": "olcen", "deger": "K1 zinciri kapisi"}
+{"t": "2026-11-20T01:13:17Z", "id": "T-surum-37092", "op": "alan", "alan": "sinir", "deger": "eksik kardes -> ret"}
+{"t": "2026-11-20T01:13:17Z", "id": "T-surum-37092", "op": "alan", "alan": "calistiran", "deger": "pytest"}
+{"t": "2026-11-20T01:13:17Z", "id": "T-surum-37092", "op": "kanit", "deger": "komut:python3 -m pytest scripts/tests/test_sozlesme.py -q"}
+{"t": "2026-11-20T01:13:18Z", "id": "D-surum-37092", "op": "ac", "tur": "D", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "release", "butce": "", "kapsam": ["assemble + release"], "disi": ["-"]}
+{"t": "2026-11-20T01:13:18Z", "id": "D-surum-37092", "op": "alan", "alan": "komut", "deger": "ozel-11.4 push -> apk.yml release"}
+{"t": "2026-11-20T01:13:19Z", "id": "D-surum-37092", "op": "alan", "alan": "cikti", "deger": "bekleniyor"}
+{"t": "2026-11-20T01:13:19Z", "id": "D-surum-37092", "op": "alan", "alan": "log", "deger": "run-logs-build artifact"}
+{"t": "2026-11-20T01:13:19Z", "id": "D-surum-37092", "op": "kanit", "deger": "komut:python3 scripts/check_workflow_shell.py"}
+{"t": "2026-11-20T01:13:20Z", "id": "E-surum-37092", "op": "ac", "tur": "E", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "-", "butce": "", "kapsam": ["artifact omru"], "disi": ["-"]}
+{"t": "2026-11-20T01:13:20Z", "id": "E-surum-37092", "op": "alan", "alan": "nesne", "deger": "run-logs-*, slice-report, APK"}
+{"t": "2026-11-20T01:13:20Z", "id": "E-surum-37092", "op": "alan", "alan": "omur", "deger": "log 90g, rapor 90g, APK release'te kalici"}
+{"t": "2026-11-20T01:13:21Z", "id": "E-surum-37092", "op": "alan", "alan": "budama", "deger": "GitHub otomatik; APK elle silinmez"}
+{"t": "2026-11-20T01:13:21Z", "id": "E-surum-37092", "op": "kanit", "deger": "komut:rg -n retention-days .github/workflows/apk.yml"}
+{"t": "2026-11-20T01:13:28Z", "id": "S-surum-37092", "op": "alan", "alan": "yayin", "deger": "v1.15-ozel.15 (Latest) - bekleniyor"}

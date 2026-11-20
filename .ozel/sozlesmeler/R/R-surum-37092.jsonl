@@ -1,0 +1,6 @@
+{"t": "2026-11-20T01:12:18Z", "id": "R-surum-37092", "op": "ac", "tur": "R", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "-", "butce": "", "kapsam": ["yayin freni"], "disi": ["-"]}
+{"t": "2026-11-20T01:12:19Z", "id": "R-surum-37092", "op": "alan", "alan": "risk", "deger": "imza uyusmazligi -> kimse guncelleyemez"}
+{"t": "2026-11-20T01:12:19Z", "id": "R-surum-37092", "op": "alan", "alan": "tetik", "deger": "secrets eksik / yanlis anahtar"}
+{"t": "2026-11-20T01:12:19Z", "id": "R-surum-37092", "op": "alan", "alan": "etki", "deger": "geri donusu yok"}
+{"t": "2026-11-20T01:12:20Z", "id": "R-surum-37092", "op": "alan", "alan": "fren", "deger": "Prepare signing key: release'de anahtar yoksa KIRILIR (debug'a dusmez)"}
+{"t": "2026-11-20T01:12:20Z", "id": "R-surum-37092", "op": "kanit", "deger": "komut:rg -n 'ANDROID_KEYSTORE_BASE64 is not set' .github/workflows/apk.yml"}
