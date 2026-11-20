@@ -1,0 +1,6 @@
+{"t": "2026-11-20T01:12:20Z", "id": "IZN-surum-37092", "op": "ac", "tur": "IZN", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "-", "butce": "", "kapsam": ["yayin izni"], "disi": ["-"]}
+{"t": "2026-11-20T01:12:21Z", "id": "IZN-surum-37092", "op": "alan", "alan": "kaynak", "deger": "GITHUB_TOKEN contents"}
+{"t": "2026-11-20T01:12:21Z", "id": "IZN-surum-37092", "op": "alan", "alan": "kapsam", "deger": "akista read, yalniz build isinde write"}
+{"t": "2026-11-20T01:12:21Z", "id": "IZN-surum-37092", "op": "alan", "alan": "saklama", "deger": "GitHub secrets (4 imza sirri)"}
+{"t": "2026-11-20T01:12:21Z", "id": "IZN-surum-37092", "op": "alan", "alan": "sizinti", "deger": "log artifact maskelenmez -> scrub_logs.py yukleme oncesi"}
+{"t": "2026-11-20T01:12:22Z", "id": "IZN-surum-37092", "op": "kanit", "deger": "komut:rg -n 'contents:' .github/workflows/apk.yml"}

@@ -1,0 +1,2 @@
+{"t": "2026-11-20T01:13:11Z", "id": "G-surum-37092", "op": "ac", "tur": "G", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "release Latest", "butce": "", "kapsam": ["37092 yayini"], "disi": ["yeni ozellik"]}
+{"t": "2026-11-20T01:13:12Z", "id": "G-surum-37092", "op": "kanit", "deger": "komut:python3 scripts/preflight.py"}

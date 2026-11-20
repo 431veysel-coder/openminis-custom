@@ -1,0 +1,6 @@
+{"t": "2026-11-20T01:11:20Z", "id": "K-surum-37092", "op": "ac", "tur": "K", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "-", "butce": "", "kapsam": ["yayin karari"], "disi": ["-"]}
+{"t": "2026-11-20T01:11:20Z", "id": "K-surum-37092", "op": "alan", "alan": "karar", "deger": "toplama-11.4 -> ozel-11.4, 37092"}
+{"t": "2026-11-20T01:11:20Z", "id": "K-surum-37092", "op": "alan", "alan": "gerekce", "deger": "kullanici onayi alindi; 42 commit'lik paket + sozlesme ailesi"}
+{"t": "2026-11-20T01:11:21Z", "id": "K-surum-37092", "op": "alan", "alan": "alternatif", "deger": "once debug APK - kullanici 'yayinla' dedi"}
+{"t": "2026-11-20T01:11:21Z", "id": "K-surum-37092", "op": "alan", "alan": "geri_alma", "deger": "ileri surum 37093"}
+{"t": "2026-11-20T01:11:21Z", "id": "K-surum-37092", "op": "kanit", "deger": "komut:python3 scripts/sozlesme.py liste"}

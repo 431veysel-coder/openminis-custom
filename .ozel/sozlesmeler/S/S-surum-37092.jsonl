@@ -1,0 +1,7 @@
+{"t": "2026-11-20T01:11:18Z", "id": "S-surum-37092", "op": "ac", "tur": "S", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "release Latest", "butce": "", "kapsam": ["37092 yayinla"], "disi": ["37093 de"]}
+{"t": "2026-11-20T01:11:19Z", "id": "S-surum-37092", "op": "alan", "alan": "surum", "deger": "37092 / 1.15-ozel.15"}
+{"t": "2026-11-20T01:11:19Z", "id": "S-surum-37092", "op": "alan", "alan": "onceki", "deger": "37091 / 1.15-ozel.14 (yayinda)"}
+{"t": "2026-11-20T01:11:19Z", "id": "S-surum-37092", "op": "alan", "alan": "imza", "deger": "3e62d262631a8182167bfb22df64ae413286257fc6e6a77a08c6ced0bc0bb6c9"}
+{"t": "2026-11-20T01:11:19Z", "id": "S-surum-37092", "op": "alan", "alan": "geri_alma", "deger": "eski kod daha YUKSEK numara ile yeniden (downgrade yok)"}
+{"t": "2026-11-20T01:11:20Z", "id": "S-surum-37092", "op": "kanit", "deger": "komut:bash scripts/check_identity.sh"}
+{"t": "2026-11-20T01:13:28Z", "id": "S-surum-37092", "op": "alan", "alan": "yayin", "deger": "v1.15-ozel.15 (Latest) - bekleniyor"}

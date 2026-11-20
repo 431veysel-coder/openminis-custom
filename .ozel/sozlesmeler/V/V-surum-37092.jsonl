@@ -1,0 +1,7 @@
+{"t": "2026-11-20T01:11:22Z", "id": "V-surum-37092", "op": "ac", "tur": "V", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "-", "butce": "", "kapsam": ["Room 14->15 goc"], "disi": ["sema dosyasi (ayri is)"]}
+{"t": "2026-11-20T01:11:22Z", "id": "V-surum-37092", "op": "alan", "alan": "surum", "deger": "14 -> 15"}
+{"t": "2026-11-20T01:11:22Z", "id": "V-surum-37092", "op": "alan", "alan": "goc", "deger": "folders tablosu +6 kolon, MIGRATION_15_14"}
+{"t": "2026-11-20T01:11:23Z", "id": "V-surum-37092", "op": "alan", "alan": "sema_dosyasi", "deger": "YOK - room-schemas artifact'indan alinacak"}
+{"t": "2026-11-20T01:11:23Z", "id": "V-surum-37092", "op": "alan", "alan": "test", "deger": "yok (sema dosyasi gelince)"}
+{"t": "2026-11-20T01:11:23Z", "id": "V-surum-37092", "op": "alan", "alan": "geri", "deger": "ileri goc; downgrade yok"}
+{"t": "2026-11-20T01:11:24Z", "id": "V-surum-37092", "op": "kanit", "deger": "komut:rg -n CODE_DB_VERSION src/android/app/src/main/java"}

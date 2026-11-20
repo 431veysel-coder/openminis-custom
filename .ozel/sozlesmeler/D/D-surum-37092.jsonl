@@ -1,0 +1,5 @@
+{"t": "2026-11-20T01:13:18Z", "id": "D-surum-37092", "op": "ac", "tur": "D", "is": "surum-37092", "oturum": "A", "taban": "c836bd8", "kademe": "K2", "durma": "release", "butce": "", "kapsam": ["assemble + release"], "disi": ["-"]}
+{"t": "2026-11-20T01:13:18Z", "id": "D-surum-37092", "op": "alan", "alan": "komut", "deger": "ozel-11.4 push -> apk.yml release"}
+{"t": "2026-11-20T01:13:19Z", "id": "D-surum-37092", "op": "alan", "alan": "cikti", "deger": "bekleniyor"}
+{"t": "2026-11-20T01:13:19Z", "id": "D-surum-37092", "op": "alan", "alan": "log", "deger": "run-logs-build artifact"}
+{"t": "2026-11-20T01:13:19Z", "id": "D-surum-37092", "op": "kanit", "deger": "komut:python3 scripts/check_workflow_shell.py"}
