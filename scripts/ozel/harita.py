@@ -76,7 +76,7 @@ def kod_agaci() -> dict:
     rows = []
     total_files = total_lines = 0
     for d in sorted(p for p in base.iterdir() if p.is_dir()):
-        files = list(d.rglob("*.kt"))
+        files = sorted(d.rglob("*.kt"))
         if not files:
             continue
         lines = sum(len(read(f).splitlines()) for f in files)
@@ -193,7 +193,12 @@ def sozlesmeler() -> dict:
 
 
 def testler() -> dict:
-    files = list((SRC / "test").rglob("*.kt"))
+    # [37099] `sorted` şart: `rglob` sırası dosya sistemine göredir ve Linux
+    # musl (yerel) ile GitHub runner'ı farklı sıra verir. Sıra `Counter`'a ve
+    # `most_common`'a geçtiği için çıktı **deterministik değildi**: aynı
+    # kaynaktan iki farklı belge üretiliyor, `--check` CI'da kırmızı oluyordu
+    # (yerelde yeşil). Ölçüm: CI yalnız 80-TESTLER.md farkı verdi.
+    files = sorted((SRC / "test").rglob("*.kt"))
     per = Counter()
     root_base = SRC / "test/java/com/openminis/app"
     for f in files:
@@ -208,7 +213,7 @@ def testler() -> dict:
     tests = sum(
         len(re.findall(r"@Test", read(f))) for f in files
     )
-    device = list((SRC / "androidTest").rglob("*.kt"))
+    device = sorted((SRC / "androidTest").rglob("*.kt"))
     device_tests = sum(len(re.findall(r"@Test", read(f))) for f in device)
     return {"files": len(files), "tests": tests, "per": per.most_common(12),
             "device_files": len(device), "device_tests": device_tests}

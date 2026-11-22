@@ -1,6 +1,8 @@
 package com.openminis.app.ui.chat
 
 import android.content.Context
+import com.openminis.app.data.OfflineGlossary
+import com.openminis.app.data.TranslationChain
 import com.openminis.app.data.TranslationPacks
 import com.openminis.app.data.TranslationPrefs
 import com.openminis.app.data.model.LLMMessage
