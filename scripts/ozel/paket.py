@@ -151,7 +151,8 @@ def gate(name: str, cmd: list[str]) -> dict:
 
 
 def write_start(pkg: Path, ver: tuple[str, int], push: dict, gates: list[dict],
-                commit: str, subject: str, counts: tuple[int, int]) -> None:
+                commit: str, subject: str, counts: tuple[int, int],
+                range_stat: str = "—") -> None:
     name, code = ver
     gate_rows = "\n".join(
         f"| {g['ad']} | **{g['durum']}** | `{(g['cikti'].strip().splitlines() or [''])[-1][:90]}` |"
@@ -166,6 +167,7 @@ Zip açmadan da okunur.
 |---|---|
 | Sürüm | `{name}` / versionCode **{code}** |
 | Commit | `{commit[:12]}` — {subject} |
+| Push edilmemiş | {push['ileride']} commit · {range_stat} |
 | Dal | `{push['dal']}` |
 | **Push durumu** | **{push['durum']}** |
 | Uzak | `{push['uzak']}` |
@@ -336,7 +338,7 @@ her push'ta koşuyor.
             range_stat = short
     dirty = len([x for x in run('git', 'status', '--porcelain').splitlines() if x.strip()])
 
-    write_start(pkg, (name, code), push, gates, commit, subject, counts)
+    write_start(pkg, (name, code), push, gates, commit, subject, counts, range_stat)
     (damga / "DAMGA.md").write_text(
         f"""# DAMGA — `{name}` / {code}
 
