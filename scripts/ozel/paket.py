@@ -326,13 +326,14 @@ her push'ta koşuyor.
     # üretildiği için ağaç temiz ve alan her zaman "0 dosya" yazıyordu —
     # yani bu paketin ne taşıdığını söyleyen alan sistematik olarak yalan.
     # Doğrusu: commit'in kendisi (HEAD~1..HEAD) ve ayrıca kirli ağaç.
-    stat_lines = [x.strip() for x in run('git', 'show', '--stat', '--format=', commit).splitlines() if x.strip()]
-    commit_stat = stat_lines[-1] if stat_lines else "—"
-    # `--format=` boş satır bırakır; "-" ile başlayan satır yoksa özet yoktur.
-    if not any(ch.isdigit() for ch in commit_stat):
-        commit_stat = "—"
-    commit_files = run('git', 'show', '--name-only', '--format=', commit).strip()
-    commit_files = len([x for x in commit_files.splitlines() if x.strip()])
+    # [37099] Paketin taşıdığı şey tek commit değil, **push edilmemiş aralık**.
+    # Uzak dal yoksa (hiç push edilmemiş) aralık ölçülemez; uydurmuyoruz.
+    range_stat = "—"
+    range_count = push['ileride']
+    if push['uzak'] not in ("—", "") and push['ileride'].isdigit():
+        short = run('git', 'diff', '--shortstat', f"{push['uzak']}..HEAD").strip()
+        if short:
+            range_stat = short
     dirty = len([x for x in run('git', 'status', '--porcelain').splitlines() if x.strip()])
 
     write_start(pkg, (name, code), push, gates, commit, subject, counts)
@@ -349,7 +350,7 @@ her push'ta koşuyor.
 | Konu | {subject} |
 | **Push durumu** | **{push['durum']}** ({push['ileride']} ileride, {push['geride']} geride) |
 | Uzak | `{push['uzak']}` |
-| Bu commit | {commit_files} dosya · {commit_stat} |
+| Push edilmemiş aralık | {range_count} commit · {range_stat} |
 | Kirli ağaç | {dirty} dosya |
 """,
         encoding="utf-8",
