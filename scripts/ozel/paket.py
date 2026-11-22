@@ -51,7 +51,6 @@ EXCLUDE_DIRS = {
 # Belge olarak kopyalanacaklar (03-BELGE).
 DOC_FILES = [
     "docs/ozel/TERMUX-ENTEGRASYONU.md",
-    "docs/ozel/DENETIM-37096.md",
     "docs/ozel/DEGISIKLIK-GUNLUGU-11-16.md",
     "docs/ozel/SIRADAKI-SURUM.md",
     "docs/ozel/ENTEGRASYON-DURUMU.md",
@@ -61,6 +60,16 @@ DOC_FILES = [
     "PRIVACY.md",
     "BUILDING.md",
 ]
+
+# [37099] Denetim belgeleri SABİT listede değil, glob ile.
+#
+# Neden: `DENETIM-37096.md` elle yazılmıştı, sonra `37098` ve `37099` eklendi
+# ve ikisi de pakete **girmedi** — yani bir turun bütün kanıtı, kendi
+# paketinin dışında kaldı. Sabit liste, yeni belge eklemeyi hatırlamaya
+# bağlıyor; hatırlanmayan şey sessizce kayboluyor. Glob bunu kapatıyor.
+DOC_FILES += sorted(
+    f"docs/ozel/{p.name}" for p in (ROOT / "docs/ozel").glob("DENETIM-*.md")
+)
 
 # Araç olarak kopyalanacaklar (04-ARAC).
 TOOL_FILES = [
@@ -187,7 +196,8 @@ Zip açmadan da okunur.
    - `TERMUX-ENTEGRASYONU.md` — **asıl tasarım**: mimari, ölçümler, güvenlik,
      ön/arka yüz, T1–T10 test matrisi, reddedilen seçenekler
    - `SIRADAKI-SURUM.md` — P1→P5 fazları, açık işler
-   - `DENETIM-37096.md` — `.15` incelemesinde bulunan 10 bulgu ve kanıtları
+   - `DENETIM-*.md` — denetim turları: her turun bulguları ve kanıtları
+     (`.15` → `DENETIM-37096`, `.17` → `37098`, düzeltme turu → `37099`)
    - `DEGISIKLIK-GUNLUGU-11-16.md` — sürüm sürüm ne değişti
 3. **`04-ARAC/`** — denetim ve paketleme betikleri (`KULLANIM.md` ile).
 4. **`06-KANIT/`** — kapıların ham çıktısı. "Geçti" demek yetmez, çıktı durur.
@@ -209,7 +219,9 @@ python3 scripts/ozel/ceviri-denetim.py --fail-on-new     # en ↔ tr (taban ratc
 
 **Var:** Termux katmanı P1+P2 kodu (`TermuxLayer`, `TermuxInstaller`,
 `TermuxPrompt`), PRoot bağları, `USER_TREES` koruması, risk kuralları + korpus,
-sağlık köprüsü, onay kutusu, çeviri önbelleği, 4 denetim aracı, 2 CI iş akışı.
+sağlık köprüsü, onay kutusu, çeviri önbelleği, **5 denetim aracı**
+(`risk-corpus`, `kotlin-denetim`, `tag-denetim`, `ceviri-denetim`,
+`integration_audit`), 2 CI iş akışı.
 
 **Yok (dürüstçe):** derlenmiş APK. Bu cihazda JVM başlamıyor
 (*"Failed to mark memory page as executable"*), yani `gradlew` koşmuyor.
@@ -254,7 +266,7 @@ def main() -> int:
         "| Dosya | Ne |\n|---|---|\n"
         "| `TERMUX-ENTEGRASYONU.md` | Termux katmanı tasarımı: mimari, ölçüm, güvenlik, T1–T10 |\n"
         "| `SIRADAKI-SURUM.md` | Fazlar P1→P5 ve açık işler |\n"
-        "| `DENETIM-37096.md` | `.15` incelemesi: 10 bulgu, kanıtlarıyla |\n"
+        "| `DENETIM-*.md` | Denetim turları: bulgu + kanıt (her tur için bir dosya) |\n"
         "| `DEGISIKLIK-GUNLUGU-11-16.md` | `.11.3.1` → bugün |\n"
         "| `ENTEGRASYON-DURUMU.md` | Hangi dilim üretimden çağrılıyor (10/11) |\n"
         "| `SURUM-NOTU-*.md` | Release gövdeleri (çalıştırınca metin basar) |\n"
