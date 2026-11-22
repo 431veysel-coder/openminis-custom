@@ -330,7 +330,7 @@ her push'ta koşuyor.
     # Uzak dal yoksa (hiç push edilmemiş) aralık ölçülemez; uydurmuyoruz.
     range_stat = "—"
     range_count = push['ileride']
-    if push['uzak'] not in ("—", "") and push['ileride'].isdigit():
+    if push['uzak'] not in ("—", "") and str(push['ileride']).isdigit():
         short = run('git', 'diff', '--shortstat', f"{push['uzak']}..HEAD").strip()
         if short:
             range_stat = short
