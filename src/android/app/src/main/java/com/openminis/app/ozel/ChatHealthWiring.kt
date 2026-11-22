@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * [37096] `ChatHealthTracker`'ı sohbete bağlayan köprü.
@@ -51,7 +50,30 @@ import java.util.concurrent.ConcurrentHashMap
  */
 object ChatHealthBridge {
 
-    private val trackers = ConcurrentHashMap<String, ChatHealthTracker>()
+    /**
+     * [37099] **Sınırsız büyüyen harita düzeltildi.**
+     *
+     * Ölçüm: `forget()` üretim kodunda **hiç çağrılmıyordu** (`rg
+     * 'ChatHealthBridge.forget'` → yalnız tanım). Yani her sohbet oturumu
+     * süreç ömrü boyunca bir `ChatHealthTracker` (20 öğelik TTFB penceresiyle)
+     * ve `_state` içinde bir giriş bırakıyordu. Uzun kullanımda bu, ölçüm
+     * özelliğinin kendi kendini yavaşlatması demek: `_state.value + (...)` her
+     * turda daha büyük bir haritayı kopyalar ve Canlı Görevler ekranı
+     * dinlediği için her kopya yeniden çizim tetikler.
+     *
+     * Düzeltme iki katmanlı:
+     *   1. `forget()` çağrısı artık gerçekten var (aşağıda, UI tarafı).
+     *   2. Harita **sınırlı**: 20 oturumdan fazlası tutulmaz, en eski kullanılan
+     *      atılır. Sınır olmadan "çağıran unutursa" hatası yine sızıntıya
+     *      dönerdi; sınır, çağıranı hatırlamaya bağlı olmayan garanti.
+     */
+    private const val MAX_TRACKERS = 20
+
+    /** Erişim sırasına göre (en eski kullanılan başta) sınırlı harita. */
+    private val trackers = object : LinkedHashMap<String, ChatHealthTracker>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, ChatHealthTracker>): Boolean =
+            size > MAX_TRACKERS
+    }
 
     private val _state = MutableStateFlow<Map<String, ChatHealth>>(emptyMap())
 
@@ -62,8 +84,17 @@ object ChatHealthBridge {
     @Volatile
     private var enabled = false
 
-    private fun tracker(sessionId: String): ChatHealthTracker =
+    /**
+     * Oturumun izleyicisi — yoksa oluşturur.
+     *
+     * `synchronized`: `LinkedHashMap` erişim sıralı ve thread-safe değil;
+     * `ConcurrentHashMap` threadsafe olan sürümde kullanılıyordu ama sınır
+     * koyamıyordu. Kilit yalnız harita işlemi kadar tutuluyor (izleyicinin
+     * kendi hesabı dışarıda), yani sıcak yolda bedeli bir map lookup.
+     */
+    private fun tracker(sessionId: String): ChatHealthTracker = synchronized(trackers) {
         trackers.getOrPut(sessionId) { ChatHealthTracker { SystemClock.elapsedRealtime() } }
+    }
 
     /**
      * Yayın — **atomik** olmak zorunda.
@@ -133,9 +164,17 @@ object ChatHealthBridge {
 
     /** Oturum kapandı: izleyici de gider, aksi hâlde süreç ömrü boyunca birikir. */
     fun forget(sessionId: String) {
-        trackers.remove(sessionId)
+        synchronized(trackers) { trackers.remove(sessionId) }
         _state.update { it - sessionId }
     }
+
+    /**
+     * [37099] Şu an izlenen oturum sayısı — sızıntı testi için.
+     *
+     * Neden üretimde: `MAX_TRACKERS` sınırının gerçekten işlediğini ölçmenin
+     * başka yolu yok; testte 21 oturum açıp 20 kaldığını göreceğiz.
+     */
+    fun trackedCount(): Int = synchronized(trackers) { trackers.size }
 
     /** Testler için: durumu sıfırla. */
     fun reset() {

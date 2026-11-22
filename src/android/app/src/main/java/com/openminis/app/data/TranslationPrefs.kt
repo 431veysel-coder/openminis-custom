@@ -74,6 +74,24 @@ object TranslationPrefs {
     fun engine(ctx: Context): Engine =
         Engine.parse(prefs(ctx).getString(KEY_ENGINE, null))
 
+    // ── [37099] sıralı motor zinciri ───────────────────────────────────────
+
+    private const val KEY_CHAIN = "engine_chain"
+
+    /**
+     * Sıralı çeviri planı — "önce bu, olmazsa şu, olmazsa o".
+     *
+     * Neden `engine()`'in yanında: `Engine` tek seçimdir (paketli mi değil mi),
+     * zincir ise **düşme sırası**dır. İkisi çelişmiyor — zincirde model
+     * motorlarına hangi kipte gidileceği `engine()`'den okunur. Kayıt yoksa
+     * varsayılan: çevrimdışı paket → model+paket → model.
+     */
+    fun chain(ctx: Context): List<TranslationChain.Engine> =
+        TranslationChain.parse(prefs(ctx).getString(KEY_CHAIN, null))
+
+    fun setChain(ctx: Context, plan: List<TranslationChain.Engine>) =
+        prefs(ctx).edit().putString(KEY_CHAIN, TranslationChain.encode(plan)).apply()
+
     fun setEngine(ctx: Context, engine: Engine) =
         prefs(ctx).edit().putString(KEY_ENGINE, engine.id).apply()
 

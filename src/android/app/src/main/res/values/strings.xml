@@ -3196,4 +3196,7 @@
     <string name="task_tab">Tasks</string>
     <string name="thinking_translate_partial">Partial translation — %1$d of %2$d sections. Tap translate to continue.</string>
     <string name="thinking_translate_truncated">Translation cut off — %1$d of %2$d sections. Tap translate to retry the rest.</string>
+    <string name="ozel_feature_virtual_screen">Virtual screen</string>
+    <string name="ozel_feature_virtual_screen_subtitle">The agent keeps its own surface inside the app: browser, terminal and notes. Nothing here changes your real screen. Preview: the panes are not yet drawn on one canvas.</string>
+    <string name="thinking_translate_glossary">Glossary result — terms were replaced, sentences were not translated. Tap to translate with a model.</string>
 </resources>

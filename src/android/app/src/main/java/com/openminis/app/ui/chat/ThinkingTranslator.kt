@@ -128,6 +128,8 @@ internal object ThinkingTranslator {
         val total: Int,
         /** true: en az bir parça `maxTokens` sınırına takıldı. */
         val truncated: Boolean = false,
+        /** [37099] true: sonuç sözlük tabanlı, cümle çevirisi değil. */
+        val degraded: Boolean = false,
     )
 
     private data class Cached(val out: Out)
@@ -200,6 +202,29 @@ internal object ThinkingTranslator {
         // translations produced before it existed, or the feature looks broken
         // until every cached block is translated again by hand.
         val cacheKey = cacheKey(targetLanguage, entry.id, text, pack?.id ?: "-")
+
+        // [37099] Zincirin ilk halkası: çevrimdışı sözlük.
+        //
+        // Bedava ve anında; ama cümle çevirmiyor. Zincirde model varsa ve
+        // sözlük sonucu "tam" değilse modele düşülür (aşağıda). Model hiç
+        // yoksa sözlük sonucu yine döner — "hiç yok" her zaman "kısmi var"dan
+        // kötüdür — ama `complete = false` ve `degraded` başlığıyla, tam
+        // çeviri gibi gösterilmez.
+        val plan = TranslationPrefs.chain(context)
+        if (plan.firstOrNull() == TranslationChain.Engine.OFFLINE_PACK && pack != null) {
+            val offline = OfflineGlossary.apply(text, pack)
+            if (offline.usable && offline.complete) {
+                onProgress(chunks.size, chunks.size)
+                return Out(offline.text, complete = true, done = chunks.size, total = chunks.size)
+            }
+            val modelsLeft = plan.any {
+                it == TranslationChain.Engine.MODEL_PACK || it == TranslationChain.Engine.MODEL_ONLY
+            }
+            if (offline.usable && !modelsLeft) {
+                AppLogger.info(TAG, "[xlate] offline glossary only: ${offline.replaced} terim")
+                return Out(offline.text, complete = false, done = 0, total = 1, degraded = true)
+            }
+        }
 
         val chunks = chunk(text)
 

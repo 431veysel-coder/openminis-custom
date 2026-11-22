@@ -1,6 +1,6 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Özellik anahtarları — 26
+# Özellik anahtarları — 27
 
 | Anahtar | Ayar adı | Varsayılan |
 |---|---|---|
@@ -30,6 +30,7 @@
 | `REPLAY` | `replay` | kapalı |
 | `REMOTE_CONSOLE` | `remote_console` | kapalı |
 | `CHAT_HEALTH` | `chat_health` | açık |
+| `VIRTUAL_SCREEN` | `virtual_screen` | kapalı |
 
 Kural: **açık** bir anahtarın üretim kodunda okuyucusu olmak zorunda.
 `.14`'te `STATION` bu kuralı çiğnedi (açık, okuyucu yok) ve kapatıldı.

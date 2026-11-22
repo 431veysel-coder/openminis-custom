@@ -1349,10 +1349,12 @@ internal fun ThinkingBlock(block: AssistantBlock, isStreaming: Boolean, isLast: 
         // bir şey yapmıyordu, çünkü kısmi kayıt tam sayılıyordu.
         translated?.takeIf { !it.complete }?.let { tr ->
             Text(
-                text = if (tr.truncated) {
-                    stringResource(R.string.thinking_translate_truncated, tr.done, tr.total)
-                } else {
-                    stringResource(R.string.thinking_translate_partial, tr.done, tr.total)
+                text = when {
+                    // [37099] Sözlük sonucu "çeviri" diye sunulmaz: cümle
+                    // çevrilmedi, yalnız terimler değişti.
+                    tr.degraded -> stringResource(R.string.thinking_translate_glossary)
+                    tr.truncated -> stringResource(R.string.thinking_translate_truncated, tr.done, tr.total)
+                    else -> stringResource(R.string.thinking_translate_partial, tr.done, tr.total)
                 },
                 fontSize = 11.sp,
                 color = Color(0xFFFF9500),

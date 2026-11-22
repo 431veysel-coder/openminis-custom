@@ -114,6 +114,12 @@ fun OzelFeaturesScreen(
                 onCheckedChange = { set(Feature.BACKGROUND_GATES, it) },
             )
             SettingsSwitchRow(
+                title = stringResource(R.string.ozel_feature_virtual_screen),
+                subtitle = stringResource(R.string.ozel_feature_virtual_screen_subtitle),
+                checked = values[Feature.VIRTUAL_SCREEN] == true,
+                onCheckedChange = { set(Feature.VIRTUAL_SCREEN, it) },
+            )
+            SettingsSwitchRow(
                 title = stringResource(R.string.ozel_feature_qs_tile),
                 subtitle = stringResource(R.string.ozel_feature_qs_tile_subtitle),
                 checked = values[Feature.QS_TILE] == true,

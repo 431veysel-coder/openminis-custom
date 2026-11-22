@@ -262,6 +262,18 @@ object OzelFeatures {
          * görünmemesiydi. Kapalıyken chip çizilmez ve sayacı da durur.
          */
         CHAT_HEALTH("chat_health", true),
+
+        /**
+         * [37099] Sanal ekran — ajanın uygulama **içinde** kendi yüzeyi
+         * (tarayıcı + terminal + notlar).
+         *
+         * KAPALI varsayılan ve bu bilinçli: yüzey henüz tek parça değil
+         * (`SANAL-EKRAN.md` §4). Açık bir anahtarın üretimde okuyucusu olmak
+         * zorunda — okuyucu [com.openminis.app.screen.VirtualScreenHost.brief].
+         * Kapalıyken ajan sistem isteminde sanal ekrandan hiç söz görmez,
+         * yani olmayan bir yüzeye komut göndermeye çalışmaz.
+         */
+        VIRTUAL_SCREEN("virtual_screen", false),
         ;
 
         companion object {

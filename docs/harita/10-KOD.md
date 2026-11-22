@@ -1,6 +1,6 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Kod ağacı — 873 dosya, 315615 satır
+# Kod ağacı — 877 dosya, 316409 satır
 
 | Paket | Dosya | Satır |
 |---|---|---|
@@ -12,7 +12,7 @@
 | `budget/` | 1 | 183 |
 | `config/` | 28 | 8707 |
 | `crash/` | 5 | 1517 |
-| `data/` | 93 | 24068 |
+| `data/` | 95 | 24344 |
 | `debug/` | 17 | 7460 |
 | `deeplink/` | 2 | 327 |
 | `diagnostics/` | 13 | 2715 |
@@ -22,7 +22,7 @@
 | `network/` | 15 | 3221 |
 | `notification/` | 6 | 797 |
 | `offload/` | 13 | 2461 |
-| `ozel/` | 12 | 1925 |
+| `ozel/` | 12 | 1964 |
 | `plan/` | 1 | 106 |
 | `policy/` | 8 | 1530 |
 | `power/` | 1 | 193 |
@@ -33,18 +33,19 @@
 | `replay/` | 1 | 129 |
 | `sandbox/` | 61 | 24346 |
 | `scheduled/` | 15 | 3557 |
+| `screen/` | 2 | 438 |
 | `service/` | 15 | 6752 |
 | `share/` | 7 | 1593 |
 | `shared/` | 4 | 376 |
 | `speech/` | 42 | 11096 |
 | `terminal/` | 2 | 126 |
 | `tools/` | 15 | 3077 |
-| `ui/` | 306 | 148916 |
+| `ui/` | 306 | 148957 |
 | `usage/` | 6 | 805 |
 | `util/` | 2 | 266 |
 | `webapp/` | 5 | 1316 |
 
-Ekran (`*Screen.kt`): **73** · UI paketi: **19**
+Ekran (`*Screen.kt`): **74** · UI paketi: **19**
 
 ## Nerede ne var (sabit sınırlar)
 

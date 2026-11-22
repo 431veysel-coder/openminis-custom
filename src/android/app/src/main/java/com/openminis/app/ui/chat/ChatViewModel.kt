@@ -19343,6 +19343,14 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
             com.openminis.app.agent.jobs.AgentJobRegistry.unregisterQueuedStarter(key)
             com.openminis.app.agent.jobs.AgentJobRegistry.unregisterInterruptedCounter(key)
         }
+        // [37099] Sağlık izleyicisini bırak. `ChatHealthBridge.forget`
+        // üretimde hiç çağrılmıyordu: her oturum süreç ömrü boyunca bir
+        // izleyici + `_state` girdisi bırakıyordu (bellek sızıntısı).
+        // `ChatHealthBridge` sınırlı da olsa (MAX_TRACKERS), burada bırakmak
+        // doğru olan: sınır son çare, çağıran unutmamalı.
+        for (key in setOf(activeSessionId, sessionId, realSessionId)) {
+            if (key.isNotEmpty()) com.openminis.app.ozel.ChatHealthBridge.forget(key)
+        }
         super.onCleared()
         // Tear down whichever shell was actually serving this VM. Terminate
         // both ids when the rename happened, since a draft shell may still

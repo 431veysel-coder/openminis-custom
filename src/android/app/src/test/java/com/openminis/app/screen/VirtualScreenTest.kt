@@ -1,0 +1,165 @@
+package com.openminis.app.screen
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/**
+ * [37099] Sanal ekranın **saf** kuralları — cihazsız koşar.
+ *
+ * Neden önemli: bu cihazda JVM başlamıyor, yani Compose tarafı hiçbir kapıdan
+ * geçmiyor. Ekranın kararları (hangi bölme çizilir, durum nasıl saklanır, A ile
+ * B arasındaki izin farkı) burada olduğu için test edilebiliyor.
+ */
+class VirtualScreenTest {
+
+    private val S = VirtualScreen.State()
+
+    // ── düzen ──────────────────────────────────────────────────────────────
+
+    @Test
+    fun `varsayilan uc bolme acik`() {
+        assertEquals(3, S.visiblePanes().size)
+        assertEquals(VirtualScreen.Pane.BROWSER, S.focus)
+    }
+
+    @Test
+    fun `bos ekran varsayilan degil`() {
+        // `State()` üç bölme açar; `empty()` hiç. Karışırsa "hepsini kapat"
+        // ilk açılışta üç panel yakalatır.
+        val empty = VirtualScreen.empty()
+        assertTrue(empty.visiblePanes().isEmpty())
+        assertNull(empty.focus)
+        assertFalse(S.visiblePanes().isEmpty())
+    }
+
+    @Test
+    fun `gizlenen bolme odagi devreder`() {
+        val s = VirtualScreen.hide(S, VirtualScreen.Pane.BROWSER)
+        assertFalse(s.pane(VirtualScreen.Pane.BROWSER)!!.visible)
+        assertFalse(s.focus == VirtualScreen.Pane.BROWSER)
+        // Odak görünür bir bölmeye geçmeli, null'a düşmemeli.
+        assertTrue(s.visiblePanes().any { it.pane == s.focus })
+    }
+
+    @Test
+    fun `gizli bolme odak olamaz`() {
+        val s = VirtualScreen.hide(S, VirtualScreen.Pane.TERMINAL)
+        val focused = VirtualScreen.focus(s, VirtualScreen.Pane.TERMINAL)
+        assertEquals(s.focus, focused.focus) // istek yok sayıldı
+    }
+
+    @Test
+    fun `yeniden siralama bilinmeyen adi yok sayar`() {
+        val s = VirtualScreen.reorder(S, listOf(VirtualScreen.Pane.TERMINAL, VirtualScreen.Pane.BROWSER))
+        assertEquals(
+            listOf(VirtualScreen.Pane.TERMINAL, VirtualScreen.Pane.BROWSER, VirtualScreen.Pane.NOTES),
+            s.panes.map { it.pane },
+        )
+    }
+
+    @Test
+    fun `yeniden siralama bolme kaybettirmez`() {
+        val s = VirtualScreen.reorder(S, listOf(VirtualScreen.Pane.NOTES))
+        assertEquals(3, s.panes.size)
+    }
+
+    // ── yakalama bütçesi ───────────────────────────────────────────────────
+
+    @Test
+    fun `bos ekranda yakalama yok`() {
+        assertTrue(VirtualScreen.needsCapture(VirtualScreen.empty(), now = 10_000).isEmpty())
+    }
+
+    @Test
+    fun `yakalama araligi korunur`() {
+        // 250 ms'den sık yakalamak pili yakar; hiç yakalamamak ajanı kör bırakır.
+        val after = VirtualScreen.markCaptured(S, 1_000)
+        assertTrue(VirtualScreen.needsCapture(after, now = 1_100).isEmpty())
+        assertEquals(3, VirtualScreen.needsCapture(after, now = 1_400).size)
+    }
+
+    @Test
+    fun `yalniz gorunur bolmeler yakalanir`() {
+        val s = VirtualScreen.hide(S, VirtualScreen.Pane.NOTES)
+        assertEquals(
+            listOf(VirtualScreen.Pane.BROWSER, VirtualScreen.Pane.TERMINAL),
+            VirtualScreen.needsCapture(s, now = 0),
+        )
+    }
+
+    // ── A / B eylem izni ───────────────────────────────────────────────────
+
+    @Test
+    fun `sanal ekranda tiklama bedelsiz`() {
+        // Ajanın kendi tarayıcısında tıklaması kullanıcının ekranını değiştirmez.
+        assertEquals(
+            VirtualScreen.Cost.SILENT,
+            VirtualScreen.cost(VirtualScreen.Action.CLICK, VirtualScreen.Target.VIRTUAL),
+        )
+    }
+
+    @Test
+    fun `gercek ekranda tiklama onay ister`() {
+        // B: yanlış dokunuş başka uygulamada geri alınamaz bir işlem yapabilir.
+        assertEquals(
+            VirtualScreen.Cost.CONFIRM,
+            VirtualScreen.cost(VirtualScreen.Action.CLICK, VirtualScreen.Target.DEVICE),
+        )
+    }
+
+    @Test
+    fun `okumak iki tarafta da bedelsiz`() {
+        listOf(VirtualScreen.Target.VIRTUAL, VirtualScreen.Target.DEVICE).forEach { t ->
+            assertEquals(VirtualScreen.Cost.SILENT, VirtualScreen.cost(VirtualScreen.Action.READ, t))
+        }
+    }
+
+    @Test
+    fun `gercek ekranda kaydirma onay ister`() {
+        assertEquals(
+            VirtualScreen.Cost.ASK,
+            VirtualScreen.cost(VirtualScreen.Action.SCROLL, VirtualScreen.Target.DEVICE),
+        )
+    }
+
+    // ── durum kaydı ────────────────────────────────────────────────────────
+
+    @Test
+    fun `durum gidis donus kayipsiz`() {
+        val s = VirtualScreen.update(S, VirtualScreen.Pane.BROWSER) {
+            it.copy(location = "https://ornek.test/a|b", scrollY = 420, draft = "taslak~metin")
+        }
+        val back = VirtualScreen.decode(VirtualScreen.encode(s))
+        val p = back.pane(VirtualScreen.Pane.BROWSER)!!
+        // Ayırıcı karakterler metnin içinde geçse bile bozulmamalı.
+        assertEquals("https://ornek.test/a|b", p.location)
+        assertEquals(420, p.scrollY)
+        assertEquals("taslak~metin", p.draft)
+        assertEquals(s.focus, back.focus)
+    }
+
+    @Test
+    fun `bos kayit varsayilana doner`() {
+        assertEquals(VirtualScreen.defaultPanes().size, VirtualScreen.decode("").panes.size)
+    }
+
+    @Test
+    fun `bilinmeyen bolme atlanir`() {
+        // Eski sürümden gelen kayıt: "editor" artık yok.
+        val s = VirtualScreen.decode("editor|1|/x|0|~~editor")
+        assertEquals(3, s.panes.size)
+        assertTrue(s.visiblePanes().isEmpty()) // bilinmeyen çizilmedi, diğerleri yoktu
+    }
+
+    @Test
+    fun `hepsi kapali kaydi korunur`() {
+        // "Hepsini kapat" geçerli bir durum; kayıttan sonra varsayılana
+        // dönmek kullanıcının kararını silmek olurdu.
+        val empty = VirtualScreen.empty()
+        val back = VirtualScreen.decode(VirtualScreen.encode(empty))
+        assertTrue(back.visiblePanes().isEmpty())
+    }
+}
