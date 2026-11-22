@@ -213,8 +213,16 @@ def compile_slice(name: str, spec: dict, workdir: pathlib.Path, kc: str) -> dict
                           "log": "derlenmiş test sınıfı yok"}
         return result
 
+    # [37099] Test KAYNAKLARI sınıf yolunda olmalı. Kapı, dilimin test
+    # dosyalarını derliyor ama `src/test/resources` hiç eklenmiyordu; sonuç:
+    # `RiskCorpusTest` korpusu (`test/resources/ozel/risk-corpus.txt`) bulamıyor
+    # ve 37080 **kod doğru olduğu hâlde** kırmızı oluyordu. Hata metni
+    # "korpus bulunamadı" diyor, yani teşhis edilebilir — ama CI'da yalnız
+    # "-> FAIL" satırı görünüyordu (rapor artefaktı indirilmeden okunmuyordu).
+    res_dirs = [str(d) for d in (ROOT / "src/android/app/src/test/resources",) if d.is_dir()]
+    run_cp = sep.join([str(classes), str(test_classes), cp] + res_dirs)
     code, log = run(
-        ["java", "-cp", f"{classes}{sep}{test_classes}{sep}{cp}", "org.junit.runner.JUnitCore"] + names
+        ["java", "-cp", run_cp, "org.junit.runner.JUnitCore"] + names
     )
     passed = log.count("\nOK (") or 0
     fail_count = 0
@@ -353,7 +361,20 @@ def main(argv: list[str]) -> int:
         summary.append("## Düzeltilecekler")
         summary.append("")
         for r in failed:
-            summary.append(f"- **{r['slice']}** — ayrıntı: `{r['slice']}.md`")
+            # [37099] Nedeni ÖZETE de yaz. Önce yalnız "ayrıntı: X.md" vardı;
+            # CI logunda tek görünen satır "-> FAIL" oluyordu ve tanı için
+            # artefakt indirmek gerekiyordu (bugün tam olarak bu yaşandı:
+            # gerçek sebep "korpus bulunamadı"ydı, kod hatası değil).
+            why = ""
+            if not r["compile"]["ok"]:
+                why = "derleme hatası"
+            elif r["tests"] and not r["test"]["ok"]:
+                first = next(
+                    (l.strip() for l in r["test"]["log"].splitlines() if "Exception" in l or "Error:" in l),
+                    "",
+                )
+                why = (f"{r['test'].get('fail', '?')} test başarısız" + (f" — {first[:120]}" if first else ""))
+            summary.append(f"- **{r['slice']}** — {why or 'bilinmeyen'} (ayrıntı: `{r['slice']}.md`)")
     summary.append("")
     (OUT / "SUMMARY.md").write_text("\n".join(summary), encoding="utf-8")
 
