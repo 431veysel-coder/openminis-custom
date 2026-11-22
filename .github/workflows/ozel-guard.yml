@@ -62,6 +62,13 @@ jobs:
       - name: Yapısal Kotlin denetimi
         run: python3 scripts/ozel/kotlin-denetim.py --no-warn
 
+      - name: Çeviri (en ↔ tr)
+        # [37099] `.17`'de 71 yeni anahtarın Türkçesi yoktu ve üç kapı da
+        # yeşil dedi: derleme eksik çeviriyi görmez (İngilizceye düşer).
+        # Taban dosyası (`/.ozel/ceviri/taban.json`) upstream'den devralınan
+        # 521 anahtarı taşır; orada olmayan yeni bir eksik kırmızıdır.
+        run: python3 scripts/ozel/ceviri-denetim.py --fail-on-new
+
       - name: Yayın etiketi ↔ sürüm
         # `--strict` yok: yanlış etiket bir *push* problemidir, PR'ı
         # engellememeli (katkı veren etiketleri düzeltemez). Rapor her zaman
@@ -77,4 +84,6 @@ jobs:
             python3 scripts/ozel/risk-corpus.py | tail -3 || true
             echo '```'
             echo "Etiketler: $(git tag --list 'v*' | wc -l) adet"
+            echo
+            python3 scripts/ozel/ceviri-denetim.py | tail -4 || true
           } >> "$GITHUB_STEP_SUMMARY"

@@ -67,6 +67,7 @@ TOOL_FILES = [
     "scripts/ozel/risk-corpus.py",
     "scripts/ozel/kotlin-denetim.py",
     "scripts/ozel/tag-denetim.py",
+    "scripts/ozel/ceviri-denetim.py",
     "scripts/ozel/snapshot.py",
     "scripts/ozel/paket.py",
     "scripts/integration_audit.py",
@@ -195,10 +196,11 @@ Zip açmadan da okunur.
 
 ```bash
 cd 02-KAYNAK
-python3 scripts/ozel/risk-corpus.py --fail-on-mismatch   # 57 komut, 0 sapma
+python3 scripts/ozel/risk-corpus.py --fail-on-mismatch   # 74 komut, 0 sapma
 python3 scripts/ozel/kotlin-denetim.py --no-warn         # 1 646 dosya
 python3 scripts/integration_audit.py                     # 10/11 dilim
 python3 scripts/ozel/tag-denetim.py                      # etiket ↔ sürüm
+python3 scripts/ozel/ceviri-denetim.py --fail-on-new     # en ↔ tr (taban ratchet)
 ```
 
 ## Bu pakette NE VAR / NE YOK
@@ -275,9 +277,10 @@ Hepsi `02-KAYNAK/` içinden çalıştırılır (yollar repoya göre).
 
 | Betik | Ne yapar | Çıkış kodu |
 |---|---|---|
-| `risk-corpus.py` | `RiskRules.kt` + `RiskClassifier.kt`'yi okur, 57 komutun kararını basar | `--fail-on-mismatch` ile 1 |
+| `risk-corpus.py` | `RiskRules.kt` + `RiskClassifier.kt`'yi okur, 74 komutun kararını basar | `--fail-on-mismatch` ile 1 |
 | `kotlin-denetim.py` | Denge, çift imza, kapanmamış `\"\"\"`, kullanılmayan import | hata varsa 1 |
 | `tag-denetim.py` | Her `v*` etiketini çözer, o commit'in sürümüyle karşılaştırır | `--strict` ile 1 |
+| `ceviri-denetim.py` | `values/` ↔ `values-tr/` anahtar farkı + tekrar tanım | `--fail-on-new` ile 1 |
 | `snapshot.py` | zip + git bundle + `DAMGA.md` + `DIZIN.md` | 0 |
 | `paket.py` | bu klasörü üretir | 0 |
 | `integration_audit.py` | Hangi dilim üretim kodundan çağrılıyor | 0 |
@@ -303,6 +306,7 @@ her push'ta koşuyor.
             ("yapisal-denetim", [sys.executable, "scripts/ozel/kotlin-denetim.py", "--no-warn"]),
             ("entegrasyon", [sys.executable, "scripts/integration_audit.py"]),
             ("etiket", [sys.executable, "scripts/ozel/tag-denetim.py"]),
+            ("ceviri", [sys.executable, "scripts/ozel/ceviri-denetim.py", "--fail-on-new"]),
         ]
         for ad, cmd in checks:
             g = gate(ad, cmd)

@@ -370,7 +370,25 @@ def adjust_level(rule: dict, targets: list[str]) -> str:
     return rule["level"]
 
 
-def classify_segment(segment: str, rules: list[dict]) -> dict | None:
+SEARCH_TOOLS = ("rg", "ripgrep", "grep", "egrep", "fgrep", "ag", "ack", "fd")
+PLAIN_QUOTED = re.compile(r'"[^"$`]*"|\'[^\']*\'')
+
+
+def mask_search_pattern(segment: str) -> str:
+    """[37099] Arama aracının desen argümanını maskele — Kotlin aynası.
+
+    `rg -n "rm -rf" src/` silme *aramaktır*, silmek değil. Maskeleme yalnız
+    arama araçlarında ve yalnız düz tırnaklı aralıkta: `echo "$(rm -rf /x)"`
+    maskelenmez, komut ikamesi çalıştırılabilir kod taşır.
+    """
+    first = segment.strip().split()[0].rsplit("/", 1)[-1] if segment.strip() else ""
+    if first not in SEARCH_TOOLS:
+        return segment
+    return PLAIN_QUOTED.sub(" ", segment)
+
+
+def classify_segment(raw_segment: str, rules: list[dict]) -> dict | None:
+    segment = mask_search_pattern(raw_segment)
     deny = [r for r in rules if r["group"] == "DENY" and r["pattern"] and r["pattern"].search(segment)]
     if deny:
         r = deny[0]

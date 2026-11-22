@@ -46,11 +46,11 @@ object RiskRules {
     )
 
     // --- Kalıcı silme -------------------------------------------------------
-    private val RM = Regex("""(^|[\s;&|])rm\s""")
-    private val RM_RECURSIVE = Regex("""(^|[\s;&|])rm\s[^;&|]*(-\w*r|--recursive)""")
+    private val RM = Regex("""(^|[\s;&|"'(`{=])rm\s""")
+    private val RM_RECURSIVE = Regex("""(^|[\s;&|"'(`{=])rm\s[^;&|]*(-\w*r|--recursive)""")
     private val FIND_DELETE = Regex("""find\s[^;&|]*-delete""")
-    private val DD = Regex("""(^|[\s;&|])dd\s""")
-    private val MKFS = Regex("""(^|[\s;&|])mkfs(\.\w+)?\s""")
+    private val DD = Regex("""(^|[\s;&|"'(`{=])dd\s""")
+    private val MKFS = Regex("""(^|[\s;&|"'(`{=])mkfs(\.\w+)?\s""")
 
     // --- Git: uzak ve yerel -------------------------------------------------
     private val GIT_PUSH_FORCE = Regex("""git\s+push[^;&|]*(--force(?!-with-lease)|\s-f(\s|$))""")
@@ -59,18 +59,18 @@ object RiskRules {
     private val GIT_BRANCH_D = Regex("""git\s+branch\s+[^;&|]*-D""")
 
     // --- Yetki yükseltme / cihaz ------------------------------------------
-    private val SUDO = Regex("""(^|[\s;&|])(sudo|su|doas)\s""")
-    private val DEVICE_SETTINGS = Regex("""(^|[\s;&|])settings\s+(put|delete)\s""")
+    private val SUDO = Regex("""(^|[\s;&|"'(`{=])(sudo|su|doas)\s""")
+    private val DEVICE_SETTINGS = Regex("""(^|[\s;&|"'(`{=])settings\s+(put|delete)\s""")
     private val DEVICE_PM_BAD = Regex("""\bpm\s+(uninstall|clear|disable-user|disable)\b""")
     private val DEVICE_AM = Regex("""\bam\s+(force-stop|kill)\b""")
     private val SHIZUKU_EXEC = Regex("""android-shizuku-cli\s+exec\b""")
-    private val DEVICE_OTHER_CMDS = Regex("""(^|[\s;&|])(reboot|svc\s+(wifi|data|power)|input\s+keyevent\s+(26|POWER))\b""")
+    private val DEVICE_OTHER_CMDS = Regex("""(^|[\s;&|"'(`{=])(reboot|svc\s+(wifi|data|power)|input\s+keyevent\s+(26|POWER))\b""")
 
     // --- Ağ: dışarı veri ----------------------------------------------------
     private val NET_UPLOAD = Regex("""(curl\b[^;&|]*(-F\s|-T\s|--upload-file|--data-binary\s+@|--data\s+@)|wget\b[^;&|]*--post)""")
-    private val NET_RAW = Regex("""(^|[\s;&|])(nc|ncat|netcat|socat)\s""")
-    private val SSH_SCP = Regex("""(^|[\s;&|])(ssh|scp|rsync)\s""")
-    private val CLOUD_CLI = Regex("""(^|[\s;&|])(gh|aws|gcloud|firebase|vercel|heroku|flyctl)\s""")
+    private val NET_RAW = Regex("""(^|[\s;&|"'(`{=])(nc|ncat|netcat|socat)\s""")
+    private val SSH_SCP = Regex("""(^|[\s;&|"'(`{=])(ssh|scp|rsync)\s""")
+    private val CLOUD_CLI = Regex("""(^|[\s;&|"'(`{=])(gh|aws|gcloud|firebase|vercel|heroku|flyctl)\s""")
 
     // --- Kimlik bilgisi -----------------------------------------------------
     private val SECRET_READ = Regex(
@@ -78,8 +78,8 @@ object RiskRules {
     )
 
     // --- Kurulum / paket ----------------------------------------------------
-    private val PKG_INSTALL = Regex("""(^|[\s;&|])(apk|apt|apt-get|pip|pip3|npm|pnpm|yarn|cargo|gem|go)\s+(add|install|get|i)\b""")
-    private val PKG_UNINSTALL = Regex("""(^|[\s;&|])(apk|apt|apt-get|pip|npm)\s+(del|remove|uninstall|rm)\b""")
+    private val PKG_INSTALL = Regex("""(^|[\s;&|"'(`{=])(apk|apt|apt-get|pip|pip3|npm|pnpm|yarn|cargo|gem|go)\s+(add|install|get|i)\b""")
+    private val PKG_UNINSTALL = Regex("""(^|[\s;&|"'(`{=])(apk|apt|apt-get|pip|npm)\s+(del|remove|uninstall|rm)\b""")
 
     // --- Yorumlayıcı: satır içi kod (37096) --------------------------------
     //
@@ -94,7 +94,7 @@ object RiskRules {
     //  - `shell:interpreter-destroy`: metin silme/üzerine yazma API'si
     //    geçiyorsa -> HIGH + PERMANENT. Bu, oturumdan uzun onay ALMAZ.
     private val INTERPRETER = Regex(
-        """(^|[\s;&|])(python3?|perl|ruby|node|deno|bun|php|Rscript|osascript)\s[\s\S]*\s*-(c|e|r)\b""",
+        """(^|[\s;&|"'(`{=])(python3?|perl|ruby|node|deno|bun|php|Rscript|osascript)\s[\s\S]*\s*-(c|e|r)\b""",
     )
     /**
      * Yorumlayıcı **ve** yıkıcı API aynı parçada olmalı.
@@ -104,8 +104,30 @@ object RiskRules {
      * olarak bırakıyor: metinde `-c`/`-e` ile çalıştırılan kod yoksa kart yok.
      */
     private val INTERPRETER_DESTROY = Regex(
-        """(^|[\s;&|])(python3?|perl|ruby|node|deno|bun|php)\s[\s\S]*-(c|e|r)\b[\s\S]*(shutil\.rmtree|os\.remove|os\.unlink|os\.rmdir|os\.rename|\.unlink\(|\.rmdir\(|rmSync|unlinkSync|rmdirSync|removeDirectory|deleteDirectory|rmtree\(|os\.system|subprocess|open\s*\([^)]*['"]w)""",
+        """(^|[\s;&|"'(`{=])(python3?|perl|ruby|node|deno|bun|php)\s[\s\S]*-(c|e|r)\b[\s\S]*(shutil\.rmtree|os\.remove|os\.unlink|os\.rmdir|os\.rename|\.unlink\(|\.rmdir\(|rmSync|unlinkSync|rmdirSync|removeDirectory|deleteDirectory|rmtree\(|os\.system|subprocess|open\s*\([^)]*['"]w)""",
     )
+
+    // --- Kaçış sınıfı: metinde olmayan kod (37099) ------------------------
+    //
+    // B1'de açık bırakılan sınıf. Üçü de "çalıştırılacak kod komut metninde
+    // yok" demek; kara listeyi büyütmek yerine **çağrıyı** işaretliyoruz:
+    // kabuğa kod vermek, verilen kodun ne olduğunu bilmemektir.
+    //
+    // Ölçüm (düzeltmeden önce): `bash -c "rm -rf /var/minis/shared"`,
+    // `eval "$(curl -s …)"`, `curl … | bash`, çıplak `bash` ve `sh /tmp/a.sh`
+    // beşi de SESSİZ geçiyordu. İlk ikisinin sebebi ayrıydı: komut başı çapası
+    // `(^|[\s;&|])` tırnak/parantez/`$` önünde eşleşmiyordu, yani `"rm -rf`
+    // hiçbir kurala uymuyordu. Çapa genişletildi, sınıf bu kurallarla kapandı.
+    private val EVAL = Regex("""(^|[\s;&|"'(`{=])eval\s""")
+    private val PIPE_TO_SHELL =
+        Regex("""\|\s*(sudo\s+)?(bash|sh|zsh|dash|ksh|fish|python3?|perl|ruby|node|php)\b""")
+    private val SHELL_SCRIPT = Regex(
+        """(^|[\s;&|"'(`{=])(bash|sh|zsh|dash|ksh|fish)\s+(-{1,2}[\w-]+\s+)*(?:[^\s;&|]*/)?[^\s;&|]*\.(sh|bash|zsh|ksh|py|pl|rb|js|command)\b""",
+    )
+    private val SHELL_STDIN = Regex(
+        """(^|[\s;&|"'(`{=])(bash|sh|zsh|dash|ksh|fish)(\s+-{1,2}[\w-]+)*\s*($|[;&|])""",
+    )
+    private val SOURCE_FILE = Regex("""(^|[\s;&|"'(`{=])(source|\.)\s+\S+""")
 
     // --- Yer değiştirme / kesme / yönlendirme (37096) ---------------------
     //
@@ -113,15 +135,15 @@ object RiskRules {
     // `mv /var/minis/shared /tmp`, `truncate -s 0 notes.db`, `> notes.db`.
     // `mv` geri alınabilir (veri hedefte duruyor), `truncate` ve yönlendirme
     // geri alınamaz (içerik okunmadan üzerine yazıldı).
-    private val MV = Regex("""(^|[\s;&|])(mv|rename)\s""")
-    private val TRUNCATE = Regex("""(^|[\s;&|])(truncate|shred|wipe)\s""")
+    private val MV = Regex("""(^|[\s;&|"'(`{=])(mv|rename)\s""")
+    private val TRUNCATE = Regex("""(^|[\s;&|"'(`{=])(truncate|shred|wipe)\s""")
     /** `> /yol` — ama `/dev/null` hariç, yoksa her sessizleştirme kart açardı. */
     private val REDIRECT_OVERWRITE = Regex("""(>>?)\s*(?!/dev/null)(/|\.\.?/|~)""")
-    private val CHMOD_RECURSIVE = Regex("""(^|[\s;&|])(chmod|chown|chattr)\s[^;&|]*-(R|r|-recursive)\b""")
+    private val CHMOD_RECURSIVE = Regex("""(^|[\s;&|"'(`{=])(chmod|chown|chattr)\s[^;&|]*-(R|r|-recursive)\b""")
 
     // --- Veritabanı: veri kaybı (37096) ----------------------------------
     private val SQL_DESTRUCTIVE = Regex(
-        """(^|[\s;&|])(sqlite3|psql|mysql|mariadb)\s[^;&|]*(drop\s+table|drop\s+database|delete\s+from|truncate\s+table|alter\s+table\s+\w+\s+drop)""",
+        """(^|[\s;&|"'(`{=])(sqlite3|psql|mysql|mariadb)\s[^;&|]*(drop\s+table|drop\s+database|delete\s+from|truncate\s+table|alter\s+table\s+\w+\s+drop)""",
         RegexOption.IGNORE_CASE,
     )
 
@@ -146,9 +168,9 @@ object RiskRules {
         // dışında kalır (ikisi ayrışırsa gölge koşucu yalan söyler).
         """(sources\.list|/etc/apt/)[^;&|]*(>>?|tee|sed\s+-i|cp\s|mv\s)|(>>?|tee)\s+\S*(sources\.list|/etc/apt/)""",
     )
-    private val TERMUX_SSHD = Regex("""(^|[\s;&|])(sshd|ssh-keygen|termux-wake-lock)(\s|$)""")
+    private val TERMUX_SSHD = Regex("""(^|[\s;&|"'(`{=])(sshd|ssh-keygen|termux-wake-lock)(\s|$)""")
     private val TERMUX_PKG = Regex(
-        """(^|[\s;&|])(pkg|apt|apt-get|dpkg)\s+(-[a-zA-Z]+\s+)*(install|add|upgrade|dist-upgrade|full-upgrade|remove|purge|autoremove|-i)\b""",
+        """(^|[\s;&|"'(`{=])(pkg|apt|apt-get|dpkg)\s+(-[a-zA-Z]+\s+)*(install|add|upgrade|dist-upgrade|full-upgrade|remove|purge|autoremove|-i)\b""",
     )
 
     val ALL: List<Rule> = listOf(
@@ -182,6 +204,46 @@ object RiskRules {
             reach = Reach.DEVICE,
             recovery = Recovery.RECOVERABLE,
             note = "satır içi kod çalıştırır; kabuk kural tablosu metnin içindeki kodu denetleyemez",
+        ),
+        Rule(
+            id = "shell:pipe-to-shell",
+            pattern = PIPE_TO_SHELL,
+            level = RiskLevel.MEDIUM,
+            reach = Reach.DEVICE,
+            recovery = Recovery.RECOVERABLE,
+            note = "boru hattından gelen kodu çalıştırır; içeriği komut metninde yok, denetlenemez",
+        ),
+        Rule(
+            id = "shell:eval",
+            pattern = EVAL,
+            level = RiskLevel.MEDIUM,
+            reach = Reach.DEVICE,
+            recovery = Recovery.RECOVERABLE,
+            note = "metni yeniden komut olarak yorumlar; çalışacak komut ikinci kez üretildiği için kural tablosu göremez",
+        ),
+        Rule(
+            id = "shell:script-file",
+            pattern = SHELL_SCRIPT,
+            level = RiskLevel.MEDIUM,
+            reach = Reach.DEVICE,
+            recovery = Recovery.RECOVERABLE,
+            note = "bir betik dosyasını çalıştırır; dosyanın içeriği bu komutun metninde değil",
+        ),
+        Rule(
+            id = "shell:stdin-shell",
+            pattern = SHELL_STDIN,
+            level = RiskLevel.MEDIUM,
+            reach = Reach.DEVICE,
+            recovery = Recovery.RECOVERABLE,
+            note = "kabuk standart girdiden komut okuyor; komutlar bu metinde yok",
+        ),
+        Rule(
+            id = "shell:source",
+            pattern = SOURCE_FILE,
+            level = RiskLevel.MEDIUM,
+            reach = Reach.DEVICE,
+            recovery = Recovery.RECOVERABLE,
+            note = "oturumun içine dosyadan komut yükler; dosya içeriği denetlenmiyor",
         ),
         Rule(
             id = "sql:destructive",
@@ -330,8 +392,8 @@ object RiskRules {
      * belki yok. Ajan da reddin gerekçesini alır ve etrafından dolaşabilir.
      */
     val DENY: List<Rule> = listOf(
-        Rule("deny:root", Regex("""rm\s+[^;&|]*(-\w*r\w*\s+)?/(\s|$)"""), RiskLevel.HIGH, Reach.DEVICE, Recovery.PERMANENT, "kök dizini silmek sistemi anında çöker; kurtarma yolu yok"),
-        Rule("deny:storage", Regex("""rm\s+[^;&|]*(-\w*r\w*\s+)?/storage/?(\s|$)"""), RiskLevel.HIGH, Reach.DEVICE, Recovery.PERMANENT, "tüm depolama alanını silmek fotoğraf, belge ve indirmeleri birlikte götürür"),
+        Rule("deny:root", Regex("""(^|[\s;&|])rm\s+(-{1,2}[\w-]+\s+)*["\']?(/\*?|~)["\']?(\s|$)"""), RiskLevel.HIGH, Reach.DEVICE, Recovery.PERMANENT, "kök dizini silmek sistemi anında çöker; kurtarma yolu yok"),
+        Rule("deny:storage", Regex("""(^|[\s;&|])rm\s+(-{1,2}[\w-]+\s+)*["\']?/storage/?["\']?(\s|$)"""), RiskLevel.HIGH, Reach.DEVICE, Recovery.PERMANENT, "tüm depolama alanını silmek fotoğraf, belge ve indirmeleri birlikte götürür"),
         Rule("deny:fork-bomb", Regex("""\w+\(\)\s*\{[^}]*\|\s*\w+[^}]*&"""), RiskLevel.HIGH, Reach.DEVICE, Recovery.UNDOABLE, "kendini çoğaltan süreç; cihazı kullanılamaz hâle getirir"),
         Rule("deny:pm-all", Regex("""pm\s+(uninstall|clear)\s+(com\.openminis\.app|com\.veysel\.minis[A-Za-z]*|com\.minis\.x)\b"""), RiskLevel.HIGH, Reach.DEVICE, Recovery.PERMANENT, "uygulamanın kendisini kaldırmak ya da verisini silmek; ajanı ve tüm verisini yok eder"),
         Rule("deny:deny-self", Regex("""(pm\s+disable-user|pm\s+disable)\s+(com\.openminis\.app|com\.veysel\.minis[A-Za-z]*|com\.minis\.x)\b"""), RiskLevel.HIGH, Reach.DEVICE, Recovery.RECOVERABLE, "uygulamayı devre dışı bırakmak; ajan kendini kapatmış olur ve geri açacak kimse kalmaz"),

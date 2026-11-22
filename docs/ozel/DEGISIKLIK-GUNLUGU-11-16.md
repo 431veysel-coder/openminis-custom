@@ -14,7 +14,7 @@
 (Alpine/musl + Termux/bionic), `probe` ile cihaz uygunluğu, `environment`
 ayrımı (`LD_LIBRARY_PATH` yalnız Termux `lib`), `installPlan` (indir → sha256 →
 aç → SYMLINKS → home → sources → smoke). Güvenlik: `termux:pkg` (MEDIUM),
-`termux:sources` (HIGH/ACCOUNT), `termux:sshd` (HIGH/PERMANENT). 13 test.
+`termux:sources` (HIGH/ACCOUNT), `termux:sshd` (HIGH/PERMANENT). 19 test (`37099` turu sonrası).
 Ayrıntı: `TERMUX-ENTEGRASYONU.md`.
 
 **Ölçülen kısıt:** PRoot konuğunda `/system` yok (`ls /system` → ENOENT), yani

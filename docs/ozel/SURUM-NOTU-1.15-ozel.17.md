@@ -92,7 +92,7 @@ Katman **varsayılan kapalı**. Kurulmadan `apt` yok; `sshd` ayrıca kart istiyo
 "var görünen ama çalışmayan özellik" `.14`'te kınanan sınıfın ta kendisi.
 
 ### Testler
-`TermuxLayerTest` — **13 test**, cihazsız: uygunluk (linker yok / `/system` /
+`TermuxLayerTest` — **19 test**, cihazsız: uygunluk (linker yok / `/system` /
 APEX), yer kontrolü, önek haritası, ortam ayrımı (`LD_LIBRARY_PATH` yalnız
 Termux `lib` — musl lib'i bionic ikilisine yüklenirse sessiz çökme), katman
 seçimi, plan sırası, sabit bootstrap sürümü.
@@ -136,8 +136,8 @@ DOGRULAMA = """\
 
 | Kontrol | Komut | Sonuç |
 |---|---|---|
-| Risk korpusu | `python3 scripts/ozel/risk-corpus.py --fail-on-mismatch` | **57 komut · 0 sapma · 37 kural** |
-| Yapısal denetim | `python3 scripts/ozel/kotlin-denetim.py` | **1 644 dosya · yapısal hata yok** |
+| Risk korpusu | `python3 scripts/ozel/risk-corpus.py --fail-on-mismatch` | **74 komut · 0 sapma · 42 kural** |
+| Yapısal denetim | `python3 scripts/ozel/kotlin-denetim.py` | **1 646 dosya · yapısal hata yok** |
 | Entegrasyon | `python3 scripts/integration_audit.py` | **10/11 dilim üretimden çağrılıyor** |
 | Etiket | `python3 scripts/ozel/tag-denetim.py` | **5 etiket yanlış commit'te** |
 | Anlık görüntü | `python3 scripts/ozel/snapshot.py` | zip + git bundle + damga |

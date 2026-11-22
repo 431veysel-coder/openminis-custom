@@ -68,6 +68,9 @@ class RiskClassifier(
      */
     private val tempRoots = listOf("/tmp", "/var/tmp", "/dev/shm")
 
+    /** Düz tırnaklı aralık — `$(...)` ve ters tırnak kasıtlı olarak dışarıda. */
+    private val PLAIN_QUOTED = Regex(""""[^"$`]*"|'[^']*'""")
+
     // ------------------------------------------------------------------ shell
 
     /** Tek bir kabuk komutunu, parçalarına ayırıp en ağır karara indirger. */
@@ -81,7 +84,41 @@ class RiskClassifier(
         return splitSegments(trimmed).mapNotNull { segment -> classifySegment(segment) }
     }
 
-    private fun classifySegment(segment: String): RiskVerdict? {
+    /** [37099] Arama araçları — desen argümanı taşıyan komutlar. */
+    private val searchTools = setOf("rg", "ripgrep", "grep", "egrep", "fgrep", "ag", "ack", "fd")
+
+    /**
+     * [37099] Arama aracının **desen** argümanını maskeler.
+     *
+     * ## Neden gerekli
+     *
+     * Komut başı çapası tırnak/parantez önünde de eşleşecek şekilde
+     * genişletildi (yoksa `bash -c "rm -rf /x"` sessiz geçiyordu). Yan etkisi:
+     * `rg -n "rm -rf" src/` — yani silme *kalıbını arayan* komut — silme
+     * sanıldı ve `deny:root` ile **kart bile açılmadan** reddedildi. Korpusun
+     * kendi ilkesi bunu yasaklıyor: "kodu ARAMAK silmek değildir".
+     *
+     * ## Neden yalnız düz tırnak
+     *
+     * `rg "rm -rf"` maskelenir; `echo "$(rm -rf /x)"` maskelenmez. Komut
+     * ikamesi (`$(...)`, ters tırnak) tırnak içinde olsa bile çalıştırılabilir
+     * kod taşır — onu maskelemek gerçek bir silmeyi görünmez yapardı.
+     *
+     * ## Neden yalnız arama araçları
+     *
+     * Liste dar tutuldu. `echo "rm -rf /"` bilinçli olarak maskelenmiyor:
+     * anlamsız bir echo için kart çıkarmak gürültü, ama sessiz geçirmek
+     * `bash -c` sınıfını geri açardı. Gürültü tarafında kalmak doğru taraf.
+     */
+    private fun maskSearchPattern(segment: String): String {
+        val head = segment.trim().substringBefore(' ').substringAfterLast('/')
+        if (head !in searchTools) return segment
+        return PLAIN_QUOTED.replace(segment, " ")
+    }
+
+    private fun classifySegment(rawSegment: String): RiskVerdict? {
+        val segment = maskSearchPattern(rawSegment)
+
         // 1) Hiç sorulmadan reddedilenler önce — kart bile üretilmez.
         RiskRules.DENY.firstOrNull { it.pattern.containsMatchIn(segment) }?.let { deny ->
             return RiskVerdict(

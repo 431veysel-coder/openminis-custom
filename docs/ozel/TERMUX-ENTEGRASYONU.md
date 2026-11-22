@@ -445,7 +445,7 @@ denmez.
 ### 8.4 Denetim kapıları
 
 - `risk-corpus.py` → **57/57** (Termux satırları dahil) — CI'da `ozel-guard.yml`
-- `kotlin-denetim.py` → 1644 dosya, yapısal hata yok
+- `kotlin-denetim.py` → 1646 dosya, yapısal hata yok
 - `integration_audit.py` → Termux katmanı **bağlanana kadar** `BEKLİYOR`
   sayılır; bağlandığında 11/12 olmalı
 
@@ -457,7 +457,7 @@ denmez.
 
 | Faz | İş | Neden bu sırada |
 |---|---|---|
-| **P1** ✅ | `TermuxLayer` + 3 kural + 13 test + korpus | Karar mantığı önce: kurulum yazmadan önce "çalışır mı" belli olsun |
+| **P1** ✅ | `TermuxLayer` + 3 kural + 19 test + korpus | Karar mantığı önce: kurulum yazmadan önce "çalışır mı" belli olsun |
 | **P2** ✅ | `TermuxInstaller` (10 adım, tekrar başlatılabilir) + `PRootKernel` bağları + `USER_TREES` + `TermuxPrompt` + `ToolchainManager.termuxGroup` | Gerçek kurulum ve **modelin haberi**: araç var, istem yok = özellik yok |
 | **P3** | `ToolchainScreen` ilerleme çubuğu + terminal katman rozeti | Kalan tek görünür iş; `install()` zaten `Installing(line)` yayıyor |
 | **P4** | `sshd` anahtar tabanlı, parola kapalı, otomatik kapanma (30 dk) | En riskli yüzey en sona |

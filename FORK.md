@@ -12,8 +12,8 @@
 | Platform | Yalnız Android (iOS macOS/Xcode ister, kapsam dışı) |
 | Uygulama kimliği | `com.minis.x` — resmî uygulamayla **yan yana** kurulur |
 | Görünen ad | Minis X |
-| Mevcut sürüm | `1.15-ozel.10.1` / `versionCode 37016` |
-| Durum | Upstream'e göre **19 commit ileride, 0 geride** |
+| Mevcut sürüm | `1.15-ozel.17` / `versionCode 37098` |
+| Durum | Upstream'e göre **73 commit ileride, 0 geride** (2026-11-21) |
 
 ---
 
@@ -84,15 +84,15 @@ Bu depoya dokunan herkesin (gelecekteki ben dahil) uyduğu kurallar:
 | `applicationId` | `com.openminis.app` | `com.minis.x` |
 | `namespace` | `com.openminis.app` | **aynı bırakıldı** (bkz. §5'teki tuzak) |
 | Uygulama adı | Minis | Minis X |
-| `versionCode` | 37 | 37014 |
-| `versionName` | 1.15 | 1.15-ozel.9 |
+| `versionCode` | 37 | 37098 |
+| `versionName` | 1.15 | 1.15-ozel.17 |
 | İmza | OpenMinis anahtarı | kendi 4096-bit RSA anahtarımız |
 | `RELEASE_REPO` | `OpenMinis/OpenMinis` | bu çatal |
 | `AUTO_UPDATE_CHECK` | true | true — **ama bu repoya bakıyor** |
 | Provider presetleri | upstream listesi | + **Evren API** (§3.1) |
 | Düşünme bloğu çevirisi | yok | **var** (§3.2) |
 | Canlı Görevler paneli | yok | **var** (§3.3) |
-| Araç zinciri ekranı | yok | **11 grup** (§3.5) |
+| Araç zinciri ekranı | yok | **12 grup** — 11 `apk` grubu + Termux katmanı (§3.5) |
 | Hızlı Ayarlar karosu | yok | **var** (§3.6) |
 | Derleme hattı | özel ağaç (repoda yok) | **GitHub Actions** (§4) |
 | Upstream test paketi | var | aynı, ama APK ondan önce yüklenir |

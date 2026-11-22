@@ -176,4 +176,51 @@ class TermuxLayerTest {
         assertTrue(TermuxLayer.BOOTSTRAP_URL.contains("bootstrap-2026.11.15"))
         assertTrue(TermuxLayer.BOOTSTRAP_NAME.endsWith("-aarch64.zip"))
     }
+
+    // ---------------------------------------------------------------- 37099
+    //
+    // SYMLINKS.txt biçimi ve açma işareti. Bu dördü .17'de YOKTU ve ilk
+    // ikisinin karşılığı koddaki gerçek bir hataydı: biçim `hedef←bağ`
+    // (termux-packages `create_bootstrap_archive`: `echo "$(readlink
+    // "$link")←${link}"`), kod ise soldakini bağ adı sanıyordu. Sonuç
+    // sessizdi — "symlinks: N kuruldu" diyordu, `bash` kütüphane bulamıyordu.
+
+    @Test
+    fun `symlink satirinda solda hedef sagda bag yolu`() {
+        val parsed = TermuxLayer.parseSymlinkLine("libncursesw.so.6.5←./lib/libncursesw.so.6")
+        assertEquals("libncursesw.so.6.5", parsed?.first)
+        assertEquals("lib/libncursesw.so.6", parsed?.second)
+    }
+
+    @Test
+    fun `symlink satiri tirnakli ve bosluklu bicimi de cozer`() {
+        val parsed = TermuxLayer.parseSymlinkLine("  /system/bin/sh←./bin/sh  ")
+        assertEquals("/system/bin/sh", parsed?.first)
+        assertEquals("bin/sh", parsed?.second)
+    }
+
+    @Test
+    fun `symlink ayristiricisi bozuk ve kacisli satiri reddeder`() {
+        // Boş / açıklama
+        assertNull(TermuxLayer.parseSymlinkLine(""))
+        assertNull(TermuxLayer.parseSymlinkLine("   "))
+        assertNull(TermuxLayer.parseSymlinkLine("# açıklama"))
+        // Ayırıcı yok, iki tane var, bir taraf boş
+        assertNull(TermuxLayer.parseSymlinkLine("tek-parca"))
+        assertNull(TermuxLayer.parseSymlinkLine("a←b←c"))
+        assertNull(TermuxLayer.parseSymlinkLine("←bin/x"))
+        assertNull(TermuxLayer.parseSymlinkLine("hedef←"))
+        // Önek dışına çıkan bağ yolu kurulmaz
+        assertNull(TermuxLayer.parseSymlinkLine("hedef←../../etc/passwd"))
+        assertNull(TermuxLayer.parseSymlinkLine("hedef←/etc/passwd"))
+    }
+
+    @Test
+    fun `acma isareti yoksa yeniden acilir`() {
+        // İşaret yalnız son girişten SONRA yazılır; yarım açma "tamam"
+        // sayılmamalı, yoksa eksik 3 779 dosyayla kurulum yeşil görünürdü.
+        val root = File("/rootfs-yok")
+        assertFalse(TermuxLayer.isExtracted(root))
+        assertTrue(TermuxLayer.EXTRACT_MARKER.startsWith("."))
+    }
 }

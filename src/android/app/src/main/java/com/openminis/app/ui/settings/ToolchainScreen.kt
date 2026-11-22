@@ -340,6 +340,9 @@ fun ToolchainScreen(onBack: () -> Unit) {
 }
 
 private fun iconFor(id: String): ImageVector = when (id) {
+    // [37099] Termux satırı varsayılana düşüyordu ve Java'nın ikonunu
+    // (DeveloperMode) alıyordu: iki ayrı araç zinciri aynı görünüyordu.
+    "termux" -> Icons.Outlined.Terminal
     "c" -> Icons.Outlined.Code
     "python" -> Icons.Outlined.Pets
     "node" -> Icons.Outlined.Computer
@@ -355,6 +358,8 @@ private fun iconFor(id: String): ImageVector = when (id) {
 }
 
 private fun colorFor(id: String): Color = when (id) {
+    // [37099] Termux katmanı bionic tarafı — Alpine (mavi) değil, ayrı renk.
+    "termux" -> Color(0xFF2E7D32)
     "c" -> Color(0xFF5E5CE6)
     "python" -> Color(0xFF30B0C7)
     "node" -> Color(0xFF34C759)

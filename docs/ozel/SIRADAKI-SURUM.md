@@ -20,7 +20,7 @@ reddedilen seçenekler).
 | **P2** ✅ | `RootfsManager.USER_TREES` += `data/data/com.termux` | ✅ |
 | **P2** ✅ | `TermuxInstaller` (10 adım, tekrar başlatılabilir, sabit sha256, zip-slip, SYMLINKS.txt) | ✅ |
 | **P2** ✅ | `TermuxPrompt` — modelin katmanı bilmesi (istemsiz araç = özellik yok) | ✅ |
-| **P3** | `ToolchainScreen`: ilerleme çubuğu (kart `Installing(line)` alıyor; yüzde yok) | ⬜ |
+| **P3** | `ToolchainScreen`: ilerleme çubuğu + adım satırı | ◐ |
 | **P3** | Terminal oturum başlığında katman rozeti (`ALPINE` / `TERMUX`) | ⬜ |
 | **P4** | `sshd` anahtar tabanlı, parola kapalı, 30 dk otomatik kapanma | ⬜ |
 | **P5** | Ölçüm tablosunu doldur (kurulum süresi, RAM, `apt update` boyutu) | ⬜ |
@@ -34,9 +34,37 @@ yaşandı — rootfs yeniden çıkarılınca 1,4 GB'lık araç zinciri silinmiş
 dizine açılıyordu (Alpine'in `/bin`'ini ezerdi) ve kurulum `boot()` yapmadan
 proot çağırıyordu.
 
-**P3 başlamadan:** `ToolchainScreen` zaten `install(context, group.id)`
-çağırıyor, yani "Kur" düğmesi **çalışır durumda**. Eksik olan yalnız ilerleme
-görselliği ve terminal katman rozeti.
+**P3 durumu — ölçülmüş, iddia değil.** `ToolchainScreen` zaten
+`install(context, group.id)` çağırıyor, yani "Kur" düğmesi **çalışır durumda**.
+İlerleme çubuğu da **var**: `LinearProgressIndicator` (belirsiz) + adım satırı
+(`TermuxInstaller.Progress` → "indirme 12,4/31,6 MB"). Eksik olan tek şey
+**yüzde**: bilinçli, çünkü adımların süresi (sha256, 3 779 dosya açma) toplam
+süreden çok farklı — yüzde uydurmak, "5 dakika kaldı" deyip 12 dakika sürmek
+olurdu. Kalan gerçek iş: terminal oturum başlığındaki katman rozeti.
+
+`37099` turunda bu dosyada düzeltilen üç yanlış: (1) P3 "tamamen yok" gibi
+gösteriliyordu, oysa çubuk vardı; (2) `TermuxLayerTest` 15 değil **19** test
+taşıyor; (3) korpus 57 değil **74** satır.
+
+---
+
+## A0b · düzeltme turu `37099` — kapandı
+
+Sekiz gerçek hata, dördü sessiz. Kanıt: `docs/ozel/DENETIM-37099.md`.
+
+| # | Sınıf | Hata | Durum |
+|---|---|---|---|
+| 1 | **sessiz** | `SYMLINKS.txt` sırası tersti (`hedef←bağ` biçiminde soldaki hedef, kod bağ sanıyordu) → `bash` kütüphane bulamaz, kurulum smoke'ta düşer | ✅ |
+| 2 | güvenlik | `curl … \| bash`, `eval "$(…)"`, çıplak `bash`, `sh x.sh` beşi de SESSİZ geçiyordu (B1) | ✅ |
+| 3 | **sessiz** | Komut başı çapası `(^|[\s;&\|])` tırnak önünde eşleşmiyordu → `bash -c "rm -rf …"` hiçbir kurala uymuyordu | ✅ |
+| 4 | **sessiz** | `rm -rf /` DENY'i ile `rg "rm -rf"` çakışıyordu: arama DENY oluyordu | ✅ |
+| 5 | **sessiz** | 71 yeni anahtarın Türkçesi yoktu; üç kapı da yeşildi | ✅ |
+| 6 | eşzamanlılık | `ChatHealthBridge.publish` atomik değil → paralel oturumda çip kaybolur | ✅ |
+| 7 | görsel | Termux satırı Java'nın ikonunu/grubunu alıyordu (varsayılan dal) | ✅ |
+| 8 | birim | "Tüm gruplar kurulursa" toplamına Termux'un **indirme** boyutu (32) giriyordu, disk (110) değil | ✅ |
+
+Yeni kapı: `scripts/ozel/ceviri-denetim.py` (`--fail-on-new`, taban dosyası ile
+ratchet) → `ozel-guard.yml`'e bağlandı.
 
 ---
 

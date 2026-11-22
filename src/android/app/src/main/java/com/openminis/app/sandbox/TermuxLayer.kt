@@ -221,6 +221,56 @@ object TermuxLayer {
             File(guestPrefixDir(rootfsDir), "etc/apt/sources.list").exists()
 
     /**
+     * Açma adımının tamamlandığını gösteren işaret dosyası (önek içinde).
+     *
+     * Neden gerekli: `install()` "tekrar başlatılabilir" diyor ama açma adımı
+     * her denemede 3 779 dosyayı yeniden yazıyordu. Yarıda kalan bir kurulum
+     * sonraki denemede baştan açıyordu — 110 MB yazma, telefonda dakikalar.
+     * İşaret yalnız **son girişten sonra** yazılır, yani yarım açma "tamam"
+     * sayılmaz.
+     */
+    const val EXTRACT_MARKER: String = ".minis-extract-complete"
+
+    /** Açma tamamlanmış mı — işaret dosyası öneğin kökünde. */
+    fun isExtracted(rootfsDir: File): Boolean =
+        File(guestPrefixDir(rootfsDir), EXTRACT_MARKER).exists()
+
+    /**
+     * `SYMLINKS.txt` satırını çözer: `hedef←bağ yolu`.
+     *
+     * ## Neden bu fonksiyon var (ve neden sırası önemli)
+     *
+     * Biçim Termux'un kendi üreticisinde sabit:
+     * `echo "$(readlink "$link")←${link}"` (termux-packages,
+     * `create_bootstrap_archive`). Yani **solda hedef, sağda bağ yolu**:
+     * `libncursesw.so.6.5←./lib/libncursesw.so.6`.
+     *
+     * İlk yazımda ikisi tersti: kod `parts[0]`'ı bağ adı sanıp `parts[1]`'i
+     * hedef yaptı. Sonuç sessizdi — "symlinks: N kuruldu" diyordu, ama `bash`
+     * `libncursesw` bulamıyordu, çünkü bağlar yanlış adlarla ve yanlış hedefe
+     * kurulmuştu. Bu yüzden çözümleme saf bir fonksiyon: testi cihazsız koşar.
+     *
+     * Hedef **olduğu gibi** döner: `readlink` göreli döner ve göreli hedef
+     * bağın kendi dizinine göre çözülür — Termux'un kendi kurucusu da aynı
+     * şeyi yapar (`Os.symlink(parts[0], parts[1])`).
+     *
+     * @return `hedef to bağ yolu`; boş/açıklama/bozuk satırda `null`.
+     */
+    fun parseSymlinkLine(line: String): Pair<String, String>? {
+        val t = line.trim()
+        if (t.isEmpty() || t.startsWith("#")) return null
+        val parts = t.split('←')
+        if (parts.size != 2) return null
+        val target = parts[0].trim()
+        val link = parts[1].trim().removePrefix("./")
+        if (target.isEmpty() || link.isEmpty()) return null
+        // Önek dışına taşan bağ yolu kurulmaz: `../../` ile kökün dışına bağ
+        // kurmak, ayrıcalığı olmayan bir yazma yolu açar.
+        if (link.startsWith("/") || link.split('/').any { it == ".." }) return null
+        return target to link
+    }
+
+    /**
      * Kabuk için ortam. `PATH` Termux önekini **öne** alır; Alpine araçları
      * erişilebilir kalır (ikinci katman).
      *

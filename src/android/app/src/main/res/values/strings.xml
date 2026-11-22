@@ -3166,7 +3166,7 @@
     <string name="teams_member_tool_count">%1$d tools</string>
 
     <!-- [MINIS-OZEL 11.5 · 37064] Council run screen. -->
-    <string name="council_title">Konsey</string>
+    <string name="council_title">Council</string>
     <string name="council_section_running">Running now</string>
     <string name="council_section_past">Finished runs</string>
     <string name="council_empty_title">No council runs yet</string>
@@ -3183,7 +3183,7 @@
     <string name="council_run_gone_hint">It finished earlier in another session, or the app was restarted.</string>
     <string name="council_row_member_session">Open live session</string>
     <!-- [MINIS-OZEL 11.5 · 37050–37055] Task board and task hall. -->
-    <string name="task_hall_title">Görevler</string>
+    <string name="task_hall_title">Tasks</string>
     <string name="task_hall_hint">What the councils decided to do, across every team. A task only reaches "done" with evidence attached.</string>
     <string name="task_hall_empty">Nothing here. A council run opens tasks as it goes.</string>
     <string name="task_hall_run_header">Tasks from this run</string>

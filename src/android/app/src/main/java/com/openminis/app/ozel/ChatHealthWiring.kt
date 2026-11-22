@@ -10,6 +10,7 @@ import com.openminis.app.ozel.health.HealthState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -64,8 +65,16 @@ object ChatHealthBridge {
     private fun tracker(sessionId: String): ChatHealthTracker =
         trackers.getOrPut(sessionId) { ChatHealthTracker { SystemClock.elapsedRealtime() } }
 
+    /**
+     * Yayın — **atomik** olmak zorunda.
+     *
+     * `_state.value = _state.value + (id to health)` okuma-yazma yarışıdır:
+     * iki oturum aynı anda biterse (paralel alt ajan, Compare fan-out) son
+     * yazan diğerinin çipini ezer ve o oturumun göstergesi Canlı Görevler'den
+     * kaybolur. `update {}` CAS ile döner, kayıp yok.
+     */
     private fun publish(sessionId: String, health: ChatHealth) {
-        _state.value = _state.value + (sessionId to health)
+        _state.update { it + (sessionId to health) }
     }
 
     /** İstek yola çıktı. Anahtar burada okunur — turda bir kez. */
@@ -125,7 +134,7 @@ object ChatHealthBridge {
     /** Oturum kapandı: izleyici de gider, aksi hâlde süreç ömrü boyunca birikir. */
     fun forget(sessionId: String) {
         trackers.remove(sessionId)
-        _state.value = _state.value - sessionId
+        _state.update { it - sessionId }
     }
 
     /** Testler için: durumu sıfırla. */

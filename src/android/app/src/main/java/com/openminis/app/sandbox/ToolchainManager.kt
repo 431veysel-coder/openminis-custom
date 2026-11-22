@@ -83,16 +83,20 @@ object ToolchainManager {
      * grupların arasında görmeli — ayrı bir ekran, "bu nerede" sorusunu
      * doğurur. Kurulum yolu `install()` içinde ayrılıyor.
      *
-     * `sizeMb` bootstrap'in **indirme** boyutu (31,6 MB → 32). Kurulum
-     * sonrası disk 110 MB; iki sayı ayrı yerde yazılı ve kart ikisini de
-     * göstermeli, yoksa "32 MB dedin 110 MB yedi" şikâyeti haklı olur.
+     * `sizeMb` **diskte** kapladığı yer (110 MB), indirme boyutu değil.
+     *
+     * Neden: bu alan iki yerde toplanıyor — satırın "~N MB" etiketi ve ekranın
+     * "tüm gruplar kurulursa N MB" toplamı. Toplam bir disk bütçesidir; oraya
+     * indirme boyutu (32) koymak elmayla armudu toplardı ve 1,4 GB'lık gerçek
+     * maliyeti 1,3 GB gösterirdi. İki sayı da görünür kalsın diye indirme
+     * boyutu altyazıda ayrıca yazılı (`toolchain_termux_subtitle`).
      */
     val termuxGroup: Group = Group(
         id = TERMUX_GROUP_ID,
         titleRes = com.openminis.app.R.string.toolchain_termux_title,
         subtitleRes = com.openminis.app.R.string.toolchain_termux_subtitle,
         packages = emptyList(),
-        sizeMb = TermuxLayer.BOOTSTRAP_ZIP_MB,
+        sizeMb = TermuxLayer.BOOTSTRAP_UNPACKED_MB,
         probe = "${TermuxLayer.GUEST_PREFIX}/bin/bash --version",
         // Mutlak yol şart: `command -v bash` Alpine'in bash'ini de bulur ve
         // katman kurulmamışken "kurulu" derdi. Mutlak yol, yalnız Termux'un

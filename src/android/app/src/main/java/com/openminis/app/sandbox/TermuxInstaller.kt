@@ -158,7 +158,15 @@ object TermuxInstaller {
         val prefixDir = TermuxLayer.guestPrefixDir(root)
         val extractErr = runCatching {
             prefixDir.mkdirs()
-            unzip(zip, root)
+            if (TermuxLayer.isExtracted(root)) {
+                // Önceki denemede açma bitti: 3 779 dosyayı yeniden yazmak
+                // yalnız dakika harcar. İşaret yarım açmada yazılmadığı için
+                // bu kontrol "yarıda kalmışı atla" demek değil.
+                Log.i(TAG, "extract skipped: marker present")
+            } else {
+                unzip(zip, root)
+                File(prefixDir, TermuxLayer.EXTRACT_MARKER).writeText("1\n")
+            }
         }.exceptionOrNull()?.let { it.message ?: it.javaClass.simpleName }
         emit(
             Progress(
@@ -380,13 +388,11 @@ object TermuxInstaller {
         var created = 0
         var failed = 0
         file.forEachLine { raw ->
-            val line = raw.trim()
-            if (line.isEmpty() || line.startsWith("#")) return@forEachLine
-            val parts = line.split("←")
-            if (parts.size != 2) return@forEachLine
-            val linkName = parts[0].trim()
-            val target = parts[1].trim().removePrefix("./")
-            if (linkName.isEmpty()) return@forEachLine
+            // Çözümleme `TermuxLayer.parseSymlinkLine`'da: biçim `hedef←bağ`,
+            // solda hedef. Burada sırayı ters çevirmek sessiz bir hataydı.
+            val parsed = TermuxLayer.parseSymlinkLine(raw) ?: return@forEachLine
+            val target = parsed.first
+            val linkName = parsed.second
             val linkFile = File(prefix, linkName)
             runCatching {
                 linkFile.parentFile?.mkdirs()
