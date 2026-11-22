@@ -52,6 +52,7 @@ EXCLUDE_DIRS = {
 DOC_FILES = [
     "docs/ozel/TERMUX-ENTEGRASYONU.md",
     "docs/ozel/DENETIM-37096.md",
+    "docs/ozel/DENETIM-37098.md",
     "docs/ozel/DEGISIKLIK-GUNLUGU-11-16.md",
     "docs/ozel/SIRADAKI-SURUM.md",
     "docs/ozel/ENTEGRASYON-DURUMU.md",
@@ -251,6 +252,7 @@ def main() -> int:
         "| `TERMUX-ENTEGRASYONU.md` | Termux katmanı tasarımı: mimari, ölçüm, güvenlik, T1–T10 |\n"
         "| `SIRADAKI-SURUM.md` | Fazlar P1→P5 ve açık işler |\n"
         "| `DENETIM-37096.md` | `.15` incelemesi: 10 bulgu, kanıtlarıyla |\n"
+        "| `DENETIM-37098.md` | Termux kodunun kendi incelemesi: **7 hata**, kanıtlarıyla |\n"
         "| `DEGISIKLIK-GUNLUGU-11-16.md` | `.11.3.1` → bugün |\n"
         "| `ENTEGRASYON-DURUMU.md` | Hangi dilim üretimden çağrılıyor (10/11) |\n"
         "| `SURUM-NOTU-*.md` | Release gövdeleri (çalıştırınca metin basar) |\n"

@@ -92,7 +92,7 @@ Katman **varsayılan kapalı**. Kurulmadan `apt` yok; `sshd` ayrıca kart istiyo
 "var görünen ama çalışmayan özellik" `.14`'te kınanan sınıfın ta kendisi.
 
 ### Testler
-`TermuxLayerTest` — **13 test**, cihazsız: uygunluk (linker yok / `/system` /
+`TermuxLayerTest` — **15 test**, cihazsız: uygunluk (linker yok / `/system` /
 APEX), yer kontrolü, önek haritası, ortam ayrımı (`LD_LIBRARY_PATH` yalnız
 Termux `lib` — musl lib'i bionic ikilisine yüklenirse sessiz çökme), katman
 seçimi, plan sırası, sabit bootstrap sürümü.

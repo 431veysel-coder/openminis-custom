@@ -201,6 +201,18 @@ object TermuxLayer {
     fun guestHomeDir(rootfsDir: File): File = File(rootfsDir, GUEST_HOME.trimStart('/'))
 
     /**
+     * [37098] Kök dosya sisteminin kurulum dizini adı — **tek kaynak**.
+     *
+     * Depoda bu ad 8 yerde elle yazılmıştı (`"alpine-rootfs"` string olarak).
+     * Ad değişirse (ör. sürümlü kök `/alpine-rootfs-3.22`'ye geçilirse) hepsi
+     * sessizce bozulur: bazıları eski dizine bakar, bazıları yenisine.
+     * `RootfsManager.rootfsDir` zaten var; Android bağlantılı dosyalar bu
+     * sabiti onunla hizalar. `RootfsManager`'ın kendisi tanımı elinde tutar,
+     * buradaki sabit yalnız diğer kullanıcılara çıkarılmış addır.
+     */
+    const val ROOTFS_DIR_NAME: String = "alpine-rootfs"
+
+    /**
      * Bootstrap zip girişinin **açılacağı** yer.
      *
      * Zip girişleri öneğe göre göreli (`bin/bash`, `etc/apt/sources.list`) —
@@ -227,6 +239,13 @@ object TermuxLayer {
      * `LD_LIBRARY_PATH` yalnız Termux `lib` dizinini içerir: bionic ikilileri
      * musl `lib`'ini görmemeli (karışık yükleme sessiz çökme üretir).
      */
+    /**
+     * Konuk bionic ikililerinin kitaplık arama yolu — proot'un ana süreç
+     * `LD_LIBRARY_PATH`'iyle **birleştirilerek** kullanılır (bkz.
+     * `TermuxInstaller.runInGuest`: iki yol da geçerli, tek biri seçilmez).
+     */
+    const val LD_LIBRARY_PATH_GUEST: String = "$GUEST_PREFIX/lib"
+
     fun environment(rootfsDir: File, homeOverride: String? = null): Map<String, String> {
         val p = GUEST_PREFIX
         return mapOf(

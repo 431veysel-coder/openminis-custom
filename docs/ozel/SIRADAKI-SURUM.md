@@ -20,8 +20,8 @@ reddedilen seçenekler).
 | **P2** ✅ | `RootfsManager.USER_TREES` += `data/data/com.termux` | ✅ |
 | **P2** ✅ | `TermuxInstaller` (10 adım, tekrar başlatılabilir, sabit sha256, zip-slip, SYMLINKS.txt) | ✅ |
 | **P2** ✅ | `TermuxPrompt` — modelin katmanı bilmesi (istemsiz araç = özellik yok) | ✅ |
-| **P3** | `ToolchainScreen`: ilerleme çubuğu (kart `Installing(line)` alıyor; yüzde yok) | ⬜ |
-| **P3** | Terminal oturum başlığında katman rozeti (`ALPINE` / `TERMUX`) | ⬜ |
+| **P3** ✅ | Kart zaten `Installing(line)` gösteriyor (mevcut `ToolchainScreen` akışı) | ✅ |
+| **P3** ✅ | Terminal başlığında katman rozeti (`Terminal · TERMUX`, `remember` içinde) | ✅ |
 | **P4** | `sshd` anahtar tabanlı, parola kapalı, 30 dk otomatik kapanma | ⬜ |
 | **P5** | Ölçüm tablosunu doldur (kurulum süresi, RAM, `apt update` boyutu) | ⬜ |
 
@@ -34,9 +34,11 @@ yaşandı — rootfs yeniden çıkarılınca 1,4 GB'lık araç zinciri silinmiş
 dizine açılıyordu (Alpine'in `/bin`'ini ezerdi) ve kurulum `boot()` yapmadan
 proot çağırıyordu.
 
-**P3 başlamadan:** `ToolchainScreen` zaten `install(context, group.id)`
-çağırıyor, yani "Kur" düğmesi **çalışır durumda**. Eksik olan yalnız ilerleme
-görselliği ve terminal katman rozeti.
+**P3 bitti.** Kart `Installing(line)` yayıyor (mevcut akış), terminal başlığı
+katman rozetini taşıyor. İkinci turda iki sinsi daha kapatıldı:
+`LD_LIBRARY_PATH` üzerine yazımı (proot kendi yükleyicisini kaybederdi) ve
+`alpine-rootfs` adının sekiz yerde elle yazılmış olması. Ayrıntı:
+`DENETIM-37098.md` §14. Kalan: **P4** (`sshd`) ve **P5** (ölçümler).
 
 ---
 

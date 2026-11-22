@@ -410,7 +410,7 @@ tek yol olarak söylüyor.
 
 | Dosya | Ne çiviliyor | Adet |
 |---|---|---|
-| `TermuxLayerTest` | uygunluk (linker yok/var/apex), yer, önek haritası, ortam ayrımı, katman seçimi, plan sırası, sabit sürüm | 13 |
+| `TermuxLayerTest` | uygunluk (linker yok/var/apex), yer, önek haritası, ortam ayrımı, katman seçimi, plan sırası, sabit sürüm, açma hedefi, `data` altı | 15 |
 | `RiskCorpusTest` | `termux:pkg` MEDIUM, `termux:sources` HIGH, `termux:sshd` HIGH, sıra | 57 satır (9'u Termux) |
 
 ### 8.2 Cihaz testi (instrumented / elle checklist)
@@ -457,7 +457,7 @@ denmez.
 
 | Faz | İş | Neden bu sırada |
 |---|---|---|
-| **P1** ✅ | `TermuxLayer` + 3 kural + 13 test + korpus | Karar mantığı önce: kurulum yazmadan önce "çalışır mı" belli olsun |
+| **P1** ✅ | `TermuxLayer` + 3 kural + 15 test + korpus | Karar mantığı önce: kurulum yazmadan önce "çalışır mı" belli olsun |
 | **P2** ✅ | `TermuxInstaller` (10 adım, tekrar başlatılabilir) + `PRootKernel` bağları + `USER_TREES` + `TermuxPrompt` + `ToolchainManager.termuxGroup` | Gerçek kurulum ve **modelin haberi**: araç var, istem yok = özellik yok |
 | **P3** | `ToolchainScreen` ilerleme çubuğu + terminal katman rozeti | Kalan tek görünür iş; `install()` zaten `Installing(line)` yayıyor |
 | **P4** | `sshd` anahtar tabanlı, parola kapalı, otomatik kapanma (30 dk) | En riskli yüzey en sona |

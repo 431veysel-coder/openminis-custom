@@ -58,7 +58,7 @@ object TermuxInstaller {
 
     data class Result(val ok: Boolean, val message: String, val steps: List<Progress>)
 
-    private fun rootfs(ctx: Context) = File(ctx.filesDir, "alpine-rootfs")
+    private fun rootfs(ctx: Context) = File(ctx.filesDir, TermuxLayer.ROOTFS_DIR_NAME)
 
     /** Geçici indirme — kökün İÇİNDE değil, uygulamanın cache'inde. */
     private fun downloadFile(ctx: Context) = File(ctx.cacheDir, "termux-bootstrap-aarch64.zip")
@@ -435,15 +435,29 @@ object TermuxInstaller {
         val pb = ProcessBuilder(PRootKernel.buildProotCommand(command))
         pb.redirectErrorStream(true)
         val env = pb.environment()
+        PRootKernel.customEnvironment.forEach { (k, v) -> env[k] = v }
+        // [37098] Sıra bilinçli — iki LD_LIBRARY_PATH çakışması:
+        //
+        // 1. PROOT'un kendisi (Android ana süreci) kendi yükleyicisini
+        //    `nativeLibDir`'den bulur → o yol **kalmalı**.
+        // 2. Konuğun bionic ikilileri Termux lib'ini arar → o yol da
+        //    konuğa geçmeli.
+        //
+        // `environment()` önce uygulanır (PATH, HOME, PREFIX…), ardından
+        // anahtar host değişkenleri EN SON yazılır: proot'un kitaplığı
+        // birinci girdide, Termux lib'i ikincide. Konuk açısından ikinci
+        // girdi geçerli bir konuk yoludur; ana sürecin nativeLibDir'i
+        // konukta yok sayılır. Tek yönlü yazsaydık ya proot ya bionic
+        // kırılırdı — ikisi de sessizce.
+        env.putAll(TermuxLayer.environment(root))
+        env["LD_LIBRARY_PATH"] =
+            listOfNotNull(
+                PRootKernel.nativeLibDir.takeIf { it.isNotEmpty() },
+                TermuxLayer.LD_LIBRARY_PATH_GUEST,
+            ).joinToString(":")
         env["PROOT_TMP_DIR"] = PRootKernel.getProotTmpDir(ctx).absolutePath
-        PRootKernel.nativeLibDir.takeIf { it.isNotEmpty() }?.let { env["LD_LIBRARY_PATH"] = it }
         PRootKernel.prootLoaderPath.takeIf { it.isNotEmpty() }?.let { env["PROOT_LOADER"] = it }
         PRootKernel.prootLoader32Path.takeIf { it.isNotEmpty() }?.let { env["PROOT_LOADER_32"] = it }
-        PRootKernel.customEnvironment.forEach { (k, v) -> env[k] = v }
-        // Katman ortamı EN SON: PATH'i Termux önekiyle başlatır ve
-        // LD_LIBRARY_PATH'i Termux lib'ine çeker — böylece `bash` ve `apt`
-        // bionic ikilileridir, Alpine'in musl karşılıkları değil.
-        env.putAll(TermuxLayer.environment(root))
         val proc = pb.start()
         val out = proc.inputStream.bufferedReader().readText()
         val code = proc.waitFor()
