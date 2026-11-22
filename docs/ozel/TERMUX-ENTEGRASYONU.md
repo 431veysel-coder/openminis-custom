@@ -186,7 +186,7 @@ Yani:
 | `sandbox/RootfsManager.kt` | `USER_TREES` += `data/data/com.termux` |
 | `sandbox/ToolchainManager.kt` | `termuxGroup` (liste başında), `install`/`uninstall` ayrı yolu |
 | `policy/RiskRules.kt` | 3 kural: `termux:pkg`, `termux:sources`, `termux:sshd` |
-| `test/.../TermuxLayerTest.kt` | **15 test** (ikisi hata sonrası eklendi: açma hedefi, `data` altında arama) |
+| `test/.../TermuxLayerTest.kt` | **19 test** (ikisi `37098` hata sonrası: açma hedefi, `data` altında arama; dördü `37099`: symlink biçimi ×2, bozuk satır, açma işareti) |
 | `test/resources/ozel/risk-corpus.txt` | +9 satır (48 → 57) |
 
 `TermuxLayer` **`android.*` import etmiyor**: karar mantığı saf, test cihazsız
@@ -410,7 +410,7 @@ tek yol olarak söylüyor.
 
 | Dosya | Ne çiviliyor | Adet |
 |---|---|---|
-| `TermuxLayerTest` | uygunluk (linker yok/var/apex), yer, önek haritası, ortam ayrımı, katman seçimi, plan sırası, sabit sürüm | 13 |
+| `TermuxLayerTest` | uygunluk (linker yok/var/apex), yer, önek haritası, ortam ayrımı, katman seçimi, plan sırası, sabit sürüm, açma hedefi, `data` altı | 15 |
 | `RiskCorpusTest` | `termux:pkg` MEDIUM, `termux:sources` HIGH, `termux:sshd` HIGH, sıra | 57 satır (9'u Termux) |
 
 ### 8.2 Cihaz testi (instrumented / elle checklist)

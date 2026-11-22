@@ -139,6 +139,16 @@
         "src/android/app/src/test/java/com/openminis/app/ozel/health"
       ],
       "deps": []
+    },
+    "37098": {
+      "title": "Termux katmani (cekirdek: karar mantigi)",
+      "files": [
+        "src/android/app/src/main/java/com/openminis/app/sandbox/TermuxLayer.kt"
+      ],
+      "not": "TermuxInstaller + TermuxPrompt baglanti katmanidir (android.* import eder); 37098 dilimi yalniz kararin kendisini kapsar. Tercih, kurulumun yanilgisini karar tablosunda degil testlerde yakalamak.",
+      "tests": [
+        "src/android/app/src/test/java/com/openminis/app/ozel/TermuxLayerTest.kt"
+      ]
     }
   }
 }

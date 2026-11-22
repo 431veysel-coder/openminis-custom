@@ -677,7 +677,7 @@ object ToolchainManager {
      * Returns 0 when the rootfs is not extracted yet.
      */
     suspend fun installedBytes(context: Context): Long = withContext(Dispatchers.IO) {
-        val rootfs = File(context.filesDir, "alpine-rootfs")
+        val rootfs = File(context.filesDir, TermuxLayer.ROOTFS_DIR_NAME)
         val usr = File(rootfs, "usr")
         if (!usr.exists()) return@withContext 0L
         var total = 0L

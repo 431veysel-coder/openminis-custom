@@ -169,6 +169,14 @@ def compile_slice(name: str, spec: dict, workdir: pathlib.Path, kc: str) -> dict
     classes = workdir / f"classes-{name}"
     classes.mkdir(parents=True, exist_ok=True)
     code, log = run([kc, "-nowarn", "-d", str(classes)] + [str(p) for p in src + deps])
+    # JVM bu makinede açılmıyor olabilir (PRoot: executable-page kısıtı).
+    # O durumda kod 0 döndürmez ama hata KODUN değil ÇEVRENİN dir. "FAIL"
+    # yazmak yanlış sinyal verir: CI'da geçen 37080 bile burada kırmızıdır.
+    # Ayrımı hata metninden yap: JVM başlamadıysa ENV-FAIL, değilse gerçek FAIL.
+    if code != 0 and "Failed to mark memory page" in log:
+        result["compile"] = {"ok": False, "log": log.strip(), "env": "jvm-unavailable"}
+        result["verdict"] = "ENV-FAIL"
+        return result
     result["compile"] = {"ok": code == 0, "log": log.strip()}
     if code != 0:
         return result
@@ -327,9 +335,12 @@ def main(argv: list[str]) -> int:
     )
 
     passed = [r for r in results if r["verdict"].startswith("PASS")]
-    failed = [r for r in results if r not in passed]
+    env_failed = [r for r in results if r["verdict"] == "ENV-FAIL"]
+    failed = [r for r in results if r not in passed and r not in env_failed]
     summary = ["# Dilim kapısı — özet", ""]
-    summary.append(f"**{len(passed)}/{len(results)} dilim geçti**")
+    summary.append(f"**{len(passed)}/{len(results)} dilim geçti**" + (
+        f" · **{len(env_failed)} dilim ENV-FAIL** (JVM bu makinede açılmıyor — kod hatası değil, CI'da doğrulanmalı)"
+        if env_failed else ""))
     summary.append("")
     summary.append("| dilim | başlık | derleme | test | karar |")
     summary.append("|---|---|---|---|---|")

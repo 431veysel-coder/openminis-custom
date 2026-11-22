@@ -221,3 +221,70 @@ TermuxLayerTest     15 test (2 yeni: açma hedefi, data altında arama)
 
 Derleme koşulmadı: bu cihazda JVM başlamıyor (*"Failed to mark memory page as
 executable"*). Yukarıdaki üç kapı statik; `gradlew` CI'da.
+
+---
+
+## 14. İkinci tur — P3 + sistemli tarama (mantık/görsel/davranış/dizin/katman/dilim/sinsi/zincir/kapı/pencere)
+
+### 14.1 Sinsi #8 — `LD_LIBRARY_PATH` üzerine yazımı
+
+**Yer:** `TermuxInstaller.runInGuest`.
+**Hata:** Ortam sırası yanlıştı — `nativeLibDir` (proot'un kendi yükleyicisi)
+önce yazılıyor, sonra `TermuxLayer.environment()` **üzerine yazıyordu**.
+Proot ana süreci konuk yol görür, kendi kitaplığını bulamazdı; kırılma
+"kurulum rastgele başarısız" olarak görünürdü — kod hatası gibi değil.
+**Kapanış:** İki yol **birleştirilir** (`nativeLibDir:GUEST lib`); ana
+değişkenler (`PROOT_TMP_DIR`, `PROOT_LOADER`) en son yazılır. Sabit:
+`TermuxLayer.LD_LIBRARY_PATH_GUEST`.
+
+### 14.2 Sinsi #9 — `"alpine-rootfs"` sekiz yerde elle yazılmıştı
+
+**Yer:** TermuxPrompt, TerminalScreen, TermuxInstaller, ToolchainManager,
+StorageUsageViewModel (×2), RootfsManager, MirrorSettingsScreen.
+**Hata:** Ad değişse (ör. sürümlü kök) yarısı eski dizine bakardı — sessiz
+uyuşmazlık.
+**Kapanış:** `TermuxLayer.ROOTFS_DIR_NAME` tek kaynak; Termux'a dokunan dört
+kullanıcı sabite bağlandı. Kalan dördü (upstream mirası) `RootfsManager`'ın
+kendi tanımıyla aynı adı taşıyor — ayrı iş, bilinçli bırakıldı.
+
+### 14.3 Görsel — katman rozeti (P3)
+
+**Yer:** `TerminalScreen` başlığı. Kuruluyken `Terminal · TERMUX`.
+**İki yanlış yazım bu turda gerçekleşti ve düzeltildi:**
+1. `File.exists()` doğrudan kompozisyonda — ana iş parçacığında disk erişimi,
+   her yeniden çizimde. → `remember { }` içine alındı.
+2. `LocalContext.current` remember lambda'sının **içinde** çağrıldı —
+   composable çağrısı lambda içinde yasak. → `appCtx` dışarıda alınıp
+   yakalandı.
+İkisi de "derlenir ama yanlış çalışır" sınıfıydı.
+
+### 14.4 Dilim — 37098 bölündü
+
+**Bulgu:** Dilim kapısı `TermuxInstaller` + `TermuxPrompt`'ta `android.*`
+sızıntısı yakaladı — dilim tek başına derlenemez.
+**Kapanış:** Dilim yalnız `TermuxLayer`'ı (Android'siz çekirdek) kapsar;
+Installer/Prompt bağlantı katmanıdır ve dilim dışıdır — tıpkı
+`ChatHealthBridge`'in `ozel/health` dilimi dışında durması gibi. Test dosyası
+dilime bağlandı (CI'da koşar).
+
+### 14.5 Kapı — ENV-FAIL ayrımı
+
+**Bulgu:** `slice_gate.py` bu cihazda 13 dilimin hepsini FAIL diyordu —
+37080 (CI'da geçen) dahil. Sebep kod değil, PRoot'ta JVM açılmaması.
+**Kapanış:** `Failed to mark memory page` hatası ayırt edilir → **ENV-FAIL**;
+özet "kod hatası değil, CI'da doğrulanmalı" der. Kırmızıyı gerçek kırmızıdan
+ayırmamak, kırmızının tamamını sessizleştirir.
+
+### 14.6 Belge ↔ kod uyuşmazlıkları
+
+- `TermuxLayerTest` sayısı üç belgede **13** duruyordu (gerçek: 15) → düzeltildi.
+- `slices.json`'a 37098 eklendi; kapı artık dilimi görüyor.
+
+### 14.7 Ölçüm (ikinci tur sonrası)
+
+```
+risk korpusu        57 komut · 0 sapma
+yapısal denetim     değişen 5 dosya + tam ağaç · hata yok
+dilim kapısı        37098 → ENV-FAIL (JVM yok; CI'da gerçek koşum)
+belge tutarlılığı   test sayıları, dilim tablosu, yol sabiti hizalı
+```

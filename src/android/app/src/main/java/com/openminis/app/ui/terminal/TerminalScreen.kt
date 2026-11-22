@@ -2,6 +2,8 @@ package com.openminis.app.ui.terminal
 
 import com.openminis.app.R
 import androidx.compose.ui.res.stringResource
+import com.openminis.app.sandbox.TermuxLayer
+import java.io.File
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -378,8 +380,26 @@ private fun TerminalTopBar(
             onClick = onClose,
         )
         Spacer(modifier = Modifier.weight(1f))
+        // [37098] Katman rozeti: başlıkta hangi paket evreninin ayakta
+        // olduğunu söyler. `apt` ile `apk` aynı ekranda karışabilir; rozet
+        // "bu oturum TERMUX'lu mu" sorusunu kurcalamadan cevaplar.
+        //
+        // remember { } içinde: File.exists() disk erişimidir, kompozisyonda
+        // her yeniden çizimde çağrılmamalı. Rozet terminal açılışında bir kez
+        // okunur — katman terminal açıkken kurulursa rozet bir sonraki
+        // açılışta güncellenir; "kapat yeniden aç" makul bir sözleşme.
+        val appCtx = LocalContext.current.applicationContext
+        val termuxBadge = remember {
+            runCatching {
+                TermuxLayer.isInstalled(File(appCtx.filesDir, TermuxLayer.ROOTFS_DIR_NAME))
+            }.getOrDefault(false)
+        }
         Text(
-            stringResource(R.string.terminal_title),
+            if (termuxBadge) {
+                stringResource(R.string.terminal_title) + "  ·  TERMUX"
+            } else {
+                stringResource(R.string.terminal_title)
+            },
             color = TerminalFg,
             style = TextStyle(
                 fontFamily = JetBrainsMonoFontFamily,

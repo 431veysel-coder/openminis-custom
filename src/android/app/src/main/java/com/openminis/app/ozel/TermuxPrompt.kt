@@ -46,7 +46,7 @@ object TermuxPrompt {
      * İstem gerçeği söyler, ayar ekranı neyin görüneceğini söyler.
      */
     fun isReady(ctx: Context): Boolean =
-        TermuxLayer.isInstalled(File(ctx.applicationContext.filesDir, "alpine-rootfs"))
+        TermuxLayer.isInstalled(File(ctx.applicationContext.filesDir, TermuxLayer.ROOTFS_DIR_NAME))
 
     /**
      * Sistem istemine eklenecek bölüm.
