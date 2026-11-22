@@ -52,6 +52,7 @@ EXCLUDE_DIRS = {
 DOC_FILES = [
     "docs/ozel/TERMUX-ENTEGRASYONU.md",
     "docs/ozel/TERMUX-APK-KARARI.md",
+    "docs/ozel/HARITA.md",
     "docs/ozel/DEGISIKLIK-GUNLUGU-11-16.md",
     "docs/ozel/SIRADAKI-SURUM.md",
     "docs/ozel/ENTEGRASYON-DURUMU.md",
@@ -269,6 +270,7 @@ def main() -> int:
         "| Dosya | Ne |\n|---|---|\n"
         "| `TERMUX-ENTEGRASYONU.md` | Termux katmanı tasarımı: mimari, ölçüm, güvenlik, T1–T10 |\n"
         "| `TERMUX-APK-KARARI.md` | Katman mı ayrı APK mı: ölçülmüş karar ve reddedilen seçenekler |\n"
+        "| `HARITA.md` | Ne, kim için, nasıl: kod haritası, sözleşmeler, dilimler, senaryolar |\n"
         "| `SIRADAKI-SURUM.md` | Fazlar P1→P5 ve açık işler |\n"
         "| `DENETIM-*.md` | Denetim turları: bulgu + kanıt (her tur için bir dosya) |\n"
         "| `DEGISIKLIK-GUNLUGU-11-16.md` | `.11.3.1` → bugün |\n"
