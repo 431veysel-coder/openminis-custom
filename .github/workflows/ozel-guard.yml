@@ -62,6 +62,12 @@ jobs:
       - name: Yapısal Kotlin denetimi
         run: python3 scripts/ozel/kotlin-denetim.py --no-warn
 
+      - name: APK bütçesi (gömülü yük yok)
+        # [37099] `TermuxLayer.MAX_EMBEDDED_ASSET_KB` sabitini hiçbir şey
+        # okumuyordu; "bootstrap gömülmüyor" iddiası kapıya değil yoruma
+        # dayanıyordu. Artık assets/ altında işletim sistemi yükü aranıyor.
+        run: python3 scripts/ozel/apk-butce.py --fail-on-embed
+
       - name: Çeviri (en ↔ tr)
         # [37099] `.17`'de 71 yeni anahtarın Türkçesi yoktu ve üç kapı da
         # yeşil dedi: derleme eksik çeviriyi görmez (İngilizceye düşer).

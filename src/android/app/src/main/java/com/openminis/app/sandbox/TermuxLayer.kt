@@ -111,8 +111,10 @@ object TermuxLayer {
      * APK'ya girebilecek **en büyük tek dosya** sınırı.
      *
      * Bootstrap 31,6 MB, `alpine-minirootfs.tar.gz` ~3 MB. Bir gün biri
-     * "hazır olsun" diye bootstrap'ı `assets/`e koyarsa bu sabit onu yakalar:
-     * `TermuxLayerTest` ve CI'daki boyut kapısı bunu okuyor.
+     * "hazır olsun" diye bootstrap'ı `assets/`e koyarsa bunu
+     * `scripts/ozel/apk-butce.py` yakalar — sabiti okuyan gerçek kapı odur
+     * (`ozel-guard.yml` + `paket.py`). 37099 öncesi bu yorum yalandı: sabiti
+     * hiçbir şey okumuyordu.
      */
     const val MAX_EMBEDDED_ASSET_KB: Int = 4 * 1024
 

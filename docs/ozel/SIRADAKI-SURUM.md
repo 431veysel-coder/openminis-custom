@@ -68,6 +68,35 @@ ratchet) → `ozel-guard.yml`'e bağlandı.
 
 ---
 
+## A0c · Termux: katman mı, ayrı APK mı — **karar verildi**
+
+Karar belgesi: `docs/ozel/TERMUX-APK-KARARI.md`.
+
+**Sonuç:** Termux araç zincirleri listesinde tek satır kalır ve tek dokunuşla
+kurulur — ama **ayrı APK olarak değil, kendi kökümüzün içinde katman** olarak.
+Ayrı APK, "ajanın tüm Termux dosya ve kütüphanelerini kullanması" hedefini
+`/data/data/com.termux` başka uid'e kapalı olduğu için **root şartına** bağlar.
+Kök-içi katman aynı şeyi root'suz verir.
+
+APK'nın gerçekten eklediği tek sınıf: `termux-api` ve Android yardımcıları.
+Onun için de kendi eklenti APK'mızı yazmak yanlış (Termux eklentileri aynı
+imzayı ister); doğru yol mevcut Termux'un `RUN_COMMAND` intent API'sine
+bağlanmak (`allow-external-apps=true` + izin + `echo` gidiş-dönüşü).
+
+`Termux:SU` diye bir bileşen **yok**: root için olan şey Termux içindeki `tsu`
+paketi, root'suz cihazda hiçbir şey yapmaz.
+
+**P3'e eklenen iki iş (karardan çıkan):**
+1. **Ön kontrol.** `refresh()` bionic'i yoklamıyor; desteklemeyen cihazda satır
+   yine "Kur" diyor ve kullanıcı 32 MB'ı indirdikten **sonra** öğreniyor.
+   Doğrusu: `TermuxLayer.probe()` ekran açılırken koşsun, durum
+   `Failed` değil **`Unavailable(sebep)`** olsun.
+2. **APK köprüsü (isteğe bağlı).** `com.termux` kurulu mu ·
+   `allow-external-apps` açık mı · `RUN_COMMAND` dönüyor mu — üçü ölçülsün.
+   Kurulu değilse satır **"Bağlan"** değil **"Termux kurulu değil"** der.
+
+---
+
 ## A1 · Yayın öncesi — kapanmalı
 
 Kimlik `.14`'ten beri sabit: `com.minis.x` / **Minis X**.

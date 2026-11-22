@@ -51,6 +51,7 @@ EXCLUDE_DIRS = {
 # Belge olarak kopyalanacaklar (03-BELGE).
 DOC_FILES = [
     "docs/ozel/TERMUX-ENTEGRASYONU.md",
+    "docs/ozel/TERMUX-APK-KARARI.md",
     "docs/ozel/DEGISIKLIK-GUNLUGU-11-16.md",
     "docs/ozel/SIRADAKI-SURUM.md",
     "docs/ozel/ENTEGRASYON-DURUMU.md",
@@ -77,6 +78,7 @@ TOOL_FILES = [
     "scripts/ozel/kotlin-denetim.py",
     "scripts/ozel/tag-denetim.py",
     "scripts/ozel/ceviri-denetim.py",
+    "scripts/ozel/apk-butce.py",
     "scripts/ozel/snapshot.py",
     "scripts/ozel/paket.py",
     "scripts/integration_audit.py",
@@ -213,15 +215,16 @@ python3 scripts/ozel/kotlin-denetim.py --no-warn         # 1 646 dosya
 python3 scripts/integration_audit.py                     # 10/11 dilim
 python3 scripts/ozel/tag-denetim.py                      # etiket ↔ sürüm
 python3 scripts/ozel/ceviri-denetim.py --fail-on-new     # en ↔ tr (taban ratchet)
+python3 scripts/ozel/apk-butce.py --fail-on-embed        # gomulu isletim sistemi yuku yok
 ```
 
 ## Bu pakette NE VAR / NE YOK
 
 **Var:** Termux katmanı P1+P2 kodu (`TermuxLayer`, `TermuxInstaller`,
 `TermuxPrompt`), PRoot bağları, `USER_TREES` koruması, risk kuralları + korpus,
-sağlık köprüsü, onay kutusu, çeviri önbelleği, **5 denetim aracı**
+sağlık köprüsü, onay kutusu, çeviri önbelleği, **6 denetim aracı**
 (`risk-corpus`, `kotlin-denetim`, `tag-denetim`, `ceviri-denetim`,
-`integration_audit`), 2 CI iş akışı.
+`apk-butce`, `integration_audit`), 2 CI iş akışı.
 
 **Yok (dürüstçe):** derlenmiş APK. Bu cihazda JVM başlamıyor
 (*"Failed to mark memory page as executable"*), yani `gradlew` koşmuyor.
@@ -265,6 +268,7 @@ def main() -> int:
         "# Belgeler\n\n"
         "| Dosya | Ne |\n|---|---|\n"
         "| `TERMUX-ENTEGRASYONU.md` | Termux katmanı tasarımı: mimari, ölçüm, güvenlik, T1–T10 |\n"
+        "| `TERMUX-APK-KARARI.md` | Katman mı ayrı APK mı: ölçülmüş karar ve reddedilen seçenekler |\n"
         "| `SIRADAKI-SURUM.md` | Fazlar P1→P5 ve açık işler |\n"
         "| `DENETIM-*.md` | Denetim turları: bulgu + kanıt (her tur için bir dosya) |\n"
         "| `DEGISIKLIK-GUNLUGU-11-16.md` | `.11.3.1` → bugün |\n"
@@ -295,6 +299,7 @@ Hepsi `02-KAYNAK/` içinden çalıştırılır (yollar repoya göre).
 | `kotlin-denetim.py` | Denge, çift imza, kapanmamış `\"\"\"`, kullanılmayan import | hata varsa 1 |
 | `tag-denetim.py` | Her `v*` etiketini çözer, o commit'in sürümüyle karşılaştırır | `--strict` ile 1 |
 | `ceviri-denetim.py` | `values/` ↔ `values-tr/` anahtar farkı + tekrar tanım | `--fail-on-new` ile 1 |
+| `apk-butce.py` | `assets/` altında gömülü işletim sistemi yükü arar | `--fail-on-embed` ile 1 |
 | `snapshot.py` | zip + git bundle + `DAMGA.md` + `DIZIN.md` | 0 |
 | `paket.py` | bu klasörü üretir | 0 |
 | `integration_audit.py` | Hangi dilim üretim kodundan çağrılıyor | 0 |
@@ -321,6 +326,7 @@ her push'ta koşuyor.
             ("entegrasyon", [sys.executable, "scripts/integration_audit.py"]),
             ("etiket", [sys.executable, "scripts/ozel/tag-denetim.py"]),
             ("ceviri", [sys.executable, "scripts/ozel/ceviri-denetim.py", "--fail-on-new"]),
+            ("apk-butce", [sys.executable, "scripts/ozel/apk-butce.py", "--fail-on-embed"]),
         ]
         for ad, cmd in checks:
             g = gate(ad, cmd)
