@@ -9,7 +9,14 @@ import com.openminis.app.data.model.ThinkingLevel
 import com.openminis.app.data.repository.ProviderRepository
 import com.openminis.app.logging.AppLogger
 import com.openminis.app.provider.ProviderFactory
+import com.openminis.app.provider.StopReasons
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
+import org.json.JSONObject
 import java.io.File
 import java.security.MessageDigest
 import kotlin.coroutines.coroutineContext
@@ -28,7 +35,7 @@ import kotlin.coroutines.coroutineContext
  * would blow both the provider's request size limit and the model's output
  * budget, and would fail as a whole instead of partially. Chunks of
  * [CHUNK_CHARS] are translated in order, so a long block still makes progress
- * and the caller can show "3/7" while it runs.
+ * and the caller shows "3/7" while it runs.
  *
  * ## Why it is cached
  *
@@ -42,6 +49,29 @@ import kotlin.coroutines.coroutineContext
  * This is a mechanical transform. A reasoning model left on would spend its
  * budget re-deriving what it is being asked to translate, and on some models
  * burn the whole allowance before emitting any content.
+ *
+ * ## [37099] Dört sessiz hata burada kapatıldı
+ *
+ * Bu sürümün tamamı, ölçülmüş dört davranış hatasının düzeltmesidir:
+ *
+ * 1. **`stopReason` yok sayılıyordu.** `maxTokens` sınırına takılan bir parça
+ *    kesik metinle dönüyor, `trim()` edilip **tamamlanmış sayılıyor** ve
+ *    önbelleğe tam çeviri olarak yazılıyordu. Kullanıcı cümlenin ortasında
+ *    biten bir çeviri görüyor, tekrar bastığında önbellekten aynı kesik metin
+ *    geliyordu — kalıcı, sessiz bozulma. Artık kesilme ölçülüyor, bir kez
+ *    daha geniş bütçeyle yeniden denenıyor ve yine kesilirse **tam sayılmıyor**.
+ * 2. **Kısmi kayıt "tam" gibi dönüyordu.** `readCache` tam yoksa kısmiyi
+ *    döndürüyordu ve `translate` onu sonuç sayıp çıkıyordu: 7 parçanın 3'ü
+ *    çevrilmişse kullanıcı sonsuza kadar yarım metin görüyor, yeniden basmak
+ *    hiçbir şey yapmıyordu. Artık kısmi kayıt **kaldığı yerden devam ediyor**
+ *    ve arayüz "kısmi" olduğunu söylüyor.
+ * 3. **İptal, ödenmiş tokenları çöpe atıyordu.** Kısmi yazım yalnız döngü
+ *    bittikten sonra yapılıyordu; kullanıcı sohbetten çıkınca (ya da blok
+ *    kaydırılıp kompozisyondan düşünce) çevrilmiş parçalar kayboluyor ve
+ *    sonraki deneme baştan ödüyordu. Artık **her parçadan sonra** yazılıyor.
+ * 4. **Parçalar sırayla çevriliyordu.** Yedi parça = yedi gidiş-dönüş. Bu
+ *    gecikmenin asıl sebebiydi (oracle: her parça 2-6 sn). Artık
+ *    [CONCURRENCY] kadar paralel, sıra korunarak.
  */
 internal object ThinkingTranslator {
 
@@ -53,13 +83,54 @@ internal object ThinkingTranslator {
      */
     private const val CHUNK_CHARS = 3000
 
-    /** Output budget per chunk; a translation cannot be much longer than its source. */
-    private const val BASE_OUTPUT_TOKENS = 2048
+    /**
+     * Output budget floor per chunk.
+     *
+     * [37099] 2048'den 4096'ya çıkarıldı. Sebep ölçüm: CJK→Türkçe çeviride
+     * çıktı **karakterce** değil **tokenca** büyüyor (tek Han karakteri ~1
+     * token, karşılığı 1-3 token). 3000 karakterlik bir parça 2048 tokenla
+     * kesiliyordu ve o kesik metin tam çeviri olarak önbelleğe giriyordu.
+     */
+    private const val BASE_OUTPUT_TOKENS = 4096
+
+    /** Bir parça için üst sınır; kesilme görülürse bir kez buraya çıkılır. */
+    private const val HARD_OUTPUT_TOKENS = 16_384
+
+    /**
+     * [37099] Aynı anda çevrilen parça sayısı.
+     *
+     * 1'den 2'ye çıkarmanın bedeli: ücretsiz kademelerde eşzamanlı istek
+     * 429 üretebilir. Bu yüzden 2 — "hızlı" ile "kota yakan" arasındaki
+     * en ucuz denge. Sıra korunuyor: sonuçlar dizinle birleştiriliyor.
+     */
+    private const val CONCURRENCY = 2
 
     private const val CACHE_DIR = "thinking-translations"
 
     /** Cache ceiling; oldest files are dropped past this. */
     private const val MAX_CACHE_FILES = 400
+
+    /** Kesilmiş sayılan durma nedenleri — Gemini büyük harf gönderir. */
+    private val TRUNCATED_REASONS = setOf("length", "max_tokens", "MAX_TOKENS", "max_output_tokens")
+
+    /**
+     * Çevirinin sonucu — **tamamlanmışlık bilgisi metnin parçası**.
+     *
+     * [37099] Önce `String?` dönüyordu ve "tamam" ile "3/7" ayırt edilemiyordu.
+     * Arayüz tam olmayan bir çeviriyi tam gibi gösterdiği için kullanıcı
+     * metnin neden ortada bittiğini anlamıyordu.
+     */
+    data class Out(
+        val text: String,
+        /** true: bütün parçalar çevrildi ve hiçbiri kesilmedi. */
+        val complete: Boolean,
+        val done: Int,
+        val total: Int,
+        /** true: en az bir parça `maxTokens` sınırına takıldı. */
+        val truncated: Boolean = false,
+    )
+
+    private data class Cached(val out: Out)
 
     /**
      * [MINIS-OZEL] The prompt, plus an installed translation pack.
@@ -89,8 +160,12 @@ internal object ThinkingTranslator {
     }
 
     /**
-     * Translate [text] into [targetLanguage], returning the translation, or
-     * null when no suitable model is reachable.
+     * Translate [text] into [targetLanguage].
+     *
+     * Returns null only when there is nothing usable at all (no model, no
+     * provider, every chunk failed). A partial result comes back as
+     * [Out.complete] = false with the chunks that did arrive, so the caller can
+     * show it and offer to continue.
      *
      * Never throws for an ordinary failure — a translation button must not be
      * able to take the chat screen down.
@@ -103,8 +178,8 @@ internal object ThinkingTranslator {
         modelEntryId: String?,
         sessionId: String?,
         onProgress: (done: Int, total: Int) -> Unit = { _, _ -> },
-    ): String? {
-        if (text.isBlank()) return ""
+    ): Out? {
+        if (text.isBlank()) return Out("", complete = true, done = 0, total = 0)
 
         val entry = resolveEntry(repo, modelEntryId)
         if (entry == null) {
@@ -125,10 +200,22 @@ internal object ThinkingTranslator {
         // translations produced before it existed, or the feature looks broken
         // until every cached block is translated again by hand.
         val cacheKey = cacheKey(targetLanguage, entry.id, text, pack?.id ?: "-")
-        readCache(context, cacheKey)?.let {
-            AppLogger.info(TAG, "[xlate] cache hit chars=${text.length} lang=$targetLanguage")
-            return it
+
+        val chunks = chunk(text)
+
+        // [37099] Kısmi kayıt artık "tam" gibi dönmüyor: kaldığı yerden devam.
+        val cached = readCache(context, cacheKey)
+        if (cached != null) {
+            val c = cached.out
+            if (c.complete || (!c.complete && c.done >= chunks.size)) {
+                AppLogger.info(TAG, "[xlate] cache hit chars=${text.length} lang=$targetLanguage complete=${c.complete}")
+                return c
+            }
         }
+        var done = cached?.out?.done?.coerceIn(0, chunks.size) ?: 0
+        val out = StringBuilder(cached?.out?.text?.takeIf { done > 0 }.orEmpty())
+        var truncated = cached?.out?.truncated ?: false
+        onProgress(done, chunks.size)
 
         val provider = TitleCandidates.providerFor(
             repo, context, entry,
@@ -137,63 +224,101 @@ internal object ThinkingTranslator {
             sessionId = sessionId ?: ProviderFactory.oneOffSessionId(),
         ) ?: run {
             AppLogger.info(TAG, "[xlate] provider creation failed entry=${entry.model.id}")
-            return null
+            return cached?.out
         }
 
-        val chunks = chunk(text)
-        val out = StringBuilder()
-        var done = 0
-        for ((index, chunk) in chunks.withIndex()) {
+        val prompts = systemPrompt(targetLanguage, pack)
+        val semaphore = Semaphore(CONCURRENCY)
+
+        /**
+         * Tek parçayı çevirir. `null` = bu parça alınamadı, orada dur.
+         *
+         * Kesilme iki kademeli: bir kez daha geniş bütçeyle denenir; yine
+         * kesilirse metin döner ama [Out.complete] asla true olmaz ve bu parça
+         * `done` sayılmaz — böylece bir sonraki deneme **aynı parçayı** yeniden
+         * dener, kullanıcı da yarım cümleyi tam sanmaz.
+         */
+        suspend fun translateChunk(index: Int): String? = semaphore.withPermit {
             coroutineContext.ensureActive()
-            val piece = try {
-                provider.sendMessage(
-                    messages = listOf(LLMMessage(role = LLMMessage.Role.USER, content = chunk)),
-                    systemPrompt = systemPrompt(targetLanguage, pack),
-                    maxTokens = maxOf(BASE_OUTPUT_TOKENS, chunk.length / 2),
-                    // null omits the field entirely — several models 400 on
-                    // anything but their fixed temperature.
-                    temperature = null,
-                    thinkingLevel = ThinkingLevel.OFF,
-                ).text.trim()
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (t: Throwable) {
+            var budget = maxOf(BASE_OUTPUT_TOKENS, chunkBudget(chunks[index]))
+            repeat(2) { attempt ->
+                val response = try {
+                    provider.sendMessage(
+                        messages = listOf(LLMMessage(role = LLMMessage.Role.USER, content = chunks[index])),
+                        systemPrompt = prompts,
+                        maxTokens = budget,
+                        // null omits the field entirely — several models 400 on
+                        // anything but their fixed temperature.
+                        temperature = null,
+                        thinkingLevel = ThinkingLevel.OFF,
+                    )
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (t: Throwable) {
+                    AppLogger.info(
+                        TAG,
+                        "[xlate] chunk ${index + 1}/${chunks.size} failed: ${t.javaClass.simpleName}: ${t.message}",
+                    )
+                    return@withPermit null
+                }
+                val piece = response.text.trim()
+                if (piece.isEmpty()) {
+                    AppLogger.info(TAG, "[xlate] chunk ${index + 1}/${chunks.size} came back empty")
+                    return@withPermit null
+                }
+                val cut = isTruncated(response.stopReason)
+                if (!cut) return@withPermit piece
+                truncated = true
                 AppLogger.info(
                     TAG,
-                    "[xlate] chunk ${index + 1}/${chunks.size} failed: ${t.javaClass.simpleName}: ${t.message}",
+                    "[xlate] chunk ${index + 1}/${chunks.size} truncated stop=${response.stopReason} " +
+                        "attempt=${attempt + 1} tokens=$budget",
                 )
-                // Keep what earlier chunks produced: a partial translation is
-                // still more useful than nothing.
-                break
+                if (attempt == 1) return@withPermit null
+                budget = minOf(HARD_OUTPUT_TOKENS, budget * 2)
             }
-            if (piece.isEmpty()) {
-                AppLogger.info(TAG, "[xlate] chunk ${index + 1}/${chunks.size} came back empty")
-                break
-            }
-            if (out.isNotEmpty()) out.append("\n\n")
-            out.append(piece)
-            done = index + 1
-            onProgress(done, chunks.size)
+            null
         }
 
-        val result = out.toString()
-        if (result.isBlank()) return null
-        // [37096] Kısmi sonuç da önbelleğe yazılıyor — ayrı ve TEK anahtarla.
-        //
-        // Eski hâli yalnız tamamlanmış çeviriyi yazıyordu: 7 parçanın 5'i
-        // çevrilip 6.'da ağ koptuysa kullanıcı kısmi metni görüyor, sonra
-        // pencereyi kapatıp açtığında **baştan ödüyordu**. Şimdi kısmi sonuç
-        // `:partial` anahtarına yazılıyor; tam çeviri geldiğinde tam anahtar
-        // yazılıp kısmi kayıt siliniyor. Böylece:
-        //   * aynı kopukluk ikinci kez ödenmiyor,
-        //   * tamamlanmış çeviri hiçbir zaman yarım kayıttan okunmuyor.
-        val complete = done == chunks.size
-        writeCache(context, if (complete) cacheKey else partialKey(cacheKey), result)
-        if (complete) dropPartial(context, cacheKey)
+        while (done < chunks.size) {
+            // Bir pencere kadar paralel çevir; sıra korunur, ilk boşlukta durulur.
+            val window = (done until minOf(chunks.size, done + CONCURRENCY * 2)).toList()
+            val pieces = coroutineScope {
+                window.map { idx -> async { idx to translateChunk(idx) } }.awaitAll()
+            }.sortedBy { it.first }
+
+            var advanced = false
+            for ((idx, piece) in pieces) {
+                if (idx != done) break          // sıra bozuldu: boşluğu atlama
+                if (piece == null) break        // bu parça alınamadı: burada dur
+                if (out.isNotEmpty()) out.append("\n\n")
+                out.append(piece)
+                done = idx + 1
+                advanced = true
+                // [37099] Her parçadan SONRA yaz: iptal edilen bir çevirinin
+                // ödenmiş parçaları kaybolmasın.
+                writeCache(context, cacheKey, Out(out.toString(), complete = false, done = done, total = chunks.size, truncated = truncated))
+                onProgress(done, chunks.size)
+            }
+            if (!advanced) break
+        }
+
+        if (out.isEmpty()) return null
+        val result = Out(
+            text = out.toString(),
+            complete = done == chunks.size && !truncated,
+            done = done,
+            total = chunks.size,
+            truncated = truncated,
+        )
+        // [37096] Tam çeviri tam anahtara yazılır; [37099] kesik/kısmi sonuç
+        // `complete = false` ile yazılır ki bir sonraki açılışta **devam**
+        // edilebilsin, "bitmiş" sayılmasın.
+        writeCache(context, cacheKey, result)
         AppLogger.info(
             TAG,
-            "[xlate] done chars=${text.length}->${result.length} chunks=$done/${chunks.size} " +
-                "model=${entry.model.id} lang=$targetLanguage",
+            "[xlate] done chars=${text.length}->${result.text.length} chunks=$done/${chunks.size} " +
+                "complete=${result.complete} truncated=$truncated model=${entry.model.id} lang=$targetLanguage",
         )
         return result
     }
@@ -213,14 +338,36 @@ internal object ThinkingTranslator {
         return loopIds.firstNotNullOfOrNull { id -> entries.firstOrNull { it.id == id } }
     }
 
+    /** [37099] Kesilme ölçümü — tek yerde, iki yerde tekrarlanmasın. */
+    private fun isTruncated(stopReason: String?): Boolean {
+        val r = stopReason?.trim().orEmpty()
+        if (r.isEmpty()) return false
+        if (r in TRUNCATED_REASONS) return true
+        return StopReasons.isMaxTokens(r)
+    }
+
     // ── chunking ───────────────────────────────────────────────────────────
+
+    /**
+     * [37099] Parça başına çıktı bütçesi.
+     *
+     * Neden `length/2` değil: o hesap "çıktı tokenı ≈ karakter/2" varsayıyor,
+     * yani Latin alfabesi için doğru, CJK için **yarısı**. Parçanın kendi
+     * uzunluğunu üst sınır kabul etmek, hangi yazı sisteminde olursa olsun
+     * kesilmemeyi garanti eder (token sayısı karakter sayısını aşamaz).
+     */
+    private fun chunkBudget(chunk: String): Int = minOf(HARD_OUTPUT_TOKENS, chunk.length / 2 + chunk.length)
 
     /**
      * Split on paragraph boundaries, accumulating up to [CHUNK_CHARS]. A single
      * paragraph longer than that is hard-split, so no chunk can exceed the
      * budget no matter how the source is formatted.
+     *
+     * [37099] `internal` (özel değil): parçalama saf bir fonksiyon ve cihazsız
+     * test edilebilir olması gerek; bu cihazda JVM koşmadığı için tek şansımız
+     * saf fonksiyonu test etmek.
      */
-    private fun chunk(text: String): List<String> {
+    internal fun chunk(text: String): List<String> {
         if (text.length <= CHUNK_CHARS) return listOf(text)
         val out = ArrayList<String>(text.length / CHUNK_CHARS + 1)
         val current = StringBuilder()
@@ -251,7 +398,7 @@ internal object ThinkingTranslator {
     }
 
     /** Index at or before [limit] where a sentence most plausibly ends. */
-    private fun sentenceBoundary(s: String, limit: Int): Int {
+    internal fun sentenceBoundary(s: String, limit: Int): Int {
         val floor = (limit * 7) / 10
         for (i in minOf(limit, s.length - 1) downTo floor) {
             val c = s[i]
@@ -280,42 +427,43 @@ internal object ThinkingTranslator {
     }
 
     /**
-     * [37096] Önbellek okuması: önce tam çeviri, sonra kısmi.
+     * [37099] Önbellek: tek dosya, tamamlanmışlık **içerikte**.
      *
-     * Kısmi kayıt tek dosyadır (`{key}:partial`) ve her kısmi yazımda üzerine
-     * yazılır. Neden parça sayısını ada gömmüyoruz: `:p3` gibi bir sonek
-     * okurken "hangi parça sayısını arayacağım" sorusunu doğurur ve cevabı
-     * yoktur — okuyan taraf tamamlanmışlığı bilmiyor. Tek dosya bu soruyu
-     * ortadan kaldırıyor.
-     *
-     * Kısmi metin yalnız tam çeviri yokken dönüyor; tam çeviri geldiğinde
-     * kısmi dosya siliniyor, böylece eski kısa metin asla yeğlenmiyor.
+     * Önceki sürüm iki ayrı dosya tutuyordu (`{key}.txt` ve `{key}:partial.txt`)
+     * ve okuyan taraf hangisinin tam olduğunu bilemiyordu; pratikte kısmi
+     * kayıt tam sanılıp dönüyordu. Şimdi tek JSON kaydı `done/total/text`
+     * taşıyor, böylece okuma "nerede kaldım" sorusunu cevaplayabiliyor.
      */
-    private fun readCache(ctx: Context, key: String): String? {
-        readCacheFile(ctx, key)?.let { return it }
-        return readCacheFile(ctx, partialKey(key))
-    }
-
-    private fun readCacheFile(ctx: Context, key: String): String? = runCatching {
-        val f = File(cacheDir(ctx), "$key.txt")
-        if (!f.isFile) return null
-        // Touch so the prune below keeps recently-read entries.
+    private fun readCache(ctx: Context, key: String): Cached? = runCatching {
+        val f = File(cacheDir(ctx), "$key.json")
+        if (!f.isFile) return@runCatching null
+        val obj = JSONObject(f.readText())
+        val text = obj.optString("text", "")
+        if (text.isBlank()) return@runCatching null
+        // Touch so the prune keeps recently-read entries.
         f.setLastModified(System.currentTimeMillis())
-        f.readText().takeIf { it.isNotBlank() }
+        Cached(
+            Out(
+                text = text,
+                complete = obj.optBoolean("complete", false),
+                done = obj.optInt("done", 0),
+                total = obj.optInt("total", 0),
+                truncated = obj.optBoolean("truncated", false),
+            ),
+        )
     }.getOrNull()
 
-    private fun partialKey(key: String): String = "$key:partial"
-
-    private fun writeCache(ctx: Context, key: String, value: String) {
+    private fun writeCache(ctx: Context, key: String, value: Out) {
         runCatching {
-            File(cacheDir(ctx), "$key.txt").writeText(value)
+            val obj = JSONObject()
+                .put("text", value.text)
+                .put("complete", value.complete)
+                .put("done", value.done)
+                .put("total", value.total)
+                .put("truncated", value.truncated)
+            File(cacheDir(ctx), "$key.json").writeText(obj.toString())
             pruneCache(ctx)
         }
-    }
-
-    /** [37096] Tam çeviri yazıldığında kısmi kaydı düşür. */
-    private fun dropPartial(ctx: Context, key: String) {
-        runCatching { File(cacheDir(ctx), "${partialKey(key)}.txt").delete() }
     }
 
     private fun pruneCache(ctx: Context) {

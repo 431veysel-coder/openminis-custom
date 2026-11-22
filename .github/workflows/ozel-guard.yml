@@ -62,6 +62,13 @@ jobs:
       - name: Yapısal Kotlin denetimi
         run: python3 scripts/ozel/kotlin-denetim.py --no-warn
 
+      - name: Harita bayat mı
+        # [37099] `docs/harita/*` ve `docs/ozel/HARITA.md` ölçüm bloğu
+        # kaynaktan üretilir (`scripts/ozel/harita.py`). Bir şey değişip
+        # harita güncellenmediyse burada kırmızı olur — bayat harita, insanı
+        # yanlış dosyaya gönderen bir belgedir.
+        run: python3 scripts/ozel/harita.py --check
+
       - name: APK bütçesi (gömülü yük yok)
         # [37099] `TermuxLayer.MAX_EMBEDDED_ASSET_KB` sabitini hiçbir şey
         # okumuyordu; "bootstrap gömülmüyor" iddiası kapıya değil yoruma

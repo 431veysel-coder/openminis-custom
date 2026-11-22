@@ -53,6 +53,7 @@ DOC_FILES = [
     "docs/ozel/TERMUX-ENTEGRASYONU.md",
     "docs/ozel/TERMUX-APK-KARARI.md",
     "docs/ozel/HARITA.md",
+    "docs/ozel/SANAL-EKRAN.md",
     "docs/ozel/DEGISIKLIK-GUNLUGU-11-16.md",
     "docs/ozel/SIRADAKI-SURUM.md",
     "docs/ozel/ENTEGRASYON-DURUMU.md",
@@ -80,6 +81,7 @@ TOOL_FILES = [
     "scripts/ozel/tag-denetim.py",
     "scripts/ozel/ceviri-denetim.py",
     "scripts/ozel/apk-butce.py",
+    "scripts/ozel/harita.py",
     "scripts/ozel/snapshot.py",
     "scripts/ozel/paket.py",
     "scripts/integration_audit.py",
@@ -217,15 +219,16 @@ python3 scripts/integration_audit.py                     # 10/11 dilim
 python3 scripts/ozel/tag-denetim.py                      # etiket ↔ sürüm
 python3 scripts/ozel/ceviri-denetim.py --fail-on-new     # en ↔ tr (taban ratchet)
 python3 scripts/ozel/apk-butce.py --fail-on-embed        # gomulu isletim sistemi yuku yok
+python3 scripts/ozel/harita.py --check                    # harita bayat mi
 ```
 
 ## Bu pakette NE VAR / NE YOK
 
 **Var:** Termux katmanı P1+P2 kodu (`TermuxLayer`, `TermuxInstaller`,
 `TermuxPrompt`), PRoot bağları, `USER_TREES` koruması, risk kuralları + korpus,
-sağlık köprüsü, onay kutusu, çeviri önbelleği, **6 denetim aracı**
+sağlık köprüsü, onay kutusu, çeviri önbelleği, **7 denetim aracı**
 (`risk-corpus`, `kotlin-denetim`, `tag-denetim`, `ceviri-denetim`,
-`apk-butce`, `integration_audit`), 2 CI iş akışı.
+`apk-butce`, `harita`, `integration_audit`), 2 CI iş akışı.
 
 **Yok (dürüstçe):** derlenmiş APK. Bu cihazda JVM başlamıyor
 (*"Failed to mark memory page as executable"*), yani `gradlew` koşmuyor.
@@ -258,6 +261,14 @@ def main() -> int:
     # 03 BELGE
     belge = pkg / "03-BELGE"
     belge.mkdir(exist_ok=True)
+    # [37099] `docs/harita/` üretilen alt harita — kendi alt klasöründe.
+    harita_src = ROOT / "docs/harita"
+    if harita_src.is_dir():
+        dst = belge / "harita"
+        dst.mkdir(exist_ok=True)
+        for f in sorted(harita_src.glob("*.md")):
+            shutil.copy2(f, dst / f.name)
+
     for rel in DOC_FILES:
         src = ROOT / rel
         if src.exists():
@@ -271,6 +282,7 @@ def main() -> int:
         "| `TERMUX-ENTEGRASYONU.md` | Termux katmanı tasarımı: mimari, ölçüm, güvenlik, T1–T10 |\n"
         "| `TERMUX-APK-KARARI.md` | Katman mı ayrı APK mı: ölçülmüş karar ve reddedilen seçenekler |\n"
         "| `HARITA.md` | Ne, kim için, nasıl: kod haritası, sözleşmeler, dilimler, senaryolar |\n"
+        "| `SANAL-EKRAN.md` | Sanal ekran: ne mümkün (A/B), ne imkânsız (C), eksik üç parça |\n"
         "| `SIRADAKI-SURUM.md` | Fazlar P1→P5 ve açık işler |\n"
         "| `DENETIM-*.md` | Denetim turları: bulgu + kanıt (her tur için bir dosya) |\n"
         "| `DEGISIKLIK-GUNLUGU-11-16.md` | `.11.3.1` → bugün |\n"
@@ -302,6 +314,7 @@ Hepsi `02-KAYNAK/` içinden çalıştırılır (yollar repoya göre).
 | `tag-denetim.py` | Her `v*` etiketini çözer, o commit'in sürümüyle karşılaştırır | `--strict` ile 1 |
 | `ceviri-denetim.py` | `values/` ↔ `values-tr/` anahtar farkı + tekrar tanım | `--fail-on-new` ile 1 |
 | `apk-butce.py` | `assets/` altında gömülü işletim sistemi yükü arar | `--fail-on-embed` ile 1 |
+| `harita.py` | `docs/harita/*` + HARITA.md ölçüm bloğunu kaynaktan üretir | `--check` ile 1 |
 | `snapshot.py` | zip + git bundle + `DAMGA.md` + `DIZIN.md` | 0 |
 | `paket.py` | bu klasörü üretir | 0 |
 | `integration_audit.py` | Hangi dilim üretim kodundan çağrılıyor | 0 |
@@ -329,6 +342,7 @@ her push'ta koşuyor.
             ("etiket", [sys.executable, "scripts/ozel/tag-denetim.py"]),
             ("ceviri", [sys.executable, "scripts/ozel/ceviri-denetim.py", "--fail-on-new"]),
             ("apk-butce", [sys.executable, "scripts/ozel/apk-butce.py", "--fail-on-embed"]),
+            ("harita", [sys.executable, "scripts/ozel/harita.py", "--check"]),
         ]
         for ad, cmd in checks:
             g = gate(ad, cmd)

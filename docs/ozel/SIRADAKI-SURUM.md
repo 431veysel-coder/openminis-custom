@@ -90,6 +90,49 @@ paketi, root'suz cihazda hiçbir şey yapmaz.
 
 ---
 
+## A0d · Çeviri ve düşünce bloğu — dört sessiz hata (kapandı)
+
+Kanıt: `docs/ozel/DENETIM-37099.md` §9.
+
+| # | Hata | Görünen etkisi |
+|---|---|---|
+| 1 | `stopReason` hiç okunmuyordu | `maxTokens`a takılan parça **kesik** dönüyor, `trim()` edilip tam sayılıyor, önbelleğe **tam çeviri** olarak yazılıyordu — kalıcı, sessiz bozulma |
+| 2 | Kısmi kayıt "tam" gibi dönüyordu | 7 parçanın 3'ü gelince kullanıcı sonsuza kadar yarım metin görüyor, yeniden basmak hiçbir şey yapmıyordu |
+| 3 | Kısmi yazım yalnız döngü bitince | Sohbetten çıkınca ödenmiş parçalar kayboluyor, sonraki deneme baştan ödüyordu |
+| 4 | Parçalar sıraydı | 7 parça = 7 gidiş-dönüş; **gecikmenin asıl sebebi** |
+
+Düzeltmeler: kesilme ölçümü + bir kez geniş bütçeyle yeniden deneme (`4096 →
+16 384`), önbellek tek JSON kaydı (`text/complete/done/total/truncated`),
+her parçadan sonra yazım, `CONCURRENCY = 2` ile paralel + sıra korunuyor,
+arayüzde "3/7" ve "kısmi çeviri" uyarısı. 10 yeni test
+(`ThinkingTranslatorChunkTest`).
+
+---
+
+## A0e · Sanal ekran — karar (başlatılmadı)
+
+Belge: `docs/ozel/SANAL-EKRAN.md`.
+
+**Üç ayrı şey tek kelimeye sıkışmış:**
+
+| | Ne | Bugün |
+|---|---|---|
+| **A** | Uygulama içi sanal ekran (ajanın kendi tarayıcı/terminal/not yüzeyi) | ✅ `HeadlessRenderHost` var, **tek yüzey yok** |
+| **B** | Gerçek cihaz ekranında gezinme (erişilebilirlik/Shizuku) | ✅ var (`android-a11y-cli`) |
+| **C** | Başka uygulamaların içinde çalıştığı ikinci Android ekranı | ❌ **platform izin vermiyor** |
+
+C imkânsız: `VirtualDisplay` yalnız kendi pencerelerinizi taşır; sistem
+ekranı sahiplenmek imza izni ister; Shizuku `shell` uid'i verir,
+`system_server` değil.
+
+**Sıradaki iş (A'yı "ekran" yapan üç parça):**
+1. `SANAL-EKRAN-P1` — tarayıcı + terminal + notları **tek yüzeyde** birleştir
+2. `SANAL-EKRAN-P2` — yüzeyin durumunu kaydet (sekme, geçmiş, kaydırma)
+3. `SANAL-EKRAN-P3` — A'da eylem iznini B'den ayır (kural tablosunda ikisi
+   bugün aynı görünüyor)
+
+---
+
 ## A1 · Yayın öncesi — kapanmalı
 
 Kimlik `.14`'ten beri sabit: `com.minis.x` / **Minis X**.

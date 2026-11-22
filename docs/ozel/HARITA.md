@@ -3,7 +3,23 @@
 Bu dosya "ne, kim için, nasıl" sorusunun tek cevabı. Sayılar **ölçülmüş**;
 ölçülmeyen her yer açıkça "ölçülmedi" diye işaretli.
 
-Ölçüm tarihi: 2026-11-22 · commit `8ef933d0` · sürüm `1.15-ozel.17` / 37098
+Sürüm `1.15-ozel.17` / 37098 · commit ve sayılar aşağıdaki ölçüm bloğunda.
+
+<!-- OTO:BASLA -->
+| Ölçüm | Değer |
+|---|---|
+| Kotlin dosyası (main) | 873 · 315 615 satır |
+| Ekran | 73 · UI paketi 19 |
+| Dilim | 13 (bağımlılığı olan: 1) |
+| Risk kuralı | 42 — DENY 5 · karta düşen 37 |
+| Özellik anahtarı | 26 — açık 18 · kapalı 8 |
+| İzin | 27 Android + 2 özel |
+| Test | 6 527 birim (759 dosya) + 124 cihaz |
+| Çeviri | en 2894 · tr 2373 · eksik 521 (yeni 0) |
+| Sözleşme | 13 · kayıt 72 |
+
+Ayrıntı ve yönlendirme: [`docs/harita/00-GIRIS.md`](../harita/00-GIRIS.md)
+<!-- OTO:SON -->
 
 ---
 
@@ -52,10 +68,9 @@ kapısından geçiyor; 1. katman araç seçimini yapıyor.
 
 ## 3. Kod haritası
 
-Ölçüm: **73 ekran** (`*Screen.kt`), 19 UI paketi, 758 test dosyası,
-**6 517** birim testi + 124 cihaz testi.
+Sayılar yukarıdaki ölçüm bloğunda; bu bölüm **yapıyı** anlatıyor.
 
-### 3.1 `ozel/` — çatala ait olan (12 dosya, 1 925 satır)
+### 3.1 `ozel/` — çatala ait olan
 
 | Dosya | Ne |
 |---|---|
@@ -183,15 +198,14 @@ hedefe göre yükselir: `rm -rf` ajanın kendi çöpünde **LOW** (sessiz),
 
 ---
 
-## 8. Tercihler — 27 anahtar
+## 8. Tercihler — anahtarlar
 
 `OzelFeatures.kt`, `SharedPreferences`. Varsayılan **açık** olan bir anahtarın
 üretim kodunda okuyucusu olmak zorunda — `.14`'te `STATION` bu kuralı çiğnedi
 ve kapatıldı.
 
-| Açık (19) | Kapalı (8) |
-|---|---|
-| `live_tasks` `toolchains` `translation` `qs_tile` `background_gates` `provider_test` `notes` `vault` `journal` `acceptance_criteria` `council` `approval_gate` `budget_cap` `plan_preview` `turn_diff` `lesson_book` `write_intent` `chat_health` | `dev_server` `vault_agent_read` `station` `tool_router` `evidence_gate` `replay` `remote_console` `auto_backup` |
+Tam liste (adaydan üretilmiş): [`40-OZELLIKLER.md`](../harita/40-OZELLIKLER.md) —
+orada her anahtarın adı ve varsayılanı var.
 
 Kapalı olanların her biri **bilinçli**: `evidence_gate` ve `replay` gürültülü,
 `remote_console` ürün kararı bekliyor, `station` hiç yazılmadı.

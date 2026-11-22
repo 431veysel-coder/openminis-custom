@@ -217,3 +217,89 @@ dengeli mi, kural tablosu korpusla uyuşuyor mu, dosya üretimden çağrılıyor
 Hiçbiri **davranışa** bakmıyordu — ve bulunan sekiz hatanın altısı tam olarak
 orada, davranışta, sessizdi. Bir kapı eklemek, bir hata sınıfını kapatmak
 değil; kapatılan sınıf **yazılan testin kapsamı** kadardır.
+
+---
+
+## 9 · Düşünce bloğu çevirisi — dört sessiz hata
+
+Kullanıcı "düşünce çeviri kısmında hatalar, gecikmeler, sıkıntılar var" dedi.
+Ölçüm dört ayrı hata gösterdi; **hiçbiri hata mesajı üretmiyordu**.
+
+### 9.1 `stopReason` hiç okunmuyordu
+
+`ThinkingTranslator` sağlayıcı yanıtından yalnız `text` alıyordu. `maxTokens`
+sınırına takılan bir parça **kesik** dönüyor, `.trim()` ediliyor ve
+`done = index + 1` ile **tamamlanmış** sayılıyordu. Sonra tam çeviri olarak
+önbelleğe yazılıyordu — yani bozulma **kalıcı**: kullanıcı düğmeye ne kadar
+basarsa bassın aynı kesik metin geliyordu.
+
+Ölçülen büyüklük: 3000 karakterlik parça için bütçe `chunk.length / 2 =
+1500`... ama taban `BASE_OUTPUT_TOKENS = 2048` olduğu için fiilen **2048**.
+CJK→Türkçe çeviride tek Han karakteri ~1 token, karşılığı 1–3 token; yani
+2048 token **yetişmiyor**.
+
+**Düzeltme:** `StopReasons.isMaxTokens` ile kesilme ölçülüyor, bir kez daha
+geniş bütçeyle (`×2`, üst sınır 16 384) yeniden deneniyor; yine kesilirse metin
+dönüyor ama `complete = false` ve o parça `done` sayılmıyor.
+
+### 9.2 Kısmi kayıt "tam" gibi dönüyordu
+
+`readCache` önce tam dosyayı, yoksa `:partial` dosyasını döndürüyordu;
+`translate` de onu **sonuç** sayıp erken çıkıyordu:
+
+```kotlin
+readCache(context, cacheKey)?.let { return it }   // kısmi de buradan döner
+```
+
+Sonuç: 7 parçanın 3'ü çevrildiyse kullanıcı sonsuza kadar yarım metin görüyor
+ve düğmeye yeniden basmak **hiçbir şey yapmıyordu** (önbellek hemen dönüyor).
+
+**Düzeltme:** önbellek tek JSON kaydı taşıyor — `text`, `complete`, `done`,
+`total`, `truncated`. `translate` kısmi kaydı **başlangıç noktası** olarak
+kullanıyor, `done`uncu parçadan devam ediyor.
+
+### 9.3 Kısmi yazım yalnız döngü bitince
+
+Kısmi sonuç döngüden **sonra** yazılıyordu. Kullanıcı 4 parçadan sonra sohbetten
+çıkarsa (ya da blok kompozisyondan düşerse `rememberCoroutineScope` iptal
+edilir) ödenmiş tokenlar çöpe gidiyor, sonraki deneme baştan ödüyordu.
+
+**Düzeltme:** her parçadan **sonra** yazılıyor.
+
+### 9.4 Parçalar sırayla çevriliyordu — gecikmenin asıl sebebi
+
+7 parça = 7 ardışık gidiş-dönüş. Parça başına 2–6 sn ⇒ tek blok için 15–40 sn.
+Kullanıcının "gecikme" dediği şey buydu.
+
+**Düzeltme:** `CONCURRENCY = 2` ile paralel, sonuçlar dizinle birleştiriliyor
+(sıra korunuyor). 1 değil 2: ücretsiz kademelerde eşzamanlı istek 429 üretir.
+
+### 9.5 Arayüz "ne oluyor" sorusunu cevaplamıyordu
+
+- Dönen çember vardı, ilerleme yoktu → artık **`3/7`**.
+- Kısmi çeviri tam gibi gösteriliyordu → artık turuncu satır:
+  *"Kısmi çeviri — 3/7 bölüm. Devam etmek için çeviriye dokun."*
+- Kesilme ayrı söyleniyor: *"Çeviri kesildi — … yeniden denemek için dokun."*
+
+### Testler
+
+`ThinkingTranslatorChunkTest` — **10 test**, cihazsız (saf fonksiyonlar):
+parçaların metni kayıpsız kapsaması, sınır aşımı olmaması, cümle sınırı
+(Latin + CJK), kesilme nedenlerinin tanınması, `complete` semantiği.
+
+---
+
+## 10 · Sanal ekran — neyin mümkün olduğu ölçüldü
+
+Belge: `docs/ozel/SANAL-EKRAN.md`. Özet: üç ayrı şey tek kelimeye sıkışmış.
+
+| | Ne | Durum | Kanıt |
+|---|---|---|---|
+| A | Uygulama içi sanal ekran (ajanın tarayıcı/terminal/not yüzeyi) | ✅ var, tek yüzey yok | `browser/HeadlessRenderHost.kt` — `VirtualDisplay` + `Presentation` + `ImageReader` |
+| B | Gerçek ekranda gezinme | ✅ var | `MinisAccessibilityService`: `rootNodes`, `dispatchSimpleGesture`, `dispatchPinch`, `captureScreenshot`, `setNodeText` |
+| C | Başka uygulamaların çalıştığı ikinci Android ekranı | ❌ imkânsız | `VirtualDisplay` yalnız kendi pencerelerini taşır; sistem ekranı imza izni ister; Shizuku `shell` uid'i verir, `system_server` değil |
+
+Yani "ajanın her şeyi olan ikinci ekranı" **A + B olarak bugün var**;
+"içinde başka uygulamalar çalışan ikinci ekran" platformun izin vermediği bir
+şey. A'yı gerçek bir "ekran" yapmak için eksik üç parça: tek yüzey, durum
+kaydı, A/B eylem izni ayrımı.

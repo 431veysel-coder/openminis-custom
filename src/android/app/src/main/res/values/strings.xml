@@ -3194,4 +3194,6 @@
     <string name="task_filter_all">All</string>
     <string name="task_unassigned">unassigned</string>
     <string name="task_tab">Tasks</string>
+    <string name="thinking_translate_partial">Partial translation — %1$d of %2$d sections. Tap translate to continue.</string>
+    <string name="thinking_translate_truncated">Translation cut off — %1$d of %2$d sections. Tap translate to retry the rest.</string>
 </resources>

@@ -2424,4 +2424,6 @@
     <string name="teams_section_mode">Bu ekip nasıl çalışır</string>
     <string name="toolchain_termux_subtitle">bionic üzerinde apt/pkg evreni: openssh, python, node, clang — diskte ~110 MB gerekir (32 MB indirme)</string>
     <string name="toolchain_termux_title">Termux katmanı</string>
+    <string name="thinking_translate_partial">Kısmi çeviri — %1$d/%2$d bölüm. Devam etmek için çeviriye dokun.</string>
+    <string name="thinking_translate_truncated">Çeviri kesildi — %1$d/%2$d bölüm. Kalanı yeniden denemek için çeviriye dokun.</string>
 </resources>

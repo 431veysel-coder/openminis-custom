@@ -1144,18 +1144,23 @@ internal fun ThinkingBlock(block: AssistantBlock, isStreaming: Boolean, isLast: 
     // describe a prefix that no longer exists — and each attempt would bill a
     // full request.
     val translatePrefsOn = remember { com.openminis.app.data.TranslationPrefs.enabled(context) }
-    var translatedText by remember(block.id) { mutableStateOf<String?>(null) }
+    var translated by remember(block.id) { mutableStateOf<com.openminis.app.ui.chat.ThinkingTranslator.Out?>(null) }
     var translating by remember(block.id) { mutableStateOf(false) }
     var translateFailed by remember(block.id) { mutableStateOf(false) }
+    var translateProgress by remember(block.id) { mutableStateOf(0 to 0) }
     val translateScope = rememberCoroutineScope()
     val canTranslate = translatePrefsOn && !isStreaming && charCount > 0
+    // [37099] Kısmi çeviri artık "tam" gibi gösterilmiyor: düğme "3/7" yazar ve
+    // alt satır "kısmi" der. Önceki hâlde 7 parçanın 3'ü gelince metin tam
+    // sanılıyor, kullanıcı cümlenin ortada neden bittiğini anlamıyordu.
     val onToggleTranslation: () -> Unit = {
         when {
-            translatedText != null -> translatedText = null
+            translated != null -> { translated = null }
             translating -> Unit // a second tap while running is a no-op
             else -> {
                 translating = true
                 translateFailed = false
+                translateProgress = 0 to 0
                 translateScope.launch {
                     val app = context.applicationContext as? com.openminis.app.MinisApp
                     val repo = app?.providerRepositoryOrNull
@@ -1176,10 +1181,11 @@ internal fun ThinkingBlock(block: AssistantBlock, isStreaming: Boolean, isLast: 
                                     loopEntries = repo.config.value.agentLoopModelEntryIds,
                                 ),
                             sessionId = null,
+                            onProgress = { done, total -> translateProgress = done to total },
                         )
                     }
                     translating = false
-                    if (result.isNullOrBlank()) translateFailed = true else translatedText = result
+                    if (result == null || result.text.isBlank()) translateFailed = true else translated = result
                 }
             }
         }
@@ -1266,7 +1272,7 @@ internal fun ThinkingBlock(block: AssistantBlock, isStreaming: Boolean, isLast: 
             Spacer(modifier = Modifier.weight(1f))
             // [MINIS-OZEL] Translate action, left of the character count.
             if (canTranslate || translating) {
-                val active = translatedText != null
+                val active = translated != null
                 Box(
                     modifier = Modifier
                         .size(24.dp)
@@ -1278,11 +1284,24 @@ internal fun ThinkingBlock(block: AssistantBlock, isStreaming: Boolean, isLast: 
                     contentAlignment = Alignment.Center,
                 ) {
                     if (translating) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(12.dp),
-                            strokeWidth = 1.5.dp,
-                            color = thinkingBlue,
-                        )
+                        // [37099] "3/7" — ilerleme görünür olsun: önce yalnız
+                        // dönen bir çember vardı ve 7 parçalık bir çeviri
+                        // dakikalarca "ne oluyor" sorusunu cevapsız bırakıyordu.
+                        val (d, t) = translateProgress
+                        if (t > 0) {
+                            Text(
+                                text = "$d/$t",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = thinkingBlue,
+                            )
+                        } else {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(12.dp),
+                                strokeWidth = 1.5.dp,
+                                color = thinkingBlue,
+                            )
+                        }
                     } else {
                         Icon(
                             imageVector = Icons.Outlined.Translate,
@@ -1324,6 +1343,23 @@ internal fun ThinkingBlock(block: AssistantBlock, isStreaming: Boolean, isLast: 
             }
         }
 
+        // [37099] Kısmi/kesik çeviri açıkça söylenir. Önce yalnız metin
+        // gösteriliyordu: 7 parçanın 3'ü gelince kullanıcı cümlenin ortada
+        // bittiğini "model böyle yazmış" sanıyordu. Düğmeye yeniden basmak da
+        // bir şey yapmıyordu, çünkü kısmi kayıt tam sayılıyordu.
+        translated?.takeIf { !it.complete }?.let { tr ->
+            Text(
+                text = if (tr.truncated) {
+                    stringResource(R.string.thinking_translate_truncated, tr.done, tr.total)
+                } else {
+                    stringResource(R.string.thinking_translate_partial, tr.done, tr.total)
+                },
+                fontSize = 11.sp,
+                color = Color(0xFFFF9500),
+                modifier = Modifier.padding(top = 2.dp, bottom = 4.dp),
+            )
+        }
+
         // Expanded content. Mirrors iOS ThinkingBlockView (AssistantBlockView.swift:648):
         // an inner scroller capped at 300dp, auto-follow to the bottom while the
         // block is streaming, manual drag at any time, and pause-on-user-scroll
@@ -1341,9 +1377,9 @@ internal fun ThinkingBlock(block: AssistantBlock, isStreaming: Boolean, isLast: 
             // over the TRANSLATED text instead: the translation is what the
             // user is reading, and it is usually shorter than the source, so a
             // window computed on the source would show the wrong tail.
-            val bodySource = translatedText ?: block.content
+            val bodySource = translated?.text ?: block.content
             val bodyLength = bodySource.length
-            val isTranslatedView = translatedText != null
+            val isTranslatedView = translated != null
             val isTruncated = bodyLength > thinkingWindowSize
             val displayContent = remember(bodyLength, isTranslatedView) {
                 if (isTruncated) {
