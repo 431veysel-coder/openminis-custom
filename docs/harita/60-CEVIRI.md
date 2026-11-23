@@ -4,8 +4,8 @@
 
 | | |
 |---|---|
-| `values/` anahtar | 2975 |
-| `values-tr/` anahtar | 2454 |
+| `values/` anahtar | 2979 |
+| `values-tr/` anahtar | 2458 |
 | Eksik | 521 |
 | Bunlardan **yeni** (taban dışı) | 0 |
 | Taban (upstream devralınmış, bilerek çevrilmemiş) | 521 |

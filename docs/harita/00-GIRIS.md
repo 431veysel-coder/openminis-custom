@@ -40,5 +40,5 @@ python3 scripts/ozel/harita.py --check  # bayat mı?
 | Özellik anahtarı | 27 (açık 19) |
 | İzin | 27 Android + 2 özel |
 | Test | 6 619 birim (768 dosya) + 124 cihaz |
-| Çeviri | en 2975 · tr 2454 · eksik 521 (yeni 0) |
+| Çeviri | en 2979 · tr 2458 · eksik 521 (yeni 0) |
 | Sözleşme | 13 · kayıt 72 |

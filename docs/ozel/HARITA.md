@@ -15,7 +15,7 @@ Sürüm `1.15-ozel.17` / 37098 · commit ve sayılar aşağıdaki ölçüm bloğ
 | Özellik anahtarı | 27 — açık 19 · kapalı 8 |
 | İzin | 27 Android + 2 özel |
 | Test | 6 619 birim (768 dosya) + 124 cihaz |
-| Çeviri | en 2975 · tr 2454 · eksik 521 (yeni 0) |
+| Çeviri | en 2979 · tr 2458 · eksik 521 (yeni 0) |
 | Sözleşme | 13 · kayıt 72 |
 
 Ayrıntı ve yönlendirme: [`docs/harita/00-GIRIS.md`](../harita/00-GIRIS.md)

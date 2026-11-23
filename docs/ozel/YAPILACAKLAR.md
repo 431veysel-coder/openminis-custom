@@ -277,7 +277,7 @@ isterse**.
 | **.27** | Sanal ekran yüzeyi | `5.1` tek tuval · `5.2` bölme içi eylem | yakalama kanıtı |
 | **.28** | Alt ajan/ekip | `4.1` kalan süre · `4.2` araç yüzeyi · `4.4` kuyruk | kart ekran görüntüsü |
 | **.29** | Çeviri | `6.1` paket önerisi · `6.2` devam et · `6.3` sözlük dürüstlüğü | çeviri testleri |
-| **.30** | Ürün/deneyim | `8.1` boş durum eylemleri · `8.2` rapor render · `8.4` erişilebilirlik | TalkBack |
+| **.30** ◐ | Ürün kapanışı (boş durum ✓, render/erişilebilirlik açık) | `8.1` boş durum eylemleri · `8.2` rapor render · `8.4` erişilebilirlik | TalkBack |
 | **.30** | Kapanış | kalan P2'ler + `9.x`'ten seçilen 2 fikir · tam denetim | tüm kapılar + cihaz |
 
 ### Neden bu sıra

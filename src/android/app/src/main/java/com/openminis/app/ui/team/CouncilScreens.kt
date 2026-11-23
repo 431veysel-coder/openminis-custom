@@ -458,7 +458,7 @@ private fun CommsRoom(live: CouncilLiveRegistry.LiveRun?) {
         footer = if (lines.isEmpty()) stringResource(R.string.council_comms_empty) else null,
     ) {
         if (lines.isEmpty()) {
-            SettingsRow(title = "—", showDivider = false)
+            SettingsRow(title = stringResource(R.string.council_empty_comms), showDivider = false)
         } else {
             lines.forEachIndexed { i, q ->
                 SettingsRow(
@@ -509,7 +509,7 @@ private fun NeedsRoom(live: CouncilLiveRegistry.LiveRun?) {
             footer = if (needs.isEmpty()) stringResource(R.string.council_needs_empty) else null,
         ) {
             if (needs.isEmpty()) {
-                SettingsRow(title = "—", showDivider = false)
+                SettingsRow(title = stringResource(R.string.council_empty_needs), showDivider = false)
             } else {
                 needs.forEachIndexed { i, n ->
                     SettingsRow(
@@ -527,7 +527,7 @@ private fun NeedsRoom(live: CouncilLiveRegistry.LiveRun?) {
             footer = if (unowned.isEmpty()) null else stringResource(R.string.council_needs_unowned_hint),
         ) {
             if (unowned.isEmpty()) {
-                SettingsRow(title = "—", showDivider = false)
+                SettingsRow(title = stringResource(R.string.council_empty_unowned), showDivider = false)
             } else {
                 unowned.forEachIndexed { i, task ->
                     SettingsRow(
@@ -540,7 +540,7 @@ private fun NeedsRoom(live: CouncilLiveRegistry.LiveRun?) {
         }
         SettingsSection(header = stringResource(R.string.council_needs_blocked)) {
             if (blocked.isEmpty()) {
-                SettingsRow(title = "—", showDivider = false)
+                SettingsRow(title = stringResource(R.string.council_empty_blocked), showDivider = false)
             } else {
                 blocked.forEachIndexed { i, task ->
                     SettingsRow(

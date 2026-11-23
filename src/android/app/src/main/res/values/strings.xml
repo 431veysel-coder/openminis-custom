@@ -3224,6 +3224,10 @@
     <string name="council_comms_empty">No member has asked another a question yet. Questions travel with a position, so they appear after the first round.</string>
     <string name="council_comms_header">Member to member</string>
     <string name="council_needs_empty">No hand-offs yet. A member asking a colleague to take work appears here, before it becomes a board task.</string>
+    <string name="council_empty_comms">No questions between members yet.</string>
+    <string name="council_empty_needs">No hand-offs yet.</string>
+    <string name="council_empty_unowned">Every task has an owner.</string>
+    <string name="council_empty_blocked">No task is waiting on evidence.</string>
     <string name="council_needs_requests">Hand-off requests</string>
     <string name="council_needs_unowned">Tasks with no owner</string>
     <string name="council_needs_blocked">Tasks that cannot be finished (no evidence)</string>

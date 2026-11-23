@@ -2383,6 +2383,10 @@
     <string name="council_comms_empty">Henüz bir üye diğerine soru sormadı. Sorular pozisyonla birlikte gelir, yani ilk turdan sonra görünür.</string>
     <string name="council_comms_header">Üyeden üyeye</string>
     <string name="council_needs_empty">Henüz devir yok. Bir üyenin "bunu sen al" demesi, panoya görev olmadan önce burada görünür.</string>
+    <string name="council_empty_comms">Üyeler arasında henüz soru yok.</string>
+    <string name="council_empty_needs">Henüz devir yok.</string>
+    <string name="council_empty_unowned">Her görevin bir sahibi var.</string>
+    <string name="council_empty_blocked">Kanıt bekleyen görev yok.</string>
     <string name="council_needs_requests">Devir istekleri</string>
     <string name="council_needs_unowned">Sahipsiz görevler</string>
     <string name="council_needs_blocked">Bitirilemeyen görevler (kanıt yok)</string>

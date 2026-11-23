@@ -1,4 +1,4 @@
-# SÜRÜM NOTU — 1.15-ozel.29 / 37110
+# SÜRÜM NOTU — 1.15-ozel.30 / 37111
 
 > **Derlenmedi.** Kullanıcı talebiyle bu turda APK üretilmedi; kaynak dalda
 > hazır. Derleme yapılmadan önce CI'daki `compile` + `unit test` adımları
@@ -168,3 +168,14 @@ hızlı dönen bir sekme iki durgun sekmeyi aç bırakıyordu. `State.lastCaptur
 **Yapılmayan (§5.1, §5.2):** tek tuval çizimi ve `screen` aracı (open/click/
 type/scroll). İkisi de gerçek bir yüzey mimarisi kararı ve cihazda yakalama
 kanıtı istiyor; bu turda kapatılmış gibi göstermiyorum.
+
+## .30 ek — ürün kapanışı
+
+**§8.1 boş durumlar anlamlı:** üç odada boş durum yerine `"—"` çiziliyordu.
+Ekranda anlamsız bir tire, TalkBack'te de anlamsız bir etiket. Dördü de gerçek
+metne çevrildi ("Üyeler arasında henüz soru yok", "Her görevin bir sahibi var",
+"Kanıt bekleyen görev yok", "Henüz devir yok") — iki dilde.
+
+**Kapanış özeti (`1.15-ozel.30 / 37111`):** `.22`'den bu yana on iki madde
+kapandı; açık kalanlar `YAPILACAKLAR.md` §10'da gerekçeleriyle duruyor.
+Derleme yapılmadı — yayında `.21`, kaynakta `.30`.
