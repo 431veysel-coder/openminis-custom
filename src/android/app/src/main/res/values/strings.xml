@@ -3205,6 +3205,22 @@
     <string name="council_section_past">Finished runs</string>
     <string name="council_empty_title">No council runs yet</string>
     <string name="council_empty_hint">Set a team to council mode, then run it with team_run.</string>
+    <!-- [37099c] Konsey odalari -->
+    <string name="council_room_chat">Chat room</string>
+    <string name="council_room_tasks">Task room</string>
+    <string name="council_room_compare">Comparison room</string>
+    <string name="council_room_comms">Comms line</string>
+    <string name="council_room_needs">Dependency line</string>
+    <string name="council_room_result">Result room</string>
+    <string name="council_compare_empty">No comparison yet — the chair folds positions into claims first.</string>
+    <string name="council_compare_legend">Rows are claims, columns are members. A vote is what that member said, not a summary.</string>
+    <string name="council_comms_empty">No member has asked another a question yet. Questions travel with a position, so they appear after the first round.</string>
+    <string name="council_comms_header">Member to member</string>
+    <string name="council_needs_empty">No hand-offs yet. A member asking a colleague to take work appears here, before it becomes a board task.</string>
+    <string name="council_needs_requests">Hand-off requests</string>
+    <string name="council_needs_unowned">Tasks with no owner</string>
+    <string name="council_needs_blocked">Tasks that cannot be finished (no evidence)</string>
+    <string name="council_needs_unowned_hint">Unowned tasks are nobody\'s work: assign one or drop it.</string>
     <string name="council_tab_floor">Floor</string>
     <string name="council_tab_agenda">Agenda</string>
     <string name="council_tab_decision">Decision</string>

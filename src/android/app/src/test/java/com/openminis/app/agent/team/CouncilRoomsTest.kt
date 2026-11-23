@@ -1,0 +1,118 @@
+package com.openminis.app.agent.team
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/**
+ * [37099c] Konsey odalarının veri hattı — cihazsız koşar.
+ *
+ * Neden test: üç oda (karşılaştırma, iletişim, bağımlılık) **var olmayan veri**
+ * göstermek üzere yazılırsa boş bir ekran olur ve kullanıcı "çalışmıyor" der.
+ * Kayıt defteri `android.*` import etmiyor; bu yüzden hangi alanın gerçekten
+ * dolduğunu burada kanıtlayabiliyoruz.
+ */
+class CouncilRoomsTest {
+
+    private fun startRun(id: String = "r1") {
+        CouncilLiveRegistry.start(
+            runId = id,
+            teamId = "t1",
+            teamName = "Konsey",
+            task = "görev",
+            memberNames = listOf("Ayşe" to "analist", "Mehmet" to "mühendis"),
+            roundsPlanned = 3,
+        )
+    }
+
+    @Test
+    fun `sorular iletisim hattina yazilir`() {
+        startRun("comms")
+        CouncilLiveRegistry.memberAsks(
+            runId = "comms",
+            round = 1,
+            from = "Ayşe",
+            questions = listOf(Question(to = "Mehmet", q = "Hangi Android sürümü?")),
+            tasks = emptyList(),
+        )
+        val run = CouncilLiveRegistry.runs.value["comms"]
+        assertEquals(1, run?.questions?.size)
+        assertEquals("Ayşe → Mehmet", "${run!!.questions[0].from} → ${run.questions[0].to}")
+        assertEquals(1, run.questions[0].round)
+        CouncilLiveRegistry.forget("comms")
+    }
+
+    @Test
+    fun `ayni soru iki kez eklenmez`() {
+        startRun("dup")
+        repeat(3) {
+            CouncilLiveRegistry.memberAsks(
+                runId = "dup", round = 1, from = "Ayşe",
+                questions = listOf(Question("Mehmet", "Aynı soru?")), tasks = emptyList(),
+            )
+        }
+        // Üyeler bir turda sordukları soruyu sonraki turda yine sorabiliyor;
+        // ekranda dört aynı satır bir hata gibi okunur.
+        assertEquals(1, CouncilLiveRegistry.runs.value["dup"]?.questions?.size)
+        CouncilLiveRegistry.forget("dup")
+    }
+
+    @Test
+    fun `bos soru ve bos istek yazilmaz`() {
+        startRun("empty")
+        CouncilLiveRegistry.memberAsks(
+            runId = "empty", round = 1, from = "Ayşe",
+            questions = listOf(Question("  ", "x"), Question("Mehmet", " ")),
+            tasks = listOf(TaskRequest(to = "Mehmet", title = "  ")),
+        )
+        val run = CouncilLiveRegistry.runs.value["empty"]
+        assertTrue(run!!.questions.isEmpty())
+        assertTrue(run.needs.isEmpty())
+        CouncilLiveRegistry.forget("empty")
+    }
+
+    @Test
+    fun `devir istegi bagimlilik hattina yazilir`() {
+        startRun("needs")
+        CouncilLiveRegistry.memberAsks(
+            runId = "needs", round = 2, from = "Ayşe",
+            questions = emptyList(),
+            tasks = listOf(TaskRequest(to = "Mehmet", title = "Testleri koş", why = "kanıt yok")),
+        )
+        val run = CouncilLiveRegistry.runs.value["needs"]!!
+        assertEquals(1, run.needs.size)
+        assertEquals("Ayşe", run.needs[0].from)
+        assertEquals("Testleri koş", run.needs[0].title)
+        assertEquals(2, run.needs[0].round)
+        CouncilLiveRegistry.forget("needs")
+    }
+
+    @Test
+    fun `karsilastirma odasi icin duruslar kaydedilir`() {
+        startRun("cmp")
+        val claim = Claim(
+            id = "C1",
+            text = "Bu cihaz destekler",
+            stances = mapOf("Ayşe" to Stance.SUPPORT, "Mehmet" to Stance.OPPOSE),
+        )
+        val verdict = ClaimVerdict(claim, Verdict.CONTESTED)
+        CouncilLiveRegistry.claims("cmp", Consensus(verdicts = listOf(verdict), cellsChanged = 1), tokens = 120)
+        val line = CouncilLiveRegistry.runs.value["cmp"]!!.claims.single()
+        // Sayılar "kaç kişi", duruşlar "kim" sorusunu cevaplar; oda ikincisini çizer.
+        assertEquals(1, line.support)
+        assertEquals(1, line.oppose)
+        assertEquals("support", line.stances["Ayşe"])
+        assertEquals("oppose", line.stances["Mehmet"])
+        CouncilLiveRegistry.forget("cmp")
+    }
+
+    @Test
+    fun `yeni alanlar varsayilan bos`() {
+        startRun("fresh")
+        val run = CouncilLiveRegistry.runs.value["fresh"]!!
+        // Eski bir çalıştırma kaydı bu alanları bilmez; boş olmalı, null değil.
+        assertTrue(run.questions.isEmpty())
+        assertTrue(run.needs.isEmpty())
+        CouncilLiveRegistry.forget("fresh")
+    }
+}

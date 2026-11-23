@@ -298,7 +298,25 @@ data class CouncilOutcome(
 sealed class CouncilEvent {
     data class Started(val task: String, val members: List<String>, val waveSize: Int) : CouncilEvent()
     data class RoundStarted(val round: Int, val questions: Int) : CouncilEvent()
-    data class Positioned(val member: String, val claim: String, val absent: Boolean) : CouncilEvent()
+    /**
+     * [37099c] Bir üyenin tur sonu pozisyonu.
+     *
+     * [questions] ve [tasks] **eklendi** çünkü ikisi de modelde vardı ama
+     * hiçbir yere yazılmıyordu: `Position.questions` (bir üyenin diğerine
+     * sorduğu soru) ve `Position.tasks` ("bunu sen al" isteği). Sonuç,
+     * ekranda "iletişim hattı" ve "ihtiyaçlar hattı" odalarının
+     * gösterilecek verisi olmamasıydı — oda açılır, boş görünür, kullanıcı
+     * "çalışmıyor" derdi. Varsayılanlar boş: mevcut olay üreticileri ve
+     * testler değişmeden derlenir.
+     */
+    data class Positioned(
+        val member: String,
+        val claim: String,
+        val absent: Boolean,
+        val questions: List<Question> = emptyList(),
+        val tasks: List<TaskRequest> = emptyList(),
+        val round: Int = 0,
+    ) : CouncilEvent()
     data class Canonicalized(val claims: Int, val dropped: Int) : CouncilEvent()
     data class ConsensusReached(val verdicts: List<ClaimVerdict>, val cellsChanged: Int) : CouncilEvent()
     data class StableRound(val streak: Int) : CouncilEvent()

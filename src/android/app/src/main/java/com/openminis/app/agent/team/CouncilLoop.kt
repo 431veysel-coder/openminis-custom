@@ -161,7 +161,16 @@ class CouncilLoop(
                     if (!position.absent) {
                         registerEvidence(position, round, evidence, usedEvidenceIds)
                     }
-                    emit(CouncilEvent.Positioned(position.member, position.claim, position.absent))
+                    emit(CouncilEvent.Positioned(
+                        member = position.member,
+                        claim = position.claim,
+                        absent = position.absent,
+                        // [37099c] Soru ve "bunu sen al" istekleri de yayılır:
+                        // modelde vardılar, hiçbir yere yazılmıyorlardı.
+                        questions = position.questions,
+                        tasks = position.tasks,
+                        round = round,
+                    ))
                 },
             )
             tokens += positions.sumOf { it.tokens }

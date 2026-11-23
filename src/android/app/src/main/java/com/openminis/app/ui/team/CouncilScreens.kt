@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.openminis.app.R
 import com.openminis.app.agent.team.CouncilLiveRegistry
+import com.openminis.app.agent.team.TaskState as TeamTaskState
 import com.openminis.app.agent.team.TeamRunStore
 import androidx.compose.ui.res.stringResource
 import com.openminis.app.ui.settings.SettingsRow
@@ -85,15 +86,22 @@ fun CouncilScreen(
 
             TabStrip(selected = tab, onSelect = { tab = it })
 
+            // [37099c] Altı oda — kullanıcının sırası: sohbet, görev, sonuç,
+            // karşılaştırma, iletişim, bağımlılık. "Gündem" sekmesi kaldırıldı:
+            // gösterdiği tek şey iddia + oy sayısıydı, ikisi de karşılaştırma
+            // odasında üye üye var. İki ekranın aynı soruya iki farklı cevap
+            // vermesi, bu depoda kınanan sınıf.
             when (tab) {
                 0 -> FloorTab(live = live, onOpenMember = onOpenMember)
-                1 -> AgendaTab(live = live)
-                2 -> RunTasksSection(runId = runId)
-                else -> DecisionTab(
+                1 -> RunTasksSection(runId = runId)
+                2 -> DecisionTab(
                     answer = report,
                     dissent = live?.dissent.orEmpty(),
                     recorded = recorded,
                 )
+                3 -> ComparisonRoom(live = live)
+                4 -> CommsRoom(live = live)
+                else -> NeedsRoom(live = live)
             }
         }
     }
@@ -125,10 +133,12 @@ private fun phaseLabel(phase: CouncilLiveRegistry.Phase): String = when (phase) 
 @Composable
 private fun TabStrip(selected: Int, onSelect: (Int) -> Unit) {
     val labels = listOf(
-        stringResource(R.string.council_tab_floor),
-        stringResource(R.string.council_tab_agenda),
-        stringResource(R.string.task_tab),
-        stringResource(R.string.council_tab_decision),
+        stringResource(R.string.council_room_chat),
+        stringResource(R.string.council_room_tasks),
+        stringResource(R.string.council_room_result),
+        stringResource(R.string.council_room_compare),
+        stringResource(R.string.council_room_comms),
+        stringResource(R.string.council_room_needs),
     )
     LazyRow(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
@@ -219,29 +229,6 @@ private fun FloorTab(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun AgendaTab(live: CouncilLiveRegistry.LiveRun?) {
-    val claims = live?.claims.orEmpty()
-    if (claims.isEmpty()) {
-        SettingsSection {
-            SettingsRow(
-                title = stringResource(R.string.council_no_claims),
-                showDivider = false,
-            )
-        }
-        return
-    }
-    LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 640.dp)) {
-        items(claims) { claim ->
-            SettingsRow(
-                title = "${claim.id} · ${claim.text}",
-                subtitle = "${claim.support}✓ ${claim.oppose}✗ ${claim.uncertain}? · ${claim.verdict}",
-                showDivider = true,
-            )
         }
     }
 }
@@ -343,6 +330,192 @@ fun CouncilRunsScreen(
                             onClick = { onOpenRun(run.runId) },
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * [37099c] **Karşılaştırma odası** — satırlar maddeler, sütunlar üyeler.
+ *
+ * ## Neden ayrı oda
+ *
+ * "Gündem" oyu topluyordu (`3✓ 2✗`), yani "kaç kişi" sorusunu cevaplıyordu.
+ * Kullanıcının asıl sorusu "kim" ve "hangi maddede": 3'e 2 bölünmüş bir
+ * konseyde kimin ne dediğini görmeden kararı okumak, raporun neden öyle
+ * çıktığını açıklamıyor.
+ *
+ * ## Neden uydurma yok
+ *
+ * Duruşlar `Claim.stances` içinden geliyor; kayıtta olmayan üye sütunu
+ * **çizilmez**. Oy veren üye listesi kayıtta yoksa tablo çizilmez, boş
+ * durum yazılır — "herkes katıldı" varsayımı bir yalandır.
+ */
+@Composable
+private fun ComparisonRoom(live: CouncilLiveRegistry.LiveRun?) {
+    val claims = live?.claims.orEmpty()
+    // Sütunlar: yalnız oy vermiş üyeler, kayıttaki sırayla.
+    val members = remember(claims) {
+        val order = live?.members?.keys?.toList().orEmpty()
+        val voted = claims.flatMap { it.stances.keys }.distinct()
+        order.filter { it in voted } .ifEmpty { voted }
+    }
+    if (claims.isEmpty() || members.isEmpty()) {
+        SettingsSection {
+            SettingsRow(
+                title = stringResource(R.string.council_compare_empty),
+                showDivider = false,
+            )
+        }
+        return
+    }
+    LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 640.dp)) {
+        item {
+            Text(
+                stringResource(R.string.council_compare_legend),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            )
+        }
+        items(claims) { claim ->
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)) {
+                Text(
+                    "${claim.id} · ${claim.text}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Text(
+                    "${claim.support}✓ ${claim.oppose}✗ ${claim.uncertain}? · ${claim.verdict}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    members.forEach { member ->
+                        val stance = claim.stances[member]
+                        if (stance != null) {
+                            Text(
+                                "$member ${stanceMark(stance)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = when (stance) {
+                                    "support" -> MaterialTheme.colorScheme.primary
+                                    "oppose" -> MaterialTheme.colorScheme.error
+                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Duruşu tek karaktere indirir; renk yanında taşındığı için okunur kalır. */
+private fun stanceMark(wire: String): String = when (wire) {
+    "support" -> "✓"
+    "oppose" -> "✗"
+    else -> "?"
+}
+
+/**
+ * [37099c] **İletişim hattı** — üyeden üyeye sorular.
+ *
+ * Kaynak: `Position.questions` → `CouncilLiveRegistry.QuestionLine`.
+ * Sorular cevapla birlikte gelmez; cevap, hedef üyenin **sonraki turdaki**
+ * pozisyonunda görünür. Bu yüzden ekran soruyu ve hedefi yazar, cevabı
+ * uydurmaz.
+ */
+@Composable
+private fun CommsRoom(live: CouncilLiveRegistry.LiveRun?) {
+    val lines = live?.questions.orEmpty()
+    SettingsSection(
+        header = stringResource(R.string.council_comms_header),
+        footer = if (lines.isEmpty()) stringResource(R.string.council_comms_empty) else null,
+    ) {
+        if (lines.isEmpty()) {
+            SettingsRow(title = "—", showDivider = false)
+        } else {
+            lines.forEachIndexed { i, q ->
+                SettingsRow(
+                    title = "${q.from} → ${q.to}",
+                    subtitle = q.question,
+                    showDivider = i < lines.lastIndex,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * [37099c] **Bağımlılık / ihtiyaçlar hattı** — kim kime bağlı, ne eksik.
+ *
+ * Üç gerçek kaynak, üç ayrı soru:
+ *  1. `Position.tasks` → bir üyenin "bunu sen al" isteği (panoya dönüşmemiş
+ *     olabilir; kaybolan istek sessiz bir iştir).
+ *  2. Sahipsiz görevler — kimsenin işi olmayan iş, yapılmayan iştir.
+ *  3. Kanıtsız bitirilemeyen görevler — `TeamTask.canBeDone` false olan DONE
+ *     değil, OPEN/DOING görevler için "kanıt eklersen kapanır" bilgisi.
+ */
+@Composable
+private fun NeedsRoom(live: CouncilLiveRegistry.LiveRun?) {
+    val needs = live?.needs.orEmpty()
+    val tasks = live?.tasks?.values.orEmpty()
+    val unowned = tasks.filter {
+        it.owner.isBlank() && it.state != TeamTaskState.DONE && it.state != TeamTaskState.DROPPED
+    }
+    val blocked = tasks.filter {
+        !it.canBeDone && (it.state == TeamTaskState.OPEN || it.state == TeamTaskState.DOING)
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        SettingsSection(
+            header = stringResource(R.string.council_needs_requests),
+            footer = if (needs.isEmpty()) stringResource(R.string.council_needs_empty) else null,
+        ) {
+            if (needs.isEmpty()) {
+                SettingsRow(title = "—", showDivider = false)
+            } else {
+                needs.forEachIndexed { i, n ->
+                    SettingsRow(
+                        title = "${n.from} → ${n.title}",
+                        subtitle = listOf(n.why, n.expect).filter { it.isNotBlank() }
+                            .joinToString(" · ")
+                            .ifBlank { "tur ${n.round}" },
+                        showDivider = i < needs.lastIndex,
+                    )
+                }
+            }
+        }
+        SettingsSection(
+            header = stringResource(R.string.council_needs_unowned),
+            footer = if (unowned.isEmpty()) null else stringResource(R.string.council_needs_unowned_hint),
+        ) {
+            if (unowned.isEmpty()) {
+                SettingsRow(title = "—", showDivider = false)
+            } else {
+                unowned.forEachIndexed { i, task ->
+                    SettingsRow(
+                        title = task.title,
+                        subtitle = task.line(),
+                        showDivider = i < unowned.lastIndex,
+                    )
+                }
+            }
+        }
+        SettingsSection(header = stringResource(R.string.council_needs_blocked)) {
+            if (blocked.isEmpty()) {
+                SettingsRow(title = "—", showDivider = false)
+            } else {
+                blocked.forEachIndexed { i, task ->
+                    SettingsRow(
+                        title = task.title,
+                        subtitle = task.doneRefusal().take(200),
+                        showDivider = i < blocked.lastIndex,
+                    )
                 }
             }
         }

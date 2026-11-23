@@ -658,8 +658,18 @@ object CouncilRunner {
                             is CouncilEvent.Started -> CouncilLiveRegistry.phase(runId, CouncilLiveRegistry.Phase.STARTING)
                             is CouncilEvent.RoundStarted ->
                                 CouncilLiveRegistry.phase(runId, CouncilLiveRegistry.Phase.POSITIONS, e.round)
-                            is CouncilEvent.Positioned ->
+                            is CouncilEvent.Positioned -> {
                                 CouncilLiveRegistry.memberPosition(runId, e.member, e.claim, e.absent, "")
+                                // [37099c] Sorular ve devredilen işler: modelde
+                                // vardılar, hiçbir yüzeye yazılmıyorlardı.
+                                CouncilLiveRegistry.memberAsks(
+                                    runId = runId,
+                                    round = e.round,
+                                    from = e.member,
+                                    questions = e.questions,
+                                    tasks = e.tasks,
+                                )
+                            }
                             is CouncilEvent.Canonicalized ->
                                 CouncilLiveRegistry.phase(runId, CouncilLiveRegistry.Phase.CANONICALIZING)
                             is CouncilEvent.ConsensusReached ->

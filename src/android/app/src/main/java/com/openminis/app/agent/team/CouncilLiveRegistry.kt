@@ -67,6 +67,19 @@ object CouncilLiveRegistry {
          * rounds ago is worse than showing nothing.
          */
         val tasks: Map<String, TeamTask> = emptyMap(),
+        /**
+         * [37099c] İletişim hattı: bir üyenin diğerine sorduğu sorular.
+         *
+         * Neden burada: `Position.questions` modelde vardı ama hiçbir yüzeye
+         * yazılmıyordu. Oda açıldığında gösterilecek tek satır yoktu.
+         */
+        val questions: List<QuestionLine> = emptyList(),
+        /**
+         * [37099c] İhtiyaçlar hattı: bir üyenin "bunu sen al" isteği.
+         * [tasks] panoya dönüşenlerdir; burada **dönüşmemiş** olanlar da
+         * görünür, çünkü kaybolan bir istek sessiz bir iştir.
+         */
+        val needs: List<NeedLine> = emptyList(),
         val finished: Finished? = null,
     ) {
         val running: Boolean get() = finished == null
@@ -79,6 +92,31 @@ object CouncilLiveRegistry {
         val oppose: Int,
         val uncertain: Int,
         val verdict: String,
+        /**
+         * [37099c] Karşılaştırma odası: üye → duruş (`support`/`oppose`/`uncertain`).
+         *
+         * Sayılar (support/oppose) "kaç kişi" sorusunu cevaplıyor; oda ise
+         * "kim" sorusunu. İkincisi olmadan tablo çizilemez ve kullanıcı
+         * "3'e 2" görüp kimin ne dediğini açamıyordu.
+         */
+        val stances: Map<String, String> = emptyMap(),
+    )
+
+    /** [37099c] İletişim hattındaki tek satır. */
+    data class QuestionLine(
+        val round: Int,
+        val from: String,
+        val to: String,
+        val question: String,
+    )
+
+    /** [37099c] İhtiyaçlar hattındaki tek satır. */
+    data class NeedLine(
+        val round: Int,
+        val from: String,
+        val title: String,
+        val why: String,
+        val expect: String,
     )
 
     data class Finished(
@@ -176,6 +214,53 @@ object CouncilLiveRegistry {
         }
     }
 
+    /**
+     * [37099c] İletişim hattı + ihtiyaçlar hattı: tur sonunda üyenin sorduğu
+     * sorular ve devrettiği işler.
+     *
+     * Tek çağrı çünkü ikisi de aynı olaydan (`Position`) geliyor ve ayrı
+     * yazılırsa biri güncellenip diğeri unutulur — bu depoda aynı hata sınıfı
+     * dört PRoot kurucusunda görüldü.
+     *
+     * Aynı soru metni tekrar gelirse eklenmez: üyeler bir turda sordukları
+     * soruyu sonraki turda yine sorabiliyor (bağlam onlara cevabı göstermediği
+     * için), ve ekranda aynı satırın dört kez görünmesi bir hata gibi okunur.
+     */
+    fun memberAsks(
+        runId: String,
+        round: Int,
+        from: String,
+        questions: List<Question>,
+        tasks: List<TaskRequest>,
+    ) {
+        if (questions.isEmpty() && tasks.isEmpty()) return
+        _runs.update { current ->
+            val run = current[runId] ?: return@update current
+            val newQuestions = questions.mapNotNull { q ->
+                val to = q.to.trim()
+                val text = q.q.trim()
+                if (to.isEmpty() || text.isEmpty()) null
+                else QuestionLine(round, from, to, text.take(300))
+            }.filter { line ->
+                run.questions.none {
+                    it.from == line.from && it.to == line.to && it.question == line.question
+                }
+            }
+            val newNeeds = tasks.mapNotNull { tr ->
+                val title = tr.title.trim()
+                if (title.isEmpty()) null
+                else NeedLine(round, from, title.take(200), tr.why.take(300), tr.expect.take(200))
+            }.filter { line ->
+                run.needs.none { it.from == line.from && it.title == line.title }
+            }
+            if (newQuestions.isEmpty() && newNeeds.isEmpty()) return@update current
+            current + (runId to run.copy(
+                questions = run.questions + newQuestions,
+                needs = run.needs + newNeeds,
+            ))
+        }
+    }
+
     fun claims(runId: String, consensus: Consensus, tokens: Int) {
         _runs.update { current ->
             val run = current[runId] ?: return@update current
@@ -188,6 +273,7 @@ object CouncilLiveRegistry {
                         oppose = v.claim.oppose,
                         uncertain = v.claim.uncertain,
                         verdict = v.verdict.name.lowercase(),
+                        stances = v.claim.stances.mapValues { it.value.wire },
                     )
                 },
                 tokensUsed = tokens,
@@ -211,6 +297,7 @@ object CouncilLiveRegistry {
                         oppose = v.claim.oppose,
                         uncertain = v.claim.uncertain,
                         verdict = v.verdict.name.lowercase(),
+                        stances = v.claim.stances.mapValues { it.value.wire },
                     )
                 },
                 finished = Finished(

@@ -2368,6 +2368,22 @@
     <string name="council_section_running">Şu anda çalışan</string>
     <string name="council_tab_agenda">Gündem</string>
     <string name="council_tab_decision">Karar</string>
+    <!-- [37099c] Konsey odalari -->
+    <string name="council_room_chat">Sohbet odası</string>
+    <string name="council_room_tasks">Görev odası</string>
+    <string name="council_room_compare">Karşılaştırma odası</string>
+    <string name="council_room_comms">İletişim hattı</string>
+    <string name="council_room_needs">Bağımlılık hattı</string>
+    <string name="council_room_result">Sonuç odası</string>
+    <string name="council_compare_empty">Henüz karşılaştırma yok — başkan önce konumları maddelere indirir.</string>
+    <string name="council_compare_legend">Satırlar maddeler, sütunlar üyeler. Oylar o üyenin kendi dediğidir, özet değil.</string>
+    <string name="council_comms_empty">Henüz bir üye diğerine soru sormadı. Sorular pozisyonla birlikte gelir, yani ilk turdan sonra görünür.</string>
+    <string name="council_comms_header">Üyeden üyeye</string>
+    <string name="council_needs_empty">Henüz devir yok. Bir üyenin "bunu sen al" demesi, panoya görev olmadan önce burada görünür.</string>
+    <string name="council_needs_requests">Devir istekleri</string>
+    <string name="council_needs_unowned">Sahipsiz görevler</string>
+    <string name="council_needs_blocked">Bitirilemeyen görevler (kanıt yok)</string>
+    <string name="council_needs_unowned_hint">Sahipsiz görev kimsenin işi değildir: birine ata ya da düşür.</string>
     <string name="council_tab_floor">Kürsü</string>
     <string name="council_title">Konsey</string>
     <string name="council_unverified">Bu rapor kaynak denetiminden geçmedi.</string>
