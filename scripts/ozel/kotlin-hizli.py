@@ -138,26 +138,47 @@ def check_named_args(path: Path, text: str) -> None:
     return
 
 
+def _param_list(text: str, open_idx: int) -> str:
+    """`(` konumundan başlayıp dengeli parantezle kapatır.
+
+    Neden regex değil: varsayılan değerler `System.currentTimeMillis()` gibi
+    parantez içerir; non-greedy bir regex ilk `)`'de durur ve kalan alanları
+    kaybeder. Bu, `TaskEvidence(by = …)` için yanlış "bu alan yok" üretti.
+    """
+    depth = 0
+    for i in range(open_idx, len(text)):
+        c = text[i]
+        if c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+            if depth == 0:
+                return text[open_idx + 1:i]
+    return ""
+
+
 def collect_data_classes() -> dict[str, set[str]]:
     fields: dict[str, set[str]] = {}
     for path in SRC.rglob("*.kt"):
         text = path.read_text(errors="ignore")
-        for m in re.finditer(r"data\s+class\s+(\w+)\s*\((.*?)\)\s*(?::|\{)", text, re.S):
-            name, body = m.group(1), m.group(2)
-            names = set()
-            depth = 0
-            for part in re.split(r",(?![^<]*>)", body):
-                part = part.strip()
-                if not part or "(" in part and depth == 0 and part.count("(") > part.count(")"):
-                    pass
-                mm = re.match(r"(?:@\w+(?:\([^)]*\))?\s*)*(?:val|var)\s+(\w+)", part)
+        for m in re.finditer(r"data\s+class\s+(\w+)\s*\(", text):
+            name = m.group(1)
+            body = _param_list(text, m.end() - 1)
+            if not body.strip():
+                continue
+            names: set[str] = set()
+            # Yorumlar ÖNCE silinir: içlerinde virgül var ("The path, URL or
+            # the output text.") ve virgülden bölmek alanı ikiye ayırıyordu.
+            # Ölçüldü: bu yüzden `TaskEvidence.value` ve `.by` kayboldu.
+            cleaned_body = re.sub(r"/\*.*?\*/", " ", body, flags=re.S)
+            cleaned_body = re.sub(r"//[^\n]*", " ", cleaned_body)
+            for part in re.split(r",(?![^<]*>)", cleaned_body):
+                mm = re.match(r"\s*(?:@\w+(?:\([^)]*\))?\s*)*(?:val|var)\s+(\w+)", part)
                 if mm:
                     names.add(mm.group(1))
             if names:
-                # Ada çakışması: aynı adlı iki `data class` olabilir (ör.
-                # `Outcome` hem ekipte hem konseyde). Alanları **birleştir**;
-                # üzerine yazmak, ikinci sınıfın alanlarını birincinin
-                # yerine koyar ve yanlış "bu alan yok" üretir.
+                # Ada çakışması: aynı adlı iki `data class` olabilir.
+                # Alanları birleştir; üzerine yazmak yanlış pozitif üretir.
                 fields.setdefault(name, set()).update(names)
     return fields
 

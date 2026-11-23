@@ -169,4 +169,45 @@ class CouncilRoomsTest {
         assertTrue(CouncilLiveRegistry.runs.value["wrong"]!!.questions.single().answer.isEmpty())
         CouncilLiveRegistry.forget("wrong")
     }
+
+    @Test
+    fun `kanitsiz gorev kapanmaz kanitla kapanir`() {
+        var board = TaskBoard()
+        val (b1, task, why1) = board.add(TeamTask(id = "t1", title = "Testleri koş"))
+        assertTrue("başlık boş değilse eklenir", why1.isEmpty())
+        board = b1
+        // Kanıtsız DONE reddedilir — kural TeamTask.canBeDone'da.
+        val (b2, _, why2) = board.moveTo(task!!.id, TaskState.DONE)
+        assertTrue("kanıtsız kapanmamalı", why2.isNotEmpty())
+        assertEquals(1, b2.tasks.size)
+        // Kanıt eklenince açılır.
+        val (b3, why3) = b2.addEvidence(
+            task.id,
+            TaskEvidence(kind = EvidenceKind.OUTPUT, value = "./gradlew test — 0 failed", by = "user"),
+        )
+        assertTrue(why3.isEmpty())
+        val (b4, done, why4) = b3.moveTo(task.id, TaskState.DONE)
+        assertTrue("kanıtla kapanmalı: $why4", why4.isEmpty())
+        assertEquals(TaskState.DONE, done?.state)
+        assertEquals(TaskState.DONE, b4.find(task.id)?.state)
+    }
+
+    @Test
+    fun `bos kanit reddedilir`() {
+        val (board, task, _) = TaskBoard().add(TeamTask(id = "t2", title = "x"))
+        val (after, why) = board.addEvidence(task!!.id, TaskEvidence(EvidenceKind.PATH, "   "))
+        assertTrue("boş kanıt bir yalan satırıdır", why.isNotEmpty())
+        assertEquals(0, after.find(task.id)?.evidence?.size)
+    }
+
+    @Test
+    fun `on kontrol notu kayda yazilir`() {
+        startRun("pf")
+        CouncilLiveRegistry.preflight("pf", "Konsey ön kontrolü: 1/2 üye hazır")
+        assertEquals(
+            "Konsey ön kontrolü: 1/2 üye hazır",
+            CouncilLiveRegistry.runs.value["pf"]?.preflightNote,
+        )
+        CouncilLiveRegistry.forget("pf")
+    }
 }

@@ -62,6 +62,15 @@ object CouncilLiveRegistry {
          * cevapsız bırakır ve kullanıcı koşuyu bozuk sanır.
          */
         val waveSize: Int = 0,
+        /**
+         * [37099f · §1.2] Ön kontrol uyarısı — boş değilse koşu **eksik
+         * üyeyle** başladı.
+         *
+         * Neden kayıtta: kullanıcı ekibi 5 kişi kurup 2 cevap alınca "konsey
+         * bozuk" diyordu. Uyarı koşunun başında bir kez yazılır, ekranın en
+         * üstünde durur; sonradan silinmez, çünkü koşunun gerçeği bu.
+         */
+        val preflightNote: String = "",
         val phase: Phase = Phase.STARTING,
         val tokensUsed: Int = 0,
         /** Claim lines for the agenda tab: id, text, votes. */
@@ -196,6 +205,15 @@ object CouncilLiveRegistry {
             current + (runId to run.copy(
                 members = run.members + (memberName to member.copy(sessionId = sessionId)),
             ))
+        }
+    }
+
+    /** [37099f] Koşu eksik üyeyle başladıysa nedeni kayda yazılır. */
+    fun preflight(runId: String, note: String) {
+        if (note.isBlank()) return
+        _runs.update { current ->
+            val run = current[runId] ?: return@update current
+            current + (runId to run.copy(preflightNote = note))
         }
     }
 

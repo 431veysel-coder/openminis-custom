@@ -3208,6 +3208,7 @@
     <string name="council_empty_title">No council runs yet</string>
     <string name="council_empty_hint">Set a team to council mode, then run it with team_run.</string>
     <!-- [37099c] Konsey odalari -->
+    <string name="council_preflight_warn">Started with missing members</string>
     <string name="council_room_chat">Chat room</string>
     <string name="council_room_tasks">Task room</string>
     <string name="council_room_compare">Comparison room</string>
@@ -3241,6 +3242,9 @@
     <!-- [37099d] Gorev odasi eylemleri -->
     <string name="task_hall_empty_title">No tasks yet</string>
     <string name="task_hall_empty_hint">A task appears when a member hands work over, when the chair marks a claim as needing one, or when you add it here.</string>
+    <string name="task_hall_add_evidence">Evidence</string>
+    <string name="task_hall_add_evidence_hint">A path, a URL, or the command output</string>
+    <string name="task_hall_done">Done</string>
     <string name="task_hall_add">Add a task</string>
     <string name="task_hall_add_hint">What needs doing</string>
     <string name="task_hall_drop">Drop</string>

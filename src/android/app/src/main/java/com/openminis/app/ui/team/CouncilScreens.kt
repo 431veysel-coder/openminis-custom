@@ -84,6 +84,18 @@ fun CouncilScreen(
                 )
             }
 
+            // [37099f · §1.2] Ön kontrol uyarısı: koşu eksik üyeyle başladıysa
+            // kullanıcı bunu **baştan** görür, sonuç boş geldiğinde değil.
+            if (!live?.preflightNote.isNullOrBlank()) {
+                SettingsSection {
+                    SettingsRow(
+                        title = stringResource(R.string.council_preflight_warn),
+                        subtitle = live!!.preflightNote,
+                        showDivider = false,
+                    )
+                }
+            }
+
             TabStrip(selected = tab, onSelect = { tab = it })
 
             // [37099c] Altı oda — kullanıcının sırası: sohbet, görev, sonuç,

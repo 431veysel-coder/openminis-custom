@@ -20,7 +20,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.openminis.app.R
 import com.openminis.app.agent.team.TaskBoard
@@ -197,6 +196,11 @@ fun RunTasksSection(
     var refusal by remember(runId) { mutableStateOf("") }
     var adding by remember(runId) { mutableStateOf(false) }
     var draftTitle by remember(runId) { mutableStateOf("") }
+    // [37099f · §1.4] Kanıt ekleme: `TeamTask.canBeDone` kuralı vardı ama
+    // kullanıcı kanıt ekleyemiyordu, yani DONE hiç açılmıyordu.
+    var evidenceFor by remember(runId) { mutableStateOf<String?>(null) }
+    var draftEvidence by remember(runId) { mutableStateOf("") }
+    var draftKind by remember(runId) { mutableStateOf(com.openminis.app.agent.team.EvidenceKind.PATH) }
     val members = run?.members?.keys?.toList().orEmpty()
 
     fun persist(block: (com.openminis.app.agent.team.TaskBoard) -> Pair<com.openminis.app.agent.team.TaskBoard, String>) {
@@ -258,6 +262,39 @@ fun RunTasksSection(
                                     Text("→ $m", style = MaterialTheme.typography.labelSmall)
                                 }
                             }
+                            TextButton(onClick = {
+                                evidenceFor = task.id
+                                draftEvidence = ""
+                                draftKind = com.openminis.app.agent.team.EvidenceKind.PATH
+                            }) {
+                                Text(
+                                    stringResource(R.string.task_hall_add_evidence),
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            }
+                            if (task.state != com.openminis.app.agent.team.TaskState.DONE) {
+                                TextButton(
+                                    enabled = task.canBeDone,
+                                    onClick = {
+                                        persist { b ->
+                                            val (nb, _, why) = b.moveTo(
+                                                task.id,
+                                                com.openminis.app.agent.team.TaskState.DONE,
+                                            )
+                                            nb to why
+                                        }
+                                    },
+                                ) {
+                                    Text(
+                                        stringResource(R.string.task_hall_done),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        // Kural burada görünür: kanıtsız görev
+                                        // kapanmaz, düğme de soluk durur.
+                                        color = if (task.canBeDone) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.outline,
+                                    )
+                                }
+                            }
                             if (task.state != com.openminis.app.agent.team.TaskState.DROPPED) {
                                 TextButton(onClick = {
                                     persist { b ->
@@ -298,6 +335,61 @@ fun RunTasksSection(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
         }
+    }
+
+    val evidenceTaskId = evidenceFor
+    if (evidenceTaskId != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { evidenceFor = null },
+            title = { Text(stringResource(R.string.task_hall_add_evidence)) },
+            text = {
+                androidx.compose.foundation.layout.Column {
+                    androidx.compose.foundation.layout.Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        com.openminis.app.agent.team.EvidenceKind.entries.forEach { kind ->
+                            TextButton(onClick = { draftKind = kind }) {
+                                Text(
+                                    kind.wire,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (draftKind == kind) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                    androidx.compose.material3.OutlinedTextField(
+                        value = draftEvidence,
+                        onValueChange = { draftEvidence = it },
+                        label = { Text(stringResource(R.string.task_hall_add_evidence_hint)) },
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val value = draftEvidence.trim()
+                        if (value.isEmpty()) return@TextButton
+                        persist { b ->
+                            b.addEvidence(
+                                evidenceTaskId,
+                                com.openminis.app.agent.team.TaskEvidence(
+                                    kind = draftKind,
+                                    value = value,
+                                    by = "user",
+                                ),
+                            )
+                        }
+                        evidenceFor = null
+                    },
+                ) { Text(stringResource(R.string.common_add)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { evidenceFor = null }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            },
+        )
     }
 
     if (adding) {

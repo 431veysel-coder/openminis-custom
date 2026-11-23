@@ -1,4 +1,4 @@
-# SÜRÜM NOTU — 1.15-ozel.23 / 37104
+# SÜRÜM NOTU — 1.15-ozel.24 / 37105
 
 > **Derlenmedi.** Kullanıcı talebiyle bu turda APK üretilmedi; kaynak dalda
 > hazır. Derleme yapılmadan önce CI'daki `compile` + `unit test` adımları
@@ -84,3 +84,23 @@ Kapılar: **8/8 yeşil**, 47 sn.
 
 `CouncilPreflightTest` 10 test (ön kontrol 5, arıza sınıfı 5).
 `GrantCatalogTest` 11 (1 yeni: deny listesi). Kapılar **9/9 yeşil**, ~44 sn.
+
+## .24 ek — görev kanıtı ve ön kontrol uyarısı
+
+**§1.4 görev kanıtı (kapandı):** `TeamTask.canBeDone` kuralı vardı ama
+kullanıcı **kanıt ekleyemiyordu**; yani DONE hiç açılmıyor, görev sonsuza kadar
+"kanıt yok" kalıyordu. Artık görev odasında:
+- **Kanıt** düğmesi → tür (path / url / output) + değer diyaloğu,
+- **Bitti** düğmesi — kanıt yoksa **soluk ve kapalı** (kural ekranda görünür).
+
+**§1.2 ön kontrol uyarısı (kapandı):** koşu eksik üyeyle başlıyorsa
+`LiveRun.preflightNote` ile ekranın en üstünde "Eksik üyeyle başladı" satırı
+görünür. Önce yalnız günlüğe yazılıyordu; günlüğü kimse okumuyor.
+
+**Araç düzeltmesi:** `kotlin-hizli.py` veri sınıfı ayrıştırıcısı iki kez yanlış
+pozitif verdi (varsayılan değerdeki parantez, yorum içindeki virgül). İkisi de
+düzeltildi: dengeli parantez taraması + yorumları **bölmeden önce** silme.
+Bu, "kapı yanlış pozitif üretirse kapatılır" kuralının uygulanması.
+
+**Test:** `CouncilRoomsTest` 13 (3 yeni: kanıtlı kapanış, boş kanıt reddi,
+ön kontrol notu). Kapılar 9/9.

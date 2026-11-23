@@ -612,6 +612,8 @@ object CouncilRunner {
         // Hiçbiri hazır değilse koşu BAŞLAMAZ.
         val preflightRuntime = AndroidCouncilRuntime(context, team, sessionId, "preflight")
         val preflight = CouncilPreflight.check(team.members) { m -> preflightRuntime.canRun(m) }
+        // [37099f] Koşu eksik üyeyle başlıyorsa bu metin ekrana taşınır.
+        var pendingPreflightNote: String? = null
         if (!preflight.canStart) {
             // Token harcanmadı, koşu yok: ok=false ve raporda üye üye gerekçe.
             return@withContext TeamRunner.Outcome(
@@ -621,6 +623,8 @@ object CouncilRunner {
             )
         }
         if (preflight.needsConfirmation) {
+            // [37099f] Ekran da bilsin: günlük kimse okumuyor.
+            pendingPreflightNote = preflight.report()
             com.openminis.app.logging.AppLogger.warning(
                 "CouncilRuntime",
                 "[preflight] ${preflight.summary()} — kalanlarla başlanıyor: " +
@@ -649,6 +653,9 @@ object CouncilRunner {
             roundsPlanned = policy.budget.maxRounds,
             waveSize = policy.budget.waveSize,
         )
+        // Kayıt kurulduktan SONRA yazılır: `start` yeni bir LiveRun üretiyor,
+        // öncesinde yazmak onu ezerdi.
+        pendingPreflightNote?.let { CouncilLiveRegistry.preflight(runId, it) }
 
         // Evidence the tools already fetched is not available before the run
         // starts (members fetch during their turns), so the board starts empty;

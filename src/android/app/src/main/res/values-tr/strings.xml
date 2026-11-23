@@ -2369,6 +2369,7 @@
     <string name="council_tab_agenda">Gündem</string>
     <string name="council_tab_decision">Karar</string>
     <!-- [37099c] Konsey odalari -->
+    <string name="council_preflight_warn">Eksik üyeyle başladı</string>
     <string name="council_room_chat">Sohbet odası</string>
     <string name="council_room_tasks">Görev odası</string>
     <string name="council_room_compare">Karşılaştırma odası</string>
@@ -2411,6 +2412,9 @@
     <!-- [37099d] Gorev odasi eylemleri -->
     <string name="task_hall_empty_title">Henüz görev yok</string>
     <string name="task_hall_empty_hint">Görev üç yoldan gelir: bir üye iş devredince, başkan bir maddeye görev işaretleyince, ya da buradan sen ekleyince.</string>
+    <string name="task_hall_add_evidence">Kanıt</string>
+    <string name="task_hall_add_evidence_hint">Bir yol, bir URL ya da komut çıktısı</string>
+    <string name="task_hall_done">Bitti</string>
     <string name="task_hall_add">Görev ekle</string>
     <string name="task_hall_add_hint">Ne yapılacak</string>
     <string name="task_hall_drop">Düşür</string>
