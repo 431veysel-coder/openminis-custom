@@ -1,4 +1,4 @@
-# SÜRÜM NOTU — 1.15-ozel.24 / 37105
+# SÜRÜM NOTU — 1.15-ozel.25 / 37106
 
 > **Derlenmedi.** Kullanıcı talebiyle bu turda APK üretilmedi; kaynak dalda
 > hazır. Derleme yapılmadan önce CI'daki `compile` + `unit test` adımları
@@ -104,3 +104,17 @@ Bu, "kapı yanlış pozitif üretirse kapatılır" kuralının uygulanması.
 
 **Test:** `CouncilRoomsTest` 13 (3 yeni: kanıtlı kapanış, boş kanıt reddi,
 ön kontrol notu). Kapılar 9/9.
+
+## .25 ek — izin/onay tamamlama
+
+**§3.3 reddedilenler görünür:** `GrantCatalog.denialRows` + İzinler ekranında
+"Reddettiklerin" bölümü — kural, kaç kez, hangi kapsamda, son gerekçe.
+Önce yalnız ALLOW sayılıyordu; kullanıcı "ben bunu reddetmiştim" diyemiyordu.
+
+**§3.2 kapsam görünürlüğü:** `GrantCatalog.offeredScopes(rule)` — oturum her
+zaman; proje cihaza taşmayan ve geri alınamaz olmayan için; cihaz geneli yalnız
+sandbox + geri alınabilir. Geniş kapsamı önermek, güvenlik kuralını gevşetmek
+değil, **var olan seçeneği görünür kılmak**; ama sınır korunuyor.
+
+**Test:** `GrantCatalogTest` 14 (3 yeni: ret listesi, ALLOW dışlanması, kapsam
+sınırı). Kapılar 9/9.

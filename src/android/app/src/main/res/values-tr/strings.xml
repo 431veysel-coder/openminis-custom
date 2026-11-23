@@ -2494,6 +2494,8 @@
     <string name="permission_grants_a11y">android-a11y-cli (gerçek ekran)</string>
     <string name="permission_grants_shizuku">android-shizuku-cli (ayrıcalıklı)</string>
     <string name="permission_grants_agent_level">Ajan erişimi: %1$s</string>
+    <string name="permission_grants_denied_header">Reddettiklerin</string>
+    <string name="permission_grants_denied_footer">Ret hatırlanır; aynı soru sonsuza kadar geri gelmesin diye. Sayı, kaç kez "hayır" dediğini gösterir.</string>
     <string name="permission_grants_deny_header">Hiç izin verilmez (kart yok)</string>
     <string name="permission_grants_deny_footer">Bunlar doğrudan reddedilir: burada güvenli bir "evet" cevabı yok, kart göstermek varsa ima etmek olurdu. Liste, reddin gizem olmaması için burada.</string>
     <string name="permission_grants_title">İzinler</string>

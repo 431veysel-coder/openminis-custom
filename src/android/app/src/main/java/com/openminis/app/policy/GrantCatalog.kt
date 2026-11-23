@@ -120,6 +120,75 @@ object GrantCatalog {
     }
 
     /**
+     * [37099f · §3.3] **Kullanıcının reddettikleri** — kurallar, kez sayısı ve
+     * son gerekçe.
+     *
+     * ## Neden gerekli
+     *
+     * Kullanıcı bir karta "hayır" dediğinde ajan gerekçeyi görüyor, ama
+     * kullanıcının kendisi bunu **hiçbir yerde** göremiyordu: İzinler ekranı
+     * yalnız `ALLOW` kayıtlarını sayıyordu. Aynı izin üç gün sonra tekrar
+     * sorulduğunda "ben bunu reddetmiştim" demenin bir yolu yoktu.
+     *
+     * ## Neden gerekçe de taşınıyor
+     *
+     * Reddin sebebi, reddin kendisinden daha öğretici: "bu projede değil" ile
+     * "hiçbir zaman" aynı kayda düşmemeli.
+     */
+    data class DenialRow(
+        val ruleId: String,
+        val title: String,
+        val count: Int,
+        val lastNote: String,
+        val scope: String,
+    )
+
+    fun denialRows(
+        byScope: Map<String, List<Grant>>,
+        nowMs: Long,
+    ): List<DenialRow> = byScope.flatMap { (_, grants) -> grants }
+        .filter { it.decision == Decision.DENY }
+        .groupBy { it.ruleId to it.scope.key }
+        .map { (key, list) ->
+            DenialRow(
+                ruleId = key.first,
+                title = RiskRules.byId(key.first)?.note ?: key.first,
+                count = list.size,
+                // En yenisi: kullanıcının son gerekçesi hâlâ geçerli olandır.
+                lastNote = list.maxByOrNull { it.grantedAtMs }?.note.orEmpty(),
+                scope = when (val s = list.first().scope) {
+                    is ApprovalScope.Session -> "oturum"
+                    is ApprovalScope.Project -> "proje"
+                    else -> "cihaz"
+                },
+            )
+        }
+        .sortedByDescending { it.count }
+
+    /**
+     * [37099f · §3.2] Bir kural için **verilebilecek** kapsamlar.
+     *
+     * Neden gerekli: `ApprovalScope` üç kapsamı biliyor ama kart yalnız en
+     * darını öneriyordu; kullanıcı "bu projede hep" seçeneğinin var olduğunu
+     * göremiyordu. Geniş kapsam **her zaman** önerilmez — ürün kuralı:
+     * geri alınamaz ya da sandbox dışına taşan bir kural için cihaz geneli
+     * izin verilmez, çünkü tek yanlış dizinde çalışan tek bir izin her şeyi
+     * götürür.
+     */
+    fun offeredScopes(rule: RiskRules.Rule): List<ApprovalScope> {
+        val scopes = mutableListOf<ApprovalScope>(ApprovalScope.Session(""))
+        // Proje: cihaza taşmayan ve geri alınamaz olmayan her şey.
+        if (rule.reach != Reach.DEVICE && rule.recovery != Recovery.PERMANENT) {
+            scopes += ApprovalScope.Project("")
+        }
+        // Cihaz geneli: yalnız sandbox içinde kalan ve geri alınabilir.
+        if (rule.reach == Reach.SANDBOX && rule.recovery == Recovery.UNDOABLE) {
+            scopes += ApprovalScope.Global
+        }
+        return scopes
+    }
+
+    /**
      * [37099e · §3.4] Hiç sorulmadan reddedilenler — **salt okunur** liste.
      *
      * Neden gösteriliyor: `deny:` kurallarının kartı yok, dolayısıyla izni de

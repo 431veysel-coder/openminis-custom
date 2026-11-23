@@ -146,4 +146,62 @@ class GrantCatalogTest {
         val ids = GrantCatalog.categories().flatMap { c -> c.items.map { it.rule.id } }
         assertTrue(ids.none { it.startsWith("deny:") })
     }
+
+    @Test
+    fun `ret listesi kurallari sayar ve son gerekceyi tasir`() {
+        val deny1 = Grant(
+            ruleId = "shell:rm", targetPrefix = "", scope = ApprovalScope.Global,
+            decision = Decision.DENY, grantedAtMs = now - 5000, expiresAtMs = null,
+            note = "bu projede değil",
+        )
+        val deny2 = deny1.copy(grantedAtMs = now - 1000, note = "hiçbir zaman")
+        val deny3 = Grant(
+            ruleId = "pkg:install", targetPrefix = "", scope = ApprovalScope.Session("s"),
+            decision = Decision.DENY, grantedAtMs = now, expiresAtMs = null, note = "",
+        )
+        val map = mapOf(ApprovalScope.Global.key to listOf(deny1, deny2), "session:s" to listOf(deny3))
+        val rows = GrantCatalog.denialRows(map, now)
+        // En çok reddedilen başta.
+        assertEquals("shell:rm", rows.first().ruleId)
+        assertEquals(2, rows.first().count)
+        // Son gerekçe geçerli olandır, ilk değil.
+        assertEquals("hiçbir zaman", rows.first().lastNote)
+        assertEquals("oturum", rows.first { it.ruleId == "pkg:install" }.scope)
+    }
+
+    @Test
+    fun `onaylanan kayit ret listesine girmez`() {
+        val allow = GrantCatalog.grant(RiskRules.byId("termux:pkg")!!, nowMs = now)
+        val rows = GrantCatalog.denialRows(mapOf(ApprovalScope.Global.key to listOf(allow)), now)
+        assertTrue("ALLOW kaydı red listesinde görünmemeli", rows.isEmpty())
+    }
+
+    @Test
+    fun `kapsam onerisi riskle sinirlanir`() {
+        // Sandbox + geri alınabilir: üç kapsam da önerilebilir.
+        val safe = RiskRules.byId("termux:pkg")!!
+        val safeScopes = GrantCatalog.offeredScopes(safe)
+        assertEquals(3, safeScopes.size)
+
+        // Geri alınamaz bir kural cihaz geneli izin almaz.
+        val permanent = RiskRules.ALL.firstOrNull { it.recovery == Recovery.PERMANENT }
+        if (permanent != null) {
+            val scopes = GrantCatalog.offeredScopes(permanent)
+            assertTrue(
+                "geri alınamaz kural cihaz geneli izin almamalı",
+                scopes.none { it is ApprovalScope.Global },
+            )
+            assertEquals(1, scopes.size)
+        }
+
+        // Cihaza taşan kural proje izni de almaz.
+        val device = RiskRules.ALL.firstOrNull { it.reach == Reach.DEVICE }
+        if (device != null) {
+            val scopes = GrantCatalog.offeredScopes(device)
+            assertTrue(
+                "cihaz erişimli kural proje izni almamalı",
+                scopes.none { it is ApprovalScope.Project },
+            )
+        }
+    }
 }

@@ -33,12 +33,12 @@ python3 scripts/ozel/harita.py --check  # bayat mı?
 
 | | |
 |---|---|
-| Kotlin dosyası (main) | 883 · 318 299 satır |
+| Kotlin dosyası (main) | 883 · 318 397 satır |
 | Ekran | 76 · UI paketi 19 |
 | Dilim | 13 |
 | Risk kuralı | 42 (DENY 5 · karta düşen 37) |
 | Özellik anahtarı | 27 (açık 19) |
 | İzin | 27 Android + 2 özel |
-| Test | 6 607 birim (766 dosya) + 124 cihaz |
-| Çeviri | en 2971 · tr 2450 · eksik 521 (yeni 0) |
+| Test | 6 610 birim (766 dosya) + 124 cihaz |
+| Çeviri | en 2973 · tr 2452 · eksik 521 (yeni 0) |
 | Sözleşme | 13 · kayıt 72 |

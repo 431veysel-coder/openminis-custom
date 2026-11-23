@@ -182,6 +182,35 @@ fun PermissionGrantsScreen(onBack: () -> Unit) {
             }
         }
 
+        // [37099f · §3.3] Kullanıcının reddettikleri. Önce hiçbir ekranda
+        // yoktu: aynı izin üç gün sonra tekrar sorulunca "ben bunu
+        // reddetmiştim" demenin yolu yoktu.
+        val denials = remember(byScope) { GrantCatalog.denialRows(byScope, now) }
+        if (denials.isNotEmpty()) {
+            SettingsSection(
+                header = stringResource(R.string.permission_grants_denied_header),
+                footer = stringResource(R.string.permission_grants_denied_footer),
+            ) {
+                denials.forEachIndexed { i, row ->
+                    SettingsRow(
+                        title = "${row.ruleId} · ${row.count}×",
+                        subtitle = buildString {
+                            append(row.title)
+                            append(" (")
+                            append(row.scope)
+                            append(")")
+                            if (row.lastNote.isNotBlank()) {
+                                append("\n")
+                                append(row.lastNote)
+                            }
+                        },
+                        showDivider = i < denials.lastIndex,
+                        showChevron = false,
+                    )
+                }
+            }
+        }
+
         // [37099e · §3.4] Hiç sorulmadan reddedilenler. Anahtar yok: bu
         // sınıfta "evet" bir seçenek değil, ve kullanıcı nedenini görmeli.
         SettingsSection(
