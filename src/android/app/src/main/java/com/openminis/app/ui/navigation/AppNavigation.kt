@@ -74,6 +74,7 @@ import com.openminis.app.ui.settings.LogManagementScreen
 import com.openminis.app.ui.settings.MemoryFileEditScreen
 import com.openminis.app.ui.settings.MemoryManagementScreen
 import com.openminis.app.ui.settings.OffloadPermissionScreen
+import com.openminis.app.ui.settings.PermissionGrantsScreen
 import com.openminis.app.ui.settings.ShizukuPermissionScreen
 import com.openminis.app.sandbox.RootfsManager
 import com.openminis.app.sandbox.TerminalSession

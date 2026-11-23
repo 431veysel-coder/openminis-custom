@@ -15247,7 +15247,7 @@ class ChatViewModel(
                     // üç denetçi 11m30s'de kesildi, tur sınırına varmadan.
                     minutes = args.minutes,
                 )
-                it.helperStartedAtMs = startedAt
+                it.helperStartedAtMs = System.currentTimeMillis()
                 it.adoptBrowserTabPool(browserTabPool)
             }
         }
