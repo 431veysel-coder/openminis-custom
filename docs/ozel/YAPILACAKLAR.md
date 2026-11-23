@@ -272,8 +272,8 @@ isterse**.
 |---|---|---|---|
 | **.22** ✅ | Konsey odaları + iskelet | K10–K14, `2.1` | 8/8 kapı, `.22` kaynak |
 | **.23** | Konsey güvenilirliği | `1.1` üye arıza sınıfı · `1.2` preflight · `1.4` görev kanıtı | birim test + koşu |
-| **.25** | İzin/onay tamamlanması | `3.1` karttan kural aç · `3.2` kapsam görünürlüğü · `3.3` ret listesi · `3.4` deny okunur | cihaz testi |
-| **.26** | Altyapı | `7.1` DNS kalıcılığı · `7.2` derlemesiz doğrulama · `7.4` harita kendini tazeler | CI + yerel |
+| **.25** ✅ | İzin/onay tamamlanması | `3.1` karttan kural aç · `3.2` kapsam görünürlüğü · `3.3` ret listesi · `3.4` deny okunur | cihaz testi |
+| **.26** ✅ | Altyapı | `7.1` DNS doktoru · `7.2` derlemesiz doğrulama · `7.4` harita kendini tazeler | CI + yerel |
 | **.27** | Sanal ekran yüzeyi | `5.1` tek tuval · `5.2` bölme içi eylem | yakalama kanıtı |
 | **.28** | Alt ajan/ekip | `4.1` kalan süre · `4.2` araç yüzeyi · `4.4` kuyruk | kart ekran görüntüsü |
 | **.29** | Çeviri | `6.1` paket önerisi · `6.2` devam et · `6.3` sözlük dürüstlüğü | çeviri testleri |

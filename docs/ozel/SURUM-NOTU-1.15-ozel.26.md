@@ -1,4 +1,4 @@
-# SÜRÜM NOTU — 1.15-ozel.25 / 37106
+# SÜRÜM NOTU — 1.15-ozel.26 / 37107
 
 > **Derlenmedi.** Kullanıcı talebiyle bu turda APK üretilmedi; kaynak dalda
 > hazır. Derleme yapılmadan önce CI'daki `compile` + `unit test` adımları
@@ -118,3 +118,16 @@ değil, **var olan seçeneği görünür kılmak**; ama sınır korunuyor.
 
 **Test:** `GrantCatalogTest` 14 (3 yeni: ret listesi, ALLOW dışlanması, kapsam
 sınırı). Kapılar 9/9.
+
+## .26 ek — altyapı
+
+**§7.4 harita kendini tazeler:** `kapi.py` artık `harita` kapısından **önce**
+`harita.py`'yi koşuyor. Geçen turda bayat harita CI'ı kırdı (`SURUM-NOTU` adı
+değişti, harita eski adı taşıyordu); "unutulacak adım" olmaktan çıktı.
+
+**§7.1 DNS doktoru:** `scripts/ozel/dns-doktor.py`. Ölçülen belirti: `getent`
+boş dönerken `curl` 200 veriyor — iki ayrı çözümleme yolu (TUN/vekil vs
+`/etc/resolv.conf`). Araç **ayar değiştirmez** (auto mod Fake-IP'yi bilerek
+kullanıyor; oradan yazmak vekili bozabilir), yalnız durumu ve üç yolu söyler.
+`/etc/hosts` yaması varsa "çözümleme yalnız yamayla çalışıyor" der — yoksa
+teşhis kendi yamasına kanardı.

@@ -89,6 +89,23 @@ def main() -> int:
         print(f"geçerli: {', '.join(GATES)}", file=sys.stderr)
         return 2
 
+    # [37099f · §7.4] Harita, diğer kapılardan ÖNCE tazelenir.
+    #
+    # Neden: `harita --check` bayat haritayı kırmızı yapıyor, ama harita ancak
+    # son dosya değişikliğinden sonra üretilirse taze olur. Bu adımı elle
+    # çalıştırmayı unutmak geçen turda CI'ı kırdı (`SURUM-NOTU` adı değişti,
+    # harita eski adı taşıyordu). Kapının kendisi tazelerse unutulacak bir şey
+    # kalmaz.
+    if "harita" in names:
+        gen = subprocess.run(
+            [sys.executable, "scripts/ozel/harita.py"], cwd=ROOT,
+            capture_output=True, text=True, timeout=120,
+        )
+        if gen.returncode != 0:
+            print("harita üretilemedi — kapı koşulmayacak", file=sys.stderr)
+            print(tail(gen.stdout + gen.stderr), file=sys.stderr)
+            return 1
+
     started = time.time()
     if args.seri:
         results = [run_one(n) for n in names]
