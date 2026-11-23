@@ -267,13 +267,19 @@ object OzelFeatures {
          * [37099] Sanal ekran — ajanın uygulama **içinde** kendi yüzeyi
          * (tarayıcı + terminal + notlar).
          *
-         * KAPALI varsayılan ve bu bilinçli: yüzey henüz tek parça değil
-         * (`SANAL-EKRAN.md` §4). Açık bir anahtarın üretimde okuyucusu olmak
-         * zorunda — okuyucu [com.openminis.app.screen.VirtualScreenHost.brief].
-         * Kapalıyken ajan sistem isteminde sanal ekrandan hiç söz görmez,
-         * yani olmayan bir yüzeye komut göndermeye çalışmaz.
+         * AÇIK: çekirdek (bölme/odak/sıralama), durum kaydı ve A/B eylem izni
+         * ayrımı hazır; arayüzü var (Ayarlar › Minis X › Sanal ekran).
+         *
+         * Okuyucusu [com.openminis.app.screen.VirtualScreenHost.brief]: ajan
+         * sistem isteminde "kendi yüzeyinde mi, gerçek ekranda mı çalışıyor"
+         * satırını görür. Kapalıyken bu satır hiç gönderilmez.
+         *
+         * Sınır dürüstçe: bölmeler henüz **tek tuvalde çizilmiyor**
+         * (`SANAL-EKRAN.md` §4 P1). Anahtarın açık olması "çizim var" demek
+         * değil; ayar ekranı da bunu footer'da söylüyor. Bir sonraki adım
+         * tarayıcı + terminal yüzeyini aynı yüzeye bağlamak.
          */
-        VIRTUAL_SCREEN("virtual_screen", false),
+        VIRTUAL_SCREEN("virtual_screen", true),
         ;
 
         companion object {

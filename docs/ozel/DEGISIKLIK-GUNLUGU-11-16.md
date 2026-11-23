@@ -1,8 +1,53 @@
-# Değişiklik günlüğü — `.11.3.1` → `.17`
+# Değişiklik günlüğü — `.11.3.1` → `.18`
 
 > `FORK.md` §10 günlüğü `.10.1`'de duruyordu; kod beş sürüm ilerideydi. Bu dosya
 > o boşluğu kapatıyor ve bundan sonrasının tek kaynağı olmayı hedefliyor.
 > `FORK.md` §10 artık buraya yönlendiriyor.
+
+---
+
+## `1.15-ozel.18` / 37099 — 2026-11-23 · **yayın adayı**
+
+`.17` hiç yayınlanmadı; bu sürüm onun üstüne binen düzeltme turunu taşıyor.
+Yeni bir `versionCode`, yayınlanmış bir sürümün üzerine yazma olasılığını
+sıfırlıyor.
+
+**Çeviri — dört sessiz hata.** `stopReason` hiç okunmuyordu: `maxTokens`a
+takılan parça kesik dönüyor, `trim()` edilip *tam* sayılıyor ve önbelleğe tam
+çeviri olarak yazılıyordu (kalıcı bozulma). Kısmi kayıt tam gibi dönüyordu
+(3/7'de sonsuza kadar yarım metin, düğme işlevsiz). Kısmi yazım yalnız döngü
+sonundaydı (iptalde ödenmiş parçalar kayboluyordu). Parçalar sıraydı — 7 parça
+× 2–6 sn, gecikmenin asıl sebebi. Ayrıca kesilme bütçesi 2048 → 4096 (CJK
+çıktısı tokenca büyür), `CONCURRENCY = 2`, arayüzde `3/7` ve turuncu
+"kısmi/kesildi" satırı. 10 test.
+
+**Çeviri zinciri.** `offline_pack → model_with_pack → model_only`; biri cevap
+vermezse sonraki. Sözlük motoru cümle **çevirmez**, `degraded = true` döner ve
+arayüz bunu söyler — olmayan bir NMT'yi vaat etmemek. 13 test.
+
+**Harita sistemi.** `docs/harita/` 11 dosya `scripts/ozel/harita.py` tarafından
+**kaynaktan** üretilir (kod ağacı, dilimler, 42 risk kuralı, özellik anahtarları,
+izinler, çeviri, sözleşmeler, testler, belge dizini). `--check` bayatlığı CI'da
+kırmızı yapar; `99-NE-NEREYE.md` "bir şey ekledim → ne güncellenir" tablosu.
+`docs/ozel/HARITA.md` içindeki sayılar `OTO` bloğunda ölçümden geliyor.
+
+**Sanal ekran.** `screen/VirtualScreen.kt` (saf: bölme/odak/sıralama, yakalama
+bütçesi, **A = sanal / B = gerçek ekran eylem izni ayrımı**, durum kodlama) +
+`screen/VirtualScreenHost.kt` (prefs durum kaydı, `brief()` ile modele "nerede
+çalışıyorum") + `VirtualScreenSettingsScreen` (düzen, odak, sıfırla). 17 test.
+Sınır: bölmeler henüz tek tuvalde çizilmiyor (`SANAL-EKRAN.md` §4 P1).
+
+**Bellek sızıntısı (ölçüldü).** `ChatHealthBridge.trackers` sınırsızdı ve
+`forget()` üretimde hiç çağrılmıyordu: her oturum süreç ömrü boyunca bir
+izleyici + `_state` girdisi bırakıyordu. Erişim sıralı `LinkedHashMap` +
+`MAX_TRACKERS = 20` + `onCleared()` çağrısı.
+
+**Termux kararı.** Katman mı ayrı APK mı: kök-içi katman (ayrı APK `/data`'ya
+erişemediği için hedefi root şartına bağlardı). `TERMUX-APK-KARARI.md`.
+
+**Yeni araçlar.** `ceviri-denetim.py`, `apk-butce.py`, `harita.py` → CI'da 7
+kapı. `slice_gate` test kaynaklarını classpath'e eklemiyordu (37080 kod doğru
+olduğu hâlde kırmızıydı) ve özet artık hatanın **nedenini** de yazıyor.
 
 ---
 

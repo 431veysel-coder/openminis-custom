@@ -6,7 +6,7 @@
 |---|---|---|
 | `docs/ozel/37094-YAYIN-HATTI-DENETIMI.md` | 37094 — yayın hattı denetimi (push öncesi) | `pipefail` eklemeden önce dosyada 10 `| head` ve 8 `| grep -q` vardı. |
 | `docs/ozel/BUILD-GECMISI.md` | DERLEME GEÇMİŞİ | `python3 scripts/build_digest.py` ile üretilir. **Elle düzenlemeyin.** |
-| `docs/ozel/DEGISIKLIK-GUNLUGU-11-16.md` | Değişiklik günlüğü — `.11.3.1` → `.17` | `.16` yayınlanmadı; bu sürüme katlandı. |
+| `docs/ozel/DEGISIKLIK-GUNLUGU-11-16.md` | Değişiklik günlüğü — `.11.3.1` → `.18` | `.17` hiç yayınlanmadı; bu sürüm onun üstüne binen düzeltme turunu taşıyor. |
 | `docs/ozel/DENETIM-37096.md` | DENETİM 37096 — `1.15-ozel.15` kaynak incelemesi ve düzeltmeler | sebep §6. |
 | `docs/ozel/DENETIM-37098.md` | DENETİM 37098 — Termux kodunun kendi incelemesi | indirip yapısını doğrulama (`unzip -l`) + korpus koşumu |
 | `docs/ozel/DENETIM-37099.md` | DENETİM — `37099` / düzeltme turu | `.17` paketi satır satır yeniden okundu. **Sekiz gerçek hata** bulundu; |

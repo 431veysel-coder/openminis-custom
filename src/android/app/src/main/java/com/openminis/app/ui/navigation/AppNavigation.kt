@@ -185,6 +185,8 @@ object Routes {
     const val TOOLCHAINS = "toolchains"
     /** [MINIS-OZEL] Settings > Agent Runtime > Translation (thinking-block translation). */
     const val TRANSLATION_SETTINGS = "translation_settings"
+    /** [37099] Settings > Minis X > Virtual screen (agent's own surface). */
+    const val VIRTUAL_SCREEN = "virtual_screen"
     /** [MINIS-OZEL] Settings > Agent Runtime > Thinking (block behaviour). */
     const val THINKING_SETTINGS = "thinking_settings"
     /** [MINIS-OZEL] Settings > Appearance > Minis X: one switch per fork feature. */
@@ -877,6 +879,7 @@ fun AppNavigation(
                 },
                 onToolchainsClick = { navController.safeNavigate(Routes.TOOLCHAINS) },
                 onTranslationClick = { navController.safeNavigate(Routes.TRANSLATION_SETTINGS) },
+                onVirtualScreenClick = { navController.safeNavigate(Routes.VIRTUAL_SCREEN) },
                 onThinkingClick = { navController.safeNavigate(Routes.THINKING_SETTINGS) },
                 onOzelFeaturesClick = { navController.safeNavigate(Routes.OZEL_FEATURES) },
                 onAgentToolsClick = { navController.safeNavigate(Routes.AGENT_TOOLS) },
@@ -1766,6 +1769,11 @@ fun AppNavigation(
         }
         composable(Routes.TRANSLATION_PACKS) {
             com.openminis.app.ui.settings.TranslationPacksScreen(
+                onBack = { navController.safePopBackStack() },
+            )
+        }
+        composable(Routes.VIRTUAL_SCREEN) {
+            com.openminis.app.ui.settings.VirtualScreenSettingsScreen(
                 onBack = { navController.safePopBackStack() },
             )
         }

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Web
 import androidx.compose.material.icons.outlined.Lan
 import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.Router
@@ -113,6 +114,8 @@ fun SettingsScreen(
     onLiveTasksClick: () -> Unit = {},
     onToolchainsClick: () -> Unit = {},
     onTranslationClick: () -> Unit = {},
+    /** [37099] Ajanın kendi yüzeyi — sanal ekran düzeni. */
+    onVirtualScreenClick: () -> Unit = {},
     onThinkingClick: () -> Unit = {},
     // [MINIS-OZEL] Settings › Minis X › Features: one switch per feature
     // this fork added, so a feature in the way can be put away.
@@ -261,6 +264,18 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_translation),
                         subtitle = stringResource(R.string.translation_enabled_subtitle),
                         onClick = onTranslationClick,
+                    )
+                }
+                // [37099] Sanal ekran satırı YALNIZ anahtar açıkken görünür.
+                // Kapalı bir anahtarın satırı = "var ama çalışmıyor" vaadi;
+                // `.14`'te STATION tam bu yüzden silinmişti.
+                if (on(OzelFeatures.Feature.VIRTUAL_SCREEN)) {
+                    SettingsItem(
+                        icon = Icons.Outlined.Web,
+                        iconColor = Color(0xFF2E7D32),
+                        title = stringResource(R.string.virtual_screen_title),
+                        subtitle = stringResource(R.string.virtual_screen_enabled_subtitle),
+                        onClick = onVirtualScreenClick,
                     )
                 }
                 SettingsItem(

@@ -2429,4 +2429,18 @@
     <string name="ozel_feature_virtual_screen">Sanal ekran</string>
     <string name="ozel_feature_virtual_screen_subtitle">Ajan uygulamanın içinde kendi yüzeyini tutar: tarayıcı, terminal ve notlar. Buradaki hiçbir şey gerçek ekranını değiştirmez. Önizleme: bölmeler henüz tek tuvalde çizilmiyor.</string>
     <string name="thinking_translate_glossary">Sözlük sonucu — terimler değiştirildi, cümleler çevrilmedi. Model ile çevirmek için dokun.</string>
+    <string name="virtual_screen_title">Sanal ekran</string>
+    <string name="virtual_screen_section_master">Durum</string>
+    <string name="virtual_screen_footer">Sanal ekran, ajanın uygulama içindeki kendi yüzeyidir. Buradaki hiçbir şey gerçek ekranına dokunmaz. Bölmeler henüz tek tuvalde çizilmiyor — bu ekran düzeni ve kayıtlı durumu yönetir.</string>
+    <string name="virtual_screen_enabled">Sanal ekranı aç</string>
+    <string name="virtual_screen_enabled_subtitle">Ajan kendi tarayıcı, terminal ve not durumunu turlar arasında koruyabilir. Kapalıyken ajana bu yüzeyden hiç söz edilmez.</string>
+    <string name="virtual_screen_section_panes">Bölmeler</string>
+    <string name="virtual_screen_panes_footer">Sıra çizim sırasıdır. Önde olan bölme tıklamanın gideceği yerdir; gizli bölme durumunu korur ve hiçbir şey çizmez.</string>
+    <string name="virtual_screen_pane_browser">Tarayıcı</string>
+    <string name="virtual_screen_pane_terminal">Terminal</string>
+    <string name="virtual_screen_pane_notes">Notlar</string>
+    <string name="virtual_screen_focused">Önde</string>
+    <string name="virtual_screen_section_state">Düzen</string>
+    <string name="virtual_screen_reset">Düzeni sıfırla</string>
+    <string name="virtual_screen_reset_subtitle">Varsayılan üç bölmeye dön, içleri boş.</string>
 </resources>

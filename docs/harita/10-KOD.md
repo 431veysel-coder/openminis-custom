@@ -1,6 +1,6 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Kod ağacı — 877 dosya, 316411 satır
+# Kod ağacı — 878 dosya, 316573 satır
 
 | Paket | Dosya | Satır |
 |---|---|---|
@@ -12,7 +12,7 @@
 | `budget/` | 1 | 183 |
 | `config/` | 28 | 8707 |
 | `crash/` | 5 | 1517 |
-| `data/` | 95 | 24344 |
+| `data/` | 95 | 24350 |
 | `debug/` | 17 | 7460 |
 | `deeplink/` | 2 | 327 |
 | `diagnostics/` | 13 | 2715 |
@@ -40,12 +40,12 @@
 | `speech/` | 42 | 11096 |
 | `terminal/` | 2 | 126 |
 | `tools/` | 15 | 3077 |
-| `ui/` | 306 | 148959 |
+| `ui/` | 307 | 149115 |
 | `usage/` | 6 | 805 |
 | `util/` | 2 | 266 |
 | `webapp/` | 5 | 1316 |
 
-Ekran (`*Screen.kt`): **74** · UI paketi: **19**
+Ekran (`*Screen.kt`): **75** · UI paketi: **19**
 
 ## Nerede ne var (sabit sınırlar)
 

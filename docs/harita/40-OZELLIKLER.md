@@ -30,7 +30,7 @@
 | `REPLAY` | `replay` | kapalı |
 | `REMOTE_CONSOLE` | `remote_console` | kapalı |
 | `CHAT_HEALTH` | `chat_health` | açık |
-| `VIRTUAL_SCREEN` | `virtual_screen` | kapalı |
+| `VIRTUAL_SCREEN` | `virtual_screen` | açık |
 
 Kural: **açık** bir anahtarın üretim kodunda okuyucusu olmak zorunda.
 `.14`'te `STATION` bu kuralı çiğnedi (açık, okuyucu yok) ve kapatıldı.

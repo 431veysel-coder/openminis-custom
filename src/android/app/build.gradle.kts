@@ -78,8 +78,13 @@ android {
         // 37098 (1.15-ozel.17): Termux katmanı (bionic + apt evreni).
         // `.16` YAYINLANMADI; aynı pakete katlandı. Yayın tek seferde yapılacak,
         // o yüzden iki ayrı "bekleyen sürüm" tutmak yanıltıcı olurdu.
-        versionCode = 37098
-        versionName = "1.15-ozel.17"
+        // [37099] 1.15-ozel.18. `.17` HİÇ YAYINLANMADI; üstüne düzeltme turu
+        // bindi (çeviri/4 sessiz hata, harita sistemi, sanal ekran çekirdeği,
+        // bellek sızıntısı, Termux kararı). Yeni bir versionCode, yayınlanmış
+        // herhangi bir sürümün üzerine yazma riskini sıfırlıyor: 37098 hiç
+        // dağıtılmadı ama "dağıtılmadı" varsayımı bir gün yanlış olabilir.
+        versionCode = 37099
+        versionName = "1.15-ozel.18"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
