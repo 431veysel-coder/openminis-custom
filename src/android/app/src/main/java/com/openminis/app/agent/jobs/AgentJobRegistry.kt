@@ -143,6 +143,13 @@ data class AgentJob(
     val summaryLine: String? = null,
     val createdAtMs: Long = System.currentTimeMillis(),
     val startedAtMs: Long? = null,
+    /**
+     * [37099g · §4.1] Duvar saati bütçesi (dakika). 0 = bilinmiyor.
+     *
+     * Neden: çocuk istemde bütçeyi görüyordu, kullanıcı görmüyordu. "7/10 dk"
+     * satırı olmadan 10. dakikada kesilen bir koşu "takıldı" gibi okunuyor.
+     */
+    val budgetMinutes: Int = 0,
     val finishedAtMs: Long? = null,
     val resultText: String? = null,
 ) {
@@ -359,12 +366,15 @@ object AgentJobRegistry {
         runSessionId: String? = null,
         /** [T-android-subagent-prompt-parity] See [AgentJob.wasResumed]. */
         wasResumed: Boolean = false,
+        /** [37099g] Duvar saati bütçesi; 0 = bilinmiyor. */
+        budgetMinutes: Int = 0,
     ): AgentJob {
         val resolvedThen = then ?: if (target.isChildOfCurrent) AgentJobThen.FollowUpParent(null) else AgentJobThen.None
         val job = AgentJob(
             id = UUID.randomUUID().toString(), label = label, title = title, origin = origin,
             trigger = trigger, target = target, prompt = prompt, then = resolvedThen,
             agentName = agentName, runSessionId = runSessionId, wasResumed = wasResumed,
+            budgetMinutes = budgetMinutes,
         )
         _jobs.value = _jobs.value + (job.id to job)
         // [37062] Count it against the run's launch ceiling when this job's
@@ -996,11 +1006,25 @@ object AgentJobRegistry {
         // platforms must not give the same attribute different meanings.
         tier = job.modelOrigin ?: job.tierUsed,
         elapsed = elapsedClock(job.elapsedMs),
+        budget = budgetClock(job.elapsedMs, job.budgetMinutes),
         agentName = job.agentName,
         summary = job.summaryLine?.removePrefix("Summary: "),
         siblings = siblingsFor(job),
         body = result,
     )
+
+    /**
+     * [37099g] "7/10 dk" — bütçeye göre ilerleme. Bütçe bilinmiyorsa null.
+     *
+     * Kenar durum: bütçe aşılmışsa "12/10 dk" yazar. Bu bir hata değil,
+     * gerçeğin kendisi: çocuk uyarıyı aldıktan sonra da yazmaya devam
+     * edebiliyor ve kullanıcı bunu görmeli.
+     */
+    fun budgetClock(elapsedMs: Long?, budgetMinutes: Int): String? {
+        if (budgetMinutes <= 0) return null
+        val usedMin = ((elapsedMs ?: 0L) / 60_000L).toInt()
+        return "$usedMin/$budgetMinutes dk"
+    }
 
     /** "1m02s" / "45s". */
     fun elapsedClock(ms: Long?): String? {

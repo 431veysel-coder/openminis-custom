@@ -1,4 +1,4 @@
-# SÜRÜM NOTU — 1.15-ozel.26 / 37107
+# SÜRÜM NOTU — 1.15-ozel.27 / 37108
 
 > **Derlenmedi.** Kullanıcı talebiyle bu turda APK üretilmedi; kaynak dalda
 > hazır. Derleme yapılmadan önce CI'daki `compile` + `unit test` adımları
@@ -131,3 +131,16 @@ boş dönerken `curl` 200 veriyor — iki ayrı çözümleme yolu (TUN/vekil vs
 kullanıyor; oradan yazmak vekili bozabilir), yalnız durumu ve üç yolu söyler.
 `/etc/hosts` yaması varsa "çözümleme yalnız yamayla çalışıyor" der — yoksa
 teşhis kendi yamasına kanardı.
+
+## .27 ek — alt ajan görünürlüğü
+
+**§4.1 kalan süre:** `AgentJob.budgetMinutes` + `AgentJobRegistry.budgetClock`
+→ kart "7/10 dk". Bütçe bilinmiyorsa **satır çizilmez** (0 = bilinmiyor);
+uydurulmuş bir sayı yanlış "kaldı" hissi verirdi. Devam ettirilen işte bütçe 0:
+eski argüman elde yok.
+
+**Kapı düzeltmesi (önemli):** `kotlin-hizli.py` artık yalnız **eklenen
+satırları** yargılıyor. Önce dosyanın tamamına bakıyordu; `ChatViewModel.kt`'de
+tek satır değiştirmek, oradaki yıllanmış Çince yorumu ve kullanılmayan
+importları "yeni hata" gibi gösterdi. Bu, sahibi olmadığın borcu ödetmek olur —
+ve kapı kapatılır. Hunk başlığı ayrıştırması (`@@ -a +b,n @@`) ile çözüldü.

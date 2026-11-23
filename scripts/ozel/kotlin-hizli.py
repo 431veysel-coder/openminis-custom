@@ -87,8 +87,10 @@ def check_balance(path: Path, text: str) -> None:
             problems.append(f"{path.relative_to(ROOT)}: {name} dengesi {delta:+d}")
 
 
-def check_foreign(path: Path, text: str) -> None:
+def check_foreign(path: Path, text: str, only: set[int] | None = None) -> None:
     for i, line in enumerate(text.splitlines(), 1):
+        if only is not None and only and i not in only:
+            continue
         for c in line:
             for lo, hi, name in FOREIGN:
                 if lo <= ord(c) <= hi:
@@ -96,7 +98,7 @@ def check_foreign(path: Path, text: str) -> None:
                     return
 
 
-def check_unused_imports(path: Path, text: str) -> None:
+def check_unused_imports(path: Path, text: str, only: set[int] | None = None) -> None:
     """Import edilen ad dosyada hiç geçmiyorsa hata.
 
     Yalnız `import` satırı dosyanın geri kalanında hiç geçmeyen bir ad
@@ -105,7 +107,9 @@ def check_unused_imports(path: Path, text: str) -> None:
     (kullanılmayan `Prefs*Field` importları).
     """
     body = text
-    for line in text.splitlines():
+    for i, line in enumerate(text.splitlines(), 1):
+        if only is not None and only and i not in only:
+            continue
         m = re.match(r"^import\s+([\w.]+)(?:\s+as\s+(\w+))?$", line.strip())
         if not m:
             continue
@@ -214,6 +218,35 @@ def changed_files() -> list[Path]:
     return [f for f in files if f.exists()]
 
 
+def added_lines(path: Path) -> set[int]:
+    """Bu dosyada git'e göre **eklenen** satır numaraları (1 tabanlı).
+
+    Neden: kapı yalnız dokunulan satırı yargılamalı. Bir dosyada tek satır
+    değiştirmek, oradaki on yıllık bir Çince yorumu "yeni hata" gibi
+    göstermemeli — o zaman kapı, sahibi olmadığın borcu ödetir ve kapatılır.
+    Dosya git'te yoksa (yeni dosya) tüm satırlar eklenmiş sayılır.
+    """
+    try:
+        p = subprocess.run(
+            ["git", "-C", str(ROOT), "diff", "-U0", "--unified=0", "--", str(path)],
+            capture_output=True, text=True, timeout=30,
+        )
+    except Exception:  # noqa: BLE001
+        return set()
+    if p.returncode != 0 or not p.stdout.strip():
+        return set(range(1, len(path.read_text(errors="ignore").splitlines()) + 1))
+    out: set[int] = set()
+    for line in p.stdout.splitlines():
+        # Hunk başlığı: "@@ -eski +yeni,adet @@"
+        m = re.match(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@", line)
+        if not m:
+            continue
+        start = int(m.group(1))
+        count = int(m.group(2) or 1)
+        out.update(range(start, start + count))
+    return out
+
+
 def modified_files() -> list[Path]:
     """HEAD'e göre değişmiş Kotlin dosyaları (staged + unstaged)."""
     out = subprocess.run(
@@ -250,8 +283,9 @@ def main() -> int:
     # KESİN kurallar: yanlış-pozitifi yok, kırmızı yapar.
     for path in files:
         text = path.read_text(errors="ignore")
-        check_foreign(path, text)
-        check_unused_imports(path, text)
+        only = added_lines(path)
+        check_foreign(path, text, only)
+        check_unused_imports(path, text, only)
 
     # ŞÜPHELİ: yalnız bilgi. Veri sınıfı alan denetimi üst kaynakta (builder
     # arayüzleri, iç içe sınıflar) yanlış-pozitif üretiyor; bu yüzden kapı

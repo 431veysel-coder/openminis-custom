@@ -3049,6 +3049,10 @@ class ChatViewModel(
             // final payload must carry the caveat about lost tool context and
             // partial elapsed/turn counts.
             wasResumed = true,
+            // [37099g · §4.1] Devam ettirilen işte bütçe bilinmiyor: eski
+            // argüman elimizde yok, uydurmak "3/10 dk" gibi yanlış bir sayı
+            // gösterirdi. 0 = bilinmiyor, kart satırı çizilmez.
+            budgetMinutes = 0,
         )
         registry.registerInterruptedCounter(parentSid) { countInterruptedChildren(parentSid) }
         registry.registerQueuedStarter(parentSid) { item ->
@@ -15223,6 +15227,8 @@ class ChatViewModel(
             then = if (args.wait) com.openminis.app.agent.jobs.AgentJobThen.None
             else com.openminis.app.agent.jobs.AgentJobThen.FollowUpParent(null),
             agentName = subAgentWireName,
+            // [37099g · §4.1] Kartta "7/10 dk" görünsün diye bütçe kayda geçer.
+            budgetMinutes = args.minutes,
         )
         registry.setModelOrigin(job.id, resolution.origin.wire)
         registry.registerInterruptedCounter(parentSid) { countInterruptedChildren(parentSid) }
