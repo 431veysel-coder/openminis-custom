@@ -1,4 +1,4 @@
-# SÜRÜM NOTU — 1.15-ozel.27 / 37108
+# SÜRÜM NOTU — 1.15-ozel.28 / 37109
 
 > **Derlenmedi.** Kullanıcı talebiyle bu turda APK üretilmedi; kaynak dalda
 > hazır. Derleme yapılmadan önce CI'daki `compile` + `unit test` adımları
@@ -144,3 +144,15 @@ satırları** yargılıyor. Önce dosyanın tamamına bakıyordu; `ChatViewModel
 tek satır değiştirmek, oradaki yıllanmış Çince yorumu ve kullanılmayan
 importları "yeni hata" gibi gösterdi. Bu, sahibi olmadığın borcu ödetmek olur —
 ve kapı kapatılır. Hunk başlığı ayrıştırması (`@@ -a +b,n @@`) ile çözüldü.
+
+## .28 ek — çeviri
+
+**§6.1 paket önerisi:** `TranslationPacks.recommendFor(packs, language)` (saf,
+test edilebilir) + `recommend(context)` cihaz dilini ölçer. Sıra: dil eşleşmesi
+→ en zengin glossary → **null**. Boş paket önerilmez (terimi olmayan paket bir
+çeviri paketi değil, boş dosyadır). Ayarlar'da "Önerilen: X" satırı yalnız aktif
+paket yokken görünür.
+
+**§6.2 "kalanı çevir" zaten vardı:** `ThinkingTranslator` önbellekten kaldığı
+yerden devam ediyor (`done` sayacı, `complete` bayrağı). Ek düğme icat
+etmedim — olmayan bir eksiği kapatmak, boş bir düğme eklemek olurdu.

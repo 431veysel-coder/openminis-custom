@@ -225,6 +225,39 @@ object TranslationPacks {
         return target.equals(device, ignoreCase = true)
     }
 
+    /**
+     * [37099h · §6.1] Bir dil çifti için **önerilen** paket.
+     *
+     * ## Neden (ölçülen boşluk)
+     *
+     * Kullanıcı "çeviri yapıyor ama terimler tutarsız" diyordu ve hangi
+     * paketin bu dil çifti için iyi olduğunu bilmiyordu: liste ada göre
+     * sıralıydı, kaliteye göre değil. Paket seçmek bir tahmin oyunuydu.
+     *
+     * ## Sıralama kuralı (ve neden bu)
+     *
+     * 1. Cihaz diliyle **eşleşen** paket — asıl amaç bu.
+     * 2. Eşleşme yoksa glossary'si en zengin paket — tutarlılığı o sağlıyor.
+     * 3. O da yoksa null: **öneri uydurmak**, "şunu seç" deyip yanlış
+     *    çıkarmaktan kötüdür.
+     */
+    fun recommend(context: Context, packs: List<Pack> = installed(context)): Pack? =
+        recommendFor(packs, deviceLanguageName(context))
+
+    /**
+     * Test edilebilir çekirdek: dil adı verilir, `Context` gerekmez.
+     *
+     * [recommend] bunu cihaz dilini ölçerek çağırır; kural burada, ölçüm
+     * orada — `CouncilPolicy` ile aynı ayrım.
+     */
+    fun recommendFor(packs: List<Pack>, language: String): Pack? {
+        if (packs.isEmpty()) return null
+        val exact = packs.filter { languagesMatch(it.targetLanguage, language) }
+        val pool = exact.ifEmpty { packs }
+        val best = pool.maxByOrNull { it.glossary.size + it.examples.size } ?: return null
+        return best.takeIf { !it.isEmpty }
+    }
+
     fun installedSizeBytes(context: Context): Long {
         val files = dir(context).listFiles()?.filter { it.isFile }?.sumOf { it.length() } ?: 0L
         val assets = runCatching {

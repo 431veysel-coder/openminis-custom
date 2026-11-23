@@ -155,12 +155,18 @@ fun TranslationSettingsScreen(
         // [MINIS-OZEL] Terminology packs: what makes consecutive translations
         // agree with each other instead of each request inventing its own
         // translation for the same term.
+        val activePack = TranslationPacks.forLanguage(
+            context,
+            TranslationPrefs.resolvedTargetLanguage(context),
+        )
+        val recommendedPack = remember(activePack) {
+            if (activePack != null) null else TranslationPacks.recommend(context)
+        }
         SettingsSection(
             header = stringResource(R.string.translation_packs_title),
             footer = stringResource(
                 R.string.translation_packs_active,
-                TranslationPacks.forLanguage(context, TranslationPrefs.resolvedTargetLanguage(context))?.name
-                    ?: stringResource(R.string.translation_packs_none_active),
+                activePack?.name ?: stringResource(R.string.translation_packs_none_active),
             ),
         ) {
             SettingsRow(
@@ -169,8 +175,21 @@ fun TranslationSettingsScreen(
                 title = stringResource(R.string.translation_packs_title),
                 subtitle = stringResource(R.string.translation_packs_active_subtitle),
                 onClick = onOpenPacks,
-                showDivider = false,
+                // [37099h · §6.1] Öneri ikinci satır olarak: aktif paket varsa
+                // gizlenir (zaten seçilmiş), yoksa "bu dil için önerilen" yazar.
+                showDivider = recommendedPack != null,
             )
+            if (recommendedPack != null) {
+                SettingsRow(
+                    title = stringResource(R.string.translation_recommended, recommendedPack!!.name),
+                    subtitle = stringResource(
+                        R.string.translation_recommended_why,
+                        recommendedPack!!.glossary.size,
+                    ),
+                    onClick = onOpenPacks,
+                    showDivider = false,
+                )
+            }
         }
 
         SettingsSection(

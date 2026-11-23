@@ -2241,6 +2241,8 @@
     <string name="ozel_feature_dev_server_running">%1$s üzerinde dinliyor — %2$d dakika sonra kendiliğinden kapanır</string>
     <string name="ozel_feature_dev_server_token">Erişim jetonu</string>
     <string name="ozel_feature_dev_server_usage">Sandbox\'tan: \"minis-debug discover\". Bilgisayardan: \"adb forward tcp:5321 tcp:5321\" ve her istekte X-Minis-Token gönder. Adres: %1$s</string>
+    <string name="translation_recommended">Önerilen: %1$s</string>
+    <string name="translation_recommended_why">Dilin için en zengin sözlük (%1$d terim). Henüz seçili değil.</string>
     <string name="translation_packs_title">Çeviri paketleri</string>
     <string name="translation_packs_installed">Kurulu paketler</string>
     <string name="translation_packs_none">Kurulu paket yok. Çeviri paketsiz de çalışır — paket yalnız tutarlı kılar.</string>

@@ -3069,6 +3069,8 @@
     <string name="ozel_feature_dev_server_running">Listening on %1$s — closes itself in %2$d minutes</string>
     <string name="ozel_feature_dev_server_token">Access token</string>
     <string name="ozel_feature_dev_server_usage">From the sandbox: \"minis-debug discover\". From a computer: \"adb forward tcp:5321 tcp:5321\" and send X-Minis-Token with each request. Address: %1$s</string>
+    <string name="translation_recommended">Suggested: %1$s</string>
+    <string name="translation_recommended_why">Best glossary for your language (%1$d terms). Not chosen yet.</string>
     <string name="translation_packs_title">Translation packs</string>
     <string name="translation_packs_installed">Installed packs</string>
     <string name="translation_packs_none">No pack installed. Translation works without one — a pack only makes it consistent.</string>
