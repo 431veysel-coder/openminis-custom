@@ -42,6 +42,10 @@ import kotlinx.coroutines.launch
 @Composable
 fun OffloadPermissionScreen(
     onBack: () -> Unit,
+    // [37099b] Onay kurallari: kullanici "surekli kart" sikayeti uzerine toplu
+    // yetki ekrani. Android izinlerinden AYRI: buradakiler ajanin kabuk
+    // eylemleri, oradakiler isletim sistemi izinleri.
+    onOpenApprovalRules: () -> Unit = {},
     // [T-android-privileged-backend] Navigate to the multi-backend
     // (Shizuku + AXManager) screen from the privileged-backend integration row.
     onOpenPrivilegedBackend: () -> Unit = {},
@@ -102,6 +106,19 @@ fun OffloadPermissionScreen(
                 onCheckedChange = {
                     com.openminis.app.config.MinisConfigPermissionStore.setEnabled(it)
                 },
+                showDivider = false,
+            )
+        }
+
+        // [37099b] Ajanin kendi eylem izinleri (43 risk kurali) — toplu.
+        SettingsSection(
+            header = stringResource(R.string.permission_grants_title),
+            footer = stringResource(R.string.permission_grants_footer),
+        ) {
+            SettingsRow(
+                title = stringResource(R.string.perm_section_approval_rules),
+                subtitle = stringResource(R.string.perm_section_approval_rules_sub),
+                onClick = onOpenApprovalRules,
                 showDivider = false,
             )
         }

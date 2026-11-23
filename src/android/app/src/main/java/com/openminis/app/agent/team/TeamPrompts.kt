@@ -161,6 +161,15 @@ object TeamPrompts {
         appendLine("- verified: true only if the deliverable answers what was asked, concretely.")
         appendLine("- missing: the concrete gaps. Empty when verified.")
         appendLine("- A claim without evidence (\"I fixed it\") is NOT verified.")
+        // [37099b] Ölçülen arıza: konsey, dört maddede de YANLIŞ sonuç verdi
+        // ("File importu eksik", "anahtar yolu yanlış", "import eksik",
+        // "değişken adı tutarsız") — dördü de kaynakta yanlıştı, hiçbiri
+        // dosya:satır taşımıyordu. Doğrulayıcı bunları kabul etti çünkü
+        // kural yalnız "kanıtsız iddia doğrulanmaz" diyordu, "kanıt" ne
+        // demek olduğunu söylemiyordu.
+        appendLine("- For ANY claim about source code, the deliverable must name the file and line (path:line). " +
+            "A code claim with no file:line is unsourced, therefore NOT verified — say which claims are unsourced in `missing`.")
+        appendLine("- Do not accept a claim just because it is plausible. If you cannot check it, it is unverified.")
     }
 
     /** Fed back into the inner loop when verification fails, so the fix is targeted. */

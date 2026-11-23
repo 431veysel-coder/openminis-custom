@@ -259,6 +259,9 @@ object Routes {
     const val SHIZUKU = "shizuku"
     /** T323: System Permissions (Accessibility service status, etc.). */
     const val SYSTEM_PERMISSIONS = "system_permissions"
+
+    /** [37099b] Toplu yetki ekrani — onay kartlarinin yerine Ayarlar. */
+    const val PERMISSION_GRANTS = "permission_grants"
     const val USAGE_STATS = "usage_stats"
     const val LOGS = "logs"
     const val LOG_DETAIL = "log_detail/{fileName}"
@@ -1680,6 +1683,7 @@ fun AppNavigation(
         composable(Routes.PERMISSIONS) {
             OffloadPermissionScreen(
                 onBack = { navController.safePopBackStack() },
+                onOpenApprovalRules = { navController.safeNavigate(Routes.PERMISSION_GRANTS) },
                 // [T-android-privileged-backend] Single Shizuku-protocol screen
                 // handles both Shizuku and AXManager managers; the old
                 // multi-backend screen was retired in favour of a single
@@ -1693,6 +1697,10 @@ fun AppNavigation(
             ShizukuPermissionScreen(
                 onBack = { navController.safePopBackStack() },
             )
+        }
+
+        composable(Routes.PERMISSION_GRANTS) {
+            PermissionGrantsScreen(onBack = { navController.safePopBackStack() })
         }
 
         composable(Routes.SYSTEM_PERMISSIONS) {

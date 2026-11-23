@@ -2443,4 +2443,31 @@
     <string name="virtual_screen_section_state">Düzen</string>
     <string name="virtual_screen_reset">Düzeni sıfırla</string>
     <string name="virtual_screen_reset_subtitle">Varsayılan üç bölmeye dön, içleri boş.</string>
+    <!-- [37099b] Ayarlar > Izinler: toplu yetki -->
+    <string name="perm_cat_shell">Dosya ve kabuk</string>
+    <string name="perm_cat_shell_sub">silme, taşıma, yönlendirme, betik çalıştırma</string>
+    <string name="perm_cat_git">Git</string>
+    <string name="perm_cat_git_sub">force push, reset --hard, clean -f</string>
+    <string name="perm_cat_pkg">Paket kurulumu</string>
+    <string name="perm_cat_pkg_sub">Alpine tarafı: apk add / del</string>
+    <string name="perm_cat_termux">Termux katmanı</string>
+    <string name="perm_cat_termux_sub">apt / pkg, sources.list, sshd</string>
+    <string name="perm_cat_net">Ağ</string>
+    <string name="perm_cat_net_sub">ssh, dosya yükleme, ham soket, bulut CLI</string>
+    <string name="perm_cat_device">Cihaz (gerçek ekran)</string>
+    <string name="perm_cat_device_sub">Shizuku, ayarlar, uygulama yönetimi</string>
+    <string name="perm_cat_sql">Veritabanı</string>
+    <string name="perm_cat_sql_sub">yıkıcı sorgular</string>
+    <string name="perm_cat_credential">Kimlik bilgileri</string>
+    <string name="perm_cat_credential_sub">anahtar dosyası okuma</string>
+    <string name="permission_grants_title">İzinler</string>
+    <string name="permission_grants_all_header">Toplu</string>
+    <string name="permission_grants_all_grant">Geri alınabilir tüm sandbox işlerine izin ver</string>
+    <string name="permission_grants_all_grant_subtitle">Tek dokunuşla %1$d kurala izin verir. Geri alınamaz işler ve sandbox dışına taşanlar yine her seferinde sorulur.</string>
+    <string name="permission_grants_revoke_all">Toplu izinlerin hepsini geri al</string>
+    <string name="permission_grants_revoke_all_subtitle">Kartta tek tek verdiğin sohbet izinleri korunur</string>
+    <string name="permission_grants_footer">Buradan verilen izinler cihaz geneli ve süreli (90-180 gün). Burada izin verilemeyen bir kural, etkisi geri alınamadığı ya da sandbox dışına taştığı içindir; o her zaman kartla sorulur ve kart nedeni yazar.</string>
+    <string name="permission_grants_category_state">%2$d kuralın %1$d tanesi açık</string>
+    <string name="perm_section_approval_rules">Onay kuralları (toplu)</string>
+    <string name="perm_section_approval_rules_sub">Her işlemde kart yerine kategorileri bir kez aç</string>
 </resources>
