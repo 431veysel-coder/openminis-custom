@@ -16,8 +16,21 @@ NEDEN VAR
     çalışır — Android düşük versionCode'u reddeder ve kullanıcı açıklamasız bir
     "Uygulama yüklenemedi" görür.
 
-    Etiketler `gh release create --target` ile yanlış ref'e basılmış. Release
-    NESNESİ doğru APK'yı taşıyor (sha256 ve derleme kimliği .15 ile uyumlu);
+    ### [37099] KÖK SEBEP BULUNDU
+
+    Etiketler `gh release create --target` ile yanlış ref'e basılmamış: etiket
+    **hiç hedeflenmemiş**. `softprops/action-gh-release` çağrısında
+    `target_commitish` yoktu, o da etiketi deponun **varsayılan dalına**
+    (`main`) yaratır. Bizim `main` upstream'de takılı (`ffeb948` = 11.2), yani
+    BÜTÜN yayın etiketleri oraya işaret etti — altı tanesi, `.11.2`'den
+    `.18`'e kadar.
+
+    Bu yüzden "etiketleri sil, yeniden hedefle" planı yanlış tedaviydi: silinen
+    etiket bir sonraki yayında yine `main`'e basılırdı. Gerçek düzeltme
+    `.github/workflows/apk.yml` içinde `target_commitish: ${{ github.sha }}`;
+    bu dosya yalnız **ölçer**.
+
+    Release NESNESİ doğru APK'yı taşıyor (sha256 ve derleme kimliği uyumlu);
     yanlış olan yalnız etiketin gösterdiği commit.
 
 NE YAPAR

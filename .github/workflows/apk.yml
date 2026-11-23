@@ -1081,6 +1081,22 @@ jobs:
           # tagged "v" could slip through on a runner that does not mirror
           # $GITHUB_ENV into the env context.
           tag_name: ${{ steps.release_gate.outputs.tag }}
+          # [37099] KÖK SEBEP — "5 etiket yanlış commit'i gösteriyor" gizemi.
+          #
+          # `target_commitish` verilmezse action-gh-release etiketi **deponun
+          # varsayılan dalına** (`main`) yaratır, derlenen commit'e değil.
+          # Bizim `main` upstream'de takılı kaldı (`ffeb948` = 11.2), yani
+          # BÜTÜN yayın etiketleri oraya işaret etti:
+          #   v1.15-ozel.11.3.1 / .11.4 / .13 / .14 / .15 / .18 → hepsi ffeb948
+          # `tag-denetim.py` bunu altı kez "yanlış commit" diye raporladı ama
+          # sebebi görünmüyordu; düzeltme "etiketi sil, yeniden hedefle" diye
+          # planlanmıştı (geri dönüşsüz, ertelendi). Gerçek düzeltme burada:
+          # etiket derlenen commit'e bağlanır.
+          #
+          # Neden `github.sha` ve neden doğru: bu iş, o commit'in ağacından
+          # derlenmiş APK'yı yayınlıyor. Etiketin başka bir commit'i göstermesi,
+          # indirilen APK ile "kaynak şu commit" iddiasının ayrışması demek.
+          target_commitish: ${{ github.sha }}
           name: Minis X ${{ steps.release_gate.outputs.name }}
           files: out/*.apk
           # Stable channel: UpdatePolicy.STABLE refuses a prerelease, so publishing
