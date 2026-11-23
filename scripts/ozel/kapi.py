@@ -49,6 +49,11 @@ GATES: dict[str, tuple[list[str], bool]] = {
     "entegrasyon": ([sys.executable, "scripts/integration_audit.py"], True),
     "denetim": ([sys.executable, "scripts/audit/audit_all.py"], True),
     "etiket": ([sys.executable, "scripts/ozel/tag-denetim.py"], False),
+    # [37099e · §7.2] Derlemesiz doğrulama: bu cihazda gradle yok, derleme
+    # hataları yalnız CI'da çıkıyordu. Yalnız kesin kurallar (yabancı harf,
+    # kullanılmayan import); yanlış-pozitif üreten denetimler bilgi olarak
+    # basılır, kapıyı kırmızı yapmaz.
+    "kotlin": ([sys.executable, "scripts/ozel/kotlin-hizli.py"], True),
 }
 
 

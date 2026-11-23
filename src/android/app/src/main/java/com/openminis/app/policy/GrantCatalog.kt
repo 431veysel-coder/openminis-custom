@@ -120,6 +120,21 @@ object GrantCatalog {
     }
 
     /**
+     * [37099e · §3.4] Hiç sorulmadan reddedilenler — **salt okunur** liste.
+     *
+     * Neden gösteriliyor: `deny:` kurallarının kartı yok, dolayısıyla izni de
+     * yok; bu doğru. Ama kullanıcı "neden bunu hiç sormadan reddetti" diye
+     * sorduğunda ekranda tek satır cevap yoktu. Gizlemek, güvenlik kuralını
+     * keyfî bir davranış gibi gösterir.
+     *
+     * Neden anahtar değil: bir anahtar "kapatılabilir" izlenimi verir.
+     * `deny:` sınıfında doğru cevap "evet" olamaz.
+     */
+    data class DenyRow(val id: String, val note: String)
+
+    fun denyRows(): List<DenyRow> = RiskRules.DENY.map { DenyRow(it.id, it.note) }
+
+    /**
      * Şu an geçerli olan toplu izinler — ekranın anahtar durumu.
      *
      * Yalnız `global` kapsam okunur: bu ekran toplu izin verir, oturum/proje

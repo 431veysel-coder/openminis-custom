@@ -876,6 +876,8 @@
     <string name="permission_grants_a11y">android-a11y-cli (real screen)</string>
     <string name="permission_grants_shizuku">android-shizuku-cli (privileged)</string>
     <string name="permission_grants_agent_level">Agent access: %1$s</string>
+    <string name="permission_grants_deny_header">Never allowed (no card)</string>
+    <string name="permission_grants_deny_footer">These are refused outright: there is no answer here that would be safe, so showing a card would only suggest there is. Listed so the refusal is never a mystery.</string>
     <string name="permission_grants_title">Permissions</string>
     <string name="permission_grants_all_header">Bulk</string>
     <string name="permission_grants_all_grant">Trust every reversible sandbox action</string>

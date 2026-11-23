@@ -458,6 +458,15 @@ class AndroidCouncilRuntime(
         return repository.allVisibleEntries().firstOrNull()
     }
 
+    /**
+     * [37099e · §1.2] Bu üye koşabilir mi — ön kontrol için tek soru.
+     *
+     * `resolveEntry` "hangi model" sorusunu cevaplıyor; bu ise "hiç var mı".
+     * Ayrı tutulmasının sebebi: preflight sağlayıcı deposuna yazmamalı,
+     * oturum açmamalı, yalnız bakmalı.
+     */
+    fun canRun(member: TeamMember): Boolean = resolveEntry(member) != null
+
     private fun resolveEntry(member: TeamMember): ModelEntry? {
         val repository = app?.providerRepositoryOrNull ?: return null
         val cacheKey = "${member.providerInstanceId}#${member.modelId}"
@@ -592,6 +601,32 @@ object CouncilRunner {
         // Doing it here rather than on a timer means a crash mid-run leaves the
         // directory for the NEXT run to clean up, and no background job owns it.
         runCatching { TeamRunStore.sweepOrphanSpaces(context) }
+
+        // [37099e · §1.2] Ön kontrol: modeli/anahtarı olmayan bir üyeyle koşu
+        // başlatmak, 0. turda düşüp token harcamak demekti. Karar saf
+        // (CouncilPreflight), ölçüm burada: sağlayıcı deposuna tek tek bakılır.
+        //
+        // Hepsi hazırsa sessiz devam. Bazıları hazırsa günlüğe **üye üye**
+        // yazılır ve koşu kalanlarla sürer; sonuç ekranı düşen üyeyi zaten
+        // `absentWhy` ile gösteriyor, yani bilgi ikinci kez taşınmıyor.
+        // Hiçbiri hazır değilse koşu BAŞLAMAZ.
+        val preflightRuntime = AndroidCouncilRuntime(context, team, sessionId, "preflight")
+        val preflight = CouncilPreflight.check(team.members) { m -> preflightRuntime.canRun(m) }
+        if (!preflight.canStart) {
+            // Token harcanmadı, koşu yok: ok=false ve raporda üye üye gerekçe.
+            return@withContext TeamRunner.Outcome(
+                ok = false,
+                output = preflight.report(),
+                teamOutcome = null,
+            )
+        }
+        if (preflight.needsConfirmation) {
+            com.openminis.app.logging.AppLogger.warning(
+                "CouncilRuntime",
+                "[preflight] ${preflight.summary()} — kalanlarla başlanıyor: " +
+                    preflight.blocked.joinToString(", ") { "${it.member}(${it.failure.label})" },
+            )
+        }
 
         val policy = AndroidCouncilRuntime.policyFor(context, team.members.size)
         val effective = budget ?: policy.budget

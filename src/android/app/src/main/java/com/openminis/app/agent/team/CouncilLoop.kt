@@ -344,7 +344,15 @@ class CouncilLoop(
                             RawReply("", 0, e.message ?: "runner hatası")
                         }
                         val position = if (reply.failure.isNotBlank()) {
-                            Position(member = member.name, claim = "", absent = true, absentWhy = reply.failure)
+                            // [37099e · §1.1] Gerekçe sınıflandırılarak yazılır:
+                            // "kota", "kimlik reddedildi", "JSON bozuk" ayrı
+                            // düzeltmeler ister; ham metin bu ayrımı taşımıyordu.
+                            Position(
+                                member = member.name,
+                                claim = "",
+                                absent = true,
+                                absentWhy = MemberFailure.line(reply.failure),
+                            )
                         } else {
                             PositionParser.parse(reply.text, member.name)
                         }
@@ -407,7 +415,12 @@ class CouncilLoop(
                         appendLine("Üye çağrısı hiç yapılmadı (liste boş ya da tur başlamadı).")
                     } else {
                         lastPositions.forEach { p ->
-                            appendLine("- ${p.member}: ${p.absentWhy.ifBlank { "gerekçe bildirilmedi" }}")
+                            val why = p.absentWhy.ifBlank { "gerekçe bildirilmedi" }
+                            appendLine("- ${p.member}: $why")
+                            // [37099e · §1.1] Sınıf → yapılacak. Kullanıcı
+                            // "neden çalışmadı" sorusunun cevabını buradan alsın.
+                            val advice = MemberFailure.classify(why).advice
+                            if (advice.isNotBlank()) appendLine("  öneri: $advice")
                         }
                     }
                     appendLine()

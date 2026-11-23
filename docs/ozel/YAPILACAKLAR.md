@@ -262,15 +262,55 @@
 
 ---
 
-## 10 · Sürüm hedefi (öneri)
+## 10 · Yol haritası `.23` → `.30` (tek bakışta)
 
-| Sürüm | İçerik | Kapı |
+Kural: her sürüm **en az bir P0/P1** kapatır, `YAPILACAKLAR.md` güncellenir,
+kapanmayan madde gerekçesiyle bir alt sürüme taşınır. Derleme **yalnız kullanıcı
+isterse**.
+
+| Sürüm | Tema | Kapanacak maddeler | Kanıt |
+|---|---|---|---|
+| **.22** ✅ | Konsey odaları + iskelet | K10–K14, `2.1` | 8/8 kapı, `.22` kaynak |
+| **.23** | Konsey güvenilirliği | `1.1` üye arıza sınıfı · `1.2` preflight · `1.4` görev kanıtı | birim test + koşu |
+| **.24** | İzin/onay tamamlanması | `3.1` karttan kural aç · `3.2` kapsam görünürlüğü · `3.3` ret listesi · `3.4` deny okunur | cihaz testi |
+| **.25** | Altyapı | `7.1` DNS kalıcılığı · `7.2` derlemesiz doğrulama · `7.4` harita kendini tazeler | CI + yerel |
+| **.26** | Sanal ekran yüzeyi | `5.1` tek tuval · `5.2` bölme içi eylem | yakalama kanıtı |
+| **.27** | Alt ajan/ekip | `4.1` kalan süre · `4.2` araç yüzeyi · `4.4` kuyruk | kart ekran görüntüsü |
+| **.28** | Çeviri | `6.1` paket önerisi · `6.2` devam et · `6.3` sözlük dürüstlüğü | çeviri testleri |
+| **.29** | Ürün/deneyim | `8.1` boş durum eylemleri · `8.2` rapor render · `8.4` erişilebilirlik | TalkBack |
+| **.30** | Kapanış | kalan P2'ler + `9.x`'ten seçilen 2 fikir · tam denetim | tüm kapılar + cihaz |
+
+### Neden bu sıra
+
+1. **`.23` önce**, çünkü konsey bugün "çalışmadı" dediğinde sebebi söylemiyor;
+   diğer her şey bunun üstüne oturuyor.
+2. **`.24` ikinci**, çünkü onay kartı yorgunluğu günlük kullanımı kesiyor ve
+   `.22`'de kurulan toplu izin ekranı yarım (karttan oraya köprü yok).
+3. **`.25` üçüncü**, çünkü DNS her oturumda push'u kırıyor ve derlemesiz
+   doğrulama olmadan her tur CI'ya bağımlı.
+4. **`.26`–`.28`** görünür özellikler; altyapı sağlamken yapılmalı, yoksa
+   hata ayıklama iki kat zorlaşır.
+
+### Bu turda (`.22`) gerçekten kapananlar
+
+`.22`'ye `1.1`, `1.2`, `3.4`, `7.2`'nin **çekirdeği** de girdi (derleme yok):
+
+| Madde | Ne yapıldı | Sınır |
 |---|---|---|
-| `.22` | Bu tur: K10–K14, `2.1` | kaynak + push |
-| `.23` | `1.1`, `1.2`, `1.3` — konsey güvenilirliği | koşu kanıtı |
-| `.24` | `3.1`–`3.4` — onay/izin tamamlanması | cihaz testi |
-| `.25` | `7.1`, `7.2` — altyapı | CI |
-| `.26` | `5.1`, `5.2` — sanal ekran yüzeyi | yakalama kanıtı |
+| `1.1` | `MemberFailure` sınıflandırması (kota/kimlik/JSON/zama/y uva/model yok) + öneri satırı | ham gerekçe hâlâ sağlayıcıdan geliyor; HTTP kodu ayrıştırması `AndroidCouncilRuntime`'da kısmi |
+| `1.2` | `CouncilPreflight` — hiç üye hazır değilse koşu **başlamaz** | "bazıları hazır" durumunda onay **sorulmuyor**, yalnız günlüğe yazılıyor; kart ekranı `.23` |
+| `3.4` | `GrantCatalog.denyRows()` + İzinler ekranında salt-okunur bölüm | — |
+| `7.2` | `scripts/ozel/kotlin-hizli.py` + `kapi.py`'de 9. kapı | yalnız kesin kurallar; tanımsız sembol denetimi yok |
 
-**Kural:** her sürümde en az bir **P0/P1** madde kapanır ve `YAPILACAKLAR.md`
-güncellenir; kapanmayan madde bir alt sürüme **gerekçesiyle** taşınır.
+---
+
+## 11 · Riskler ve kararlar
+
+| Risk | Neden | Karar |
+|---|---|---|
+| 5 üye / 4 yuva | cihaz RAM'i; 5. üye ikinci dalgada | **söyle**, gizleme (`LiveRun.waveSize`) |
+| Konsey token maliyeti | her turda N üye tam prompt | preflight + `maxTokens` bütçesi |
+| `deny:` listesi büyürse | kural eklemek kolay, silmek zor | her yeni kural korpusa satır + test |
+| Derlemesiz geliştirme | cihazda JVM yok | `kotlin-hizli` + CI compile adımı |
+| Çeviri kapsamı | 521 devralınmış eksik | sürüm başına N eritme, taban ratchet |
+| Sanal ekran beklentisi | "ekran" kelimesi görsel yüzey vaat ediyor | istemde ve ekranda sınır yazılı |

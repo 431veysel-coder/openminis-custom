@@ -135,4 +135,15 @@ class GrantCatalogTest {
         // Süresi geçmiş kaydın 99 kullanımı sayılmaz: kullanıcıya "99 kez" demek yanlış olurdu.
         assertEquals(mapOf("termux:pkg" to 7), counts)
     }
+
+    @Test
+    fun `deny listesi okunur ama verilemez`() {
+        val rows = GrantCatalog.denyRows()
+        assertTrue("deny listesi boş olmamalı", rows.isNotEmpty())
+        assertTrue(rows.all { it.id.startsWith("deny:") })
+        assertTrue("her satırın nedeni olmalı", rows.all { it.note.isNotBlank() })
+        // Listede görünmeleri onları verilebilir yapmaz.
+        val ids = GrantCatalog.categories().flatMap { c -> c.items.map { it.rule.id } }
+        assertTrue(ids.none { it.startsWith("deny:") })
+    }
 }

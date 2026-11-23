@@ -1,4 +1,4 @@
-# SÜRÜM NOTU — 1.15-ozel.22 / 37103
+# SÜRÜM NOTU — 1.15-ozel.23 / 37104
 
 > **Derlenmedi.** Kullanıcı talebiyle bu turda APK üretilmedi; kaynak dalda
 > hazır. Derleme yapılmadan önce CI'daki `compile` + `unit test` adımları
@@ -51,3 +51,36 @@
 `CouncilRoomsTest` 10 test (4'ü yeni: cevap eşleme, aynı tur, bir kez, yanlış
 üye). `GrantCatalogTest` 10 test (1 yeni: kullanım sayacı).
 Kapılar: **8/8 yeşil**, 47 sn.
+
+## Ek (aynı tur, ikinci geçiş)
+
+**Konsey güvenilirliği — çekirdek:**
+- `MemberFailure`: üye düşme gerekçesi artık **sınıflandırılıyor**
+  (`kota`, `kimlik reddedildi`, `JSON bozuk`, `zaman aşımı`, `akış yuvası yok`,
+  `model yok`, `oturum açılamadı`, `boş cevap`, `bilinmeyen`) ve her sınıfın
+  **ne yapmalı** satırı var. Önce hepsi tek serbest metindi; kullanıcı kotayı
+  mı modeli mi düzelteceğini bilmiyordu.
+- `CouncilPreflight`: koşu başlamadan üye üye doğrulama. **Hiç üye hazır
+  değilse koşu başlamaz** ve token harcanmaz. Bazıları hazırsa koşu kalanlarla
+  sürer, düşenler gerekçesiyle günlüğe yazılır.
+
+**İzinler:**
+- `deny:` kuralları (hiç sorulmadan reddedilenler) İzinler ekranında
+  **salt-okunur** bölümde, nedenleriyle. Anahtar yok: bu sınıfta "evet" güvenli
+  bir cevap değil.
+
+**Altyapı:**
+- `scripts/ozel/kotlin-hizli.py` + `kapi.py`'de **9. kapı**. Bu cihazda gradle
+  yok; son üç turda CI'ın yakaladığı dört hata bu aracın kapsamındaydı
+  (tanımsız değişken sırası hariç — o hâlâ yalnız CI'da çıkıyor).
+  Yalnız kesin kurallar kırmızı yapar; yanlış-pozitif üreten denetim "bilgi"
+  olarak basılır (ilk sürümde 40+ yanlış-pozitif çıktı, daraltıldı).
+
+**Plan:**
+- `YAPILACAKLAR.md` §10: `.23` → `.30` yol haritası, tema + kapanacak madde +
+  kanıt. §11: riskler ve alınmış kararlar.
+
+## Test (ek)
+
+`CouncilPreflightTest` 10 test (ön kontrol 5, arıza sınıfı 5).
+`GrantCatalogTest` 11 (1 yeni: deny listesi). Kapılar **9/9 yeşil**, ~44 sn.

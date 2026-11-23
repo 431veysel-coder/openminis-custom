@@ -182,6 +182,23 @@ fun PermissionGrantsScreen(onBack: () -> Unit) {
             }
         }
 
+        // [37099e · §3.4] Hiç sorulmadan reddedilenler. Anahtar yok: bu
+        // sınıfta "evet" bir seçenek değil, ve kullanıcı nedenini görmeli.
+        SettingsSection(
+            header = stringResource(R.string.permission_grants_deny_header),
+            footer = stringResource(R.string.permission_grants_deny_footer),
+        ) {
+            val rows = remember { GrantCatalog.denyRows() }
+            rows.forEachIndexed { i, row ->
+                SettingsRow(
+                    title = row.id.removePrefix("deny:"),
+                    subtitle = row.note,
+                    showDivider = i < rows.lastIndex,
+                    showChevron = false,
+                )
+            }
+        }
+
         Spacer(Modifier.height(16.dp))
     }
 }
