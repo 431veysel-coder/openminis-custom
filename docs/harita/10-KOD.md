@@ -1,6 +1,6 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Kod ağacı — 878 dosya, 316573 satır
+# Kod ağacı — 878 dosya, 316587 satır
 
 | Paket | Dosya | Satır |
 |---|---|---|
@@ -22,7 +22,7 @@
 | `network/` | 15 | 3221 |
 | `notification/` | 6 | 797 |
 | `offload/` | 13 | 2461 |
-| `ozel/` | 12 | 1964 |
+| `ozel/` | 12 | 1970 |
 | `plan/` | 1 | 106 |
 | `policy/` | 8 | 1530 |
 | `power/` | 1 | 193 |
@@ -31,7 +31,7 @@
 | `quota/` | 6 | 4397 |
 | `remote/` | 1 | 97 |
 | `replay/` | 1 | 129 |
-| `sandbox/` | 61 | 24346 |
+| `sandbox/` | 61 | 24351 |
 | `scheduled/` | 15 | 3557 |
 | `screen/` | 2 | 438 |
 | `service/` | 15 | 6752 |
@@ -40,7 +40,7 @@
 | `speech/` | 42 | 11096 |
 | `terminal/` | 2 | 126 |
 | `tools/` | 15 | 3077 |
-| `ui/` | 307 | 149115 |
+| `ui/` | 307 | 149118 |
 | `usage/` | 6 | 805 |
 | `util/` | 2 | 266 |
 | `webapp/` | 5 | 1316 |

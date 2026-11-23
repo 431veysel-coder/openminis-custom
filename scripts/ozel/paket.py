@@ -82,6 +82,7 @@ TOOL_FILES = [
     "scripts/ozel/ceviri-denetim.py",
     "scripts/ozel/apk-butce.py",
     "scripts/ozel/harita.py",
+    "scripts/ozel/kapi.py",
     "scripts/ozel/snapshot.py",
     "scripts/ozel/paket.py",
     "scripts/integration_audit.py",
@@ -220,15 +221,16 @@ python3 scripts/ozel/tag-denetim.py                      # etiket ↔ sürüm
 python3 scripts/ozel/ceviri-denetim.py --fail-on-new     # en ↔ tr (taban ratchet)
 python3 scripts/ozel/apk-butce.py --fail-on-embed        # gomulu isletim sistemi yuku yok
 python3 scripts/ozel/harita.py --check                    # harita bayat mi
+python3 scripts/ozel/kapi.py                              # hepsi paralel, ~10 sn
 ```
 
 ## Bu pakette NE VAR / NE YOK
 
 **Var:** Termux katmanı P1+P2 kodu (`TermuxLayer`, `TermuxInstaller`,
 `TermuxPrompt`), PRoot bağları, `USER_TREES` koruması, risk kuralları + korpus,
-sağlık köprüsü, onay kutusu, çeviri önbelleği, **7 denetim aracı**
+sağlık köprüsü, onay kutusu, çeviri önbelleği, **8 denetim aracı**
 (`risk-corpus`, `kotlin-denetim`, `tag-denetim`, `ceviri-denetim`,
-`apk-butce`, `harita`, `integration_audit`), 2 CI iş akışı.
+`apk-butce`, `harita`, `kapi`, `integration_audit`), 2 CI iş akışı.
 
 **Yok (dürüstçe):** derlenmiş APK. Bu cihazda JVM başlamıyor
 (*"Failed to mark memory page as executable"*), yani `gradlew` koşmuyor.
@@ -315,6 +317,7 @@ Hepsi `02-KAYNAK/` içinden çalıştırılır (yollar repoya göre).
 | `ceviri-denetim.py` | `values/` ↔ `values-tr/` anahtar farkı + tekrar tanım | `--fail-on-new` ile 1 |
 | `apk-butce.py` | `assets/` altında gömülü işletim sistemi yükü arar | `--fail-on-embed` ile 1 |
 | `harita.py` | `docs/harita/*` + HARITA.md ölçüm bloğunu kaynaktan üretir | `--check` ile 1 |
+| `kapi.py` | Sekiz kapıyı **paralel** koşar (~10 sn; hızlı olanlar) | kırmızı varsa 1 |
 | `snapshot.py` | zip + git bundle + `DAMGA.md` + `DIZIN.md` | 0 |
 | `paket.py` | bu klasörü üretir | 0 |
 | `integration_audit.py` | Hangi dilim üretim kodundan çağrılıyor | 0 |

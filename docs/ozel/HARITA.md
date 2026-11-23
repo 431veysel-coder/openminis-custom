@@ -8,7 +8,7 @@ Sürüm `1.15-ozel.17` / 37098 · commit ve sayılar aşağıdaki ölçüm bloğ
 <!-- OTO:BASLA -->
 | Ölçüm | Değer |
 |---|---|
-| Kotlin dosyası (main) | 878 · 316 573 satır |
+| Kotlin dosyası (main) | 878 · 316 587 satır |
 | Ekran | 75 · UI paketi 19 |
 | Dilim | 13 (bağımlılığı olan: 1) |
 | Risk kuralı | 42 — DENY 5 · karta düşen 37 |

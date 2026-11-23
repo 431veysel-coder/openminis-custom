@@ -93,7 +93,13 @@ object ChatHealthBridge {
      * kendi hesabı dışarıda), yani sıcak yolda bedeli bir map lookup.
      */
     private fun tracker(sessionId: String): ChatHealthTracker = synchronized(trackers) {
-        trackers.getOrPut(sessionId) { ChatHealthTracker { SystemClock.elapsedRealtime() } }
+        // Adlandırılmış argüman ZORUNLU: trailing lambda son parametreye
+        // (`windowSize: Int`) bağlanır ve `clock` boş kalır — CI tam olarak
+        // bunu söyledi: "No value passed for parameter 'clock'
+        // ... actual type is Function0<Long>, but Int was expected".
+        trackers.getOrPut(sessionId) {
+            ChatHealthTracker(clock = { SystemClock.elapsedRealtime() })
+        }
     }
 
     /**

@@ -396,7 +396,12 @@ object TermuxInstaller {
             val linkFile = File(prefix, linkName)
             runCatching {
                 linkFile.parentFile?.mkdirs()
-                if (linkFile.exists() || linkFile.toPath().isSymbolicLink()) linkFile.delete()
+                // `Path.isSymbolicLink()` Kotlin'in java.nio eklentisinde YOK
+                // (sadece `Files.isSymbolicLink(path)`). CI yakaladı:
+                // "Unresolved reference 'isSymbolicLink'".
+                if (linkFile.exists() || java.nio.file.Files.isSymbolicLink(linkFile.toPath())) {
+                    linkFile.delete()
+                }
                 Os.symlink(target, linkFile.absolutePath)
                 created++
             }.onFailure { failed++ }

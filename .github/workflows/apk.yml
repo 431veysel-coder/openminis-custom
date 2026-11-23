@@ -126,6 +126,21 @@ jobs:
           PREFLIGHT_TIMEOUT: "120"
         run: sh scripts/preflight.sh
 
+      - name: Fork gates (fast, ~10 s)
+        # [37099] Bu dosyanın kendi kapıları — korpus, yapısal, çeviri, APK
+        # bütçesi, harita. Hepsi `ozel-guard.yml`'de de var; burada da
+        # koşuyorlar çünkü:
+        #
+        #  · `ozel-guard` ayrı bir iş akışı ve APK derlemesini BLOKLAMIYOR.
+        #    Kırmızı bir korpus ya da bayat harita, 4 dakikalık derleme
+        #    bittikten sonra "geçti" görünen bir APK üretirdi.
+        #  · Burada 10 saniye; compile gate'ten sonra 4 dakika.
+        #
+        # `denetim` (audit, 48 sn) BİLEREK yok: import denetimi zaten
+        # `Auditors` iş akışında ve burada onu beklemek preflight'ın
+        # "saniyeler" sözünü bozar.
+        run: python3 scripts/ozel/kapi.py korpus yapisal ceviri apk-butce harita entegrasyon etiket
+
   version-gate:
     name: Version gate (fast)
     # [MINIS-OZEL 11.4] Moved to its own job that runs BEFORE anything is

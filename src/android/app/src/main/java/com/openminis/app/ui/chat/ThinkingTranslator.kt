@@ -205,6 +205,11 @@ internal object ThinkingTranslator {
         // until every cached block is translated again by hand.
         val cacheKey = cacheKey(targetLanguage, entry.id, text, pack?.id ?: "-")
 
+        // Parçalama ÖNCE: aşağıdaki sözlük halkası da `chunks.size` ile
+        // ilerleme bildiriyor. Önce tanımlanmadığı için CI "Unresolved
+        // reference 'chunks'" dedi.
+        val chunks = chunk(text)
+
         // [37099] Zincirin ilk halkası: çevrimdışı sözlük.
         //
         // Bedava ve anında; ama cümle çevirmiyor. Zincirde model varsa ve
@@ -227,8 +232,6 @@ internal object ThinkingTranslator {
                 return Out(offline.text, complete = false, done = 0, total = 1, degraded = true)
             }
         }
-
-        val chunks = chunk(text)
 
         // [37099] Kısmi kayıt artık "tam" gibi dönmüyor: kaldığı yerden devam.
         val cached = readCache(context, cacheKey)

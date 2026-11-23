@@ -37,15 +37,18 @@ göre güncellenir.
 
 ```bash
 cd 02-KAYNAK            # ya da depo kökü
-python3 scripts/ozel/harita.py --check     # harita bayat mı
-python3 scripts/ozel/risk-corpus.py --fail-on-mismatch
-python3 scripts/ozel/kotlin-denetim.py --no-warn
-python3 scripts/ozel/ceviri-denetim.py --fail-on-new
-python3 scripts/ozel/apk-butce.py --fail-on-embed
-python3 scripts/integration_audit.py
+python3 scripts/ozel/kapi.py              # TEK komut: sekiz kapı, paralel
+python3 scripts/ozel/kapi.py --seri -v    # hata ayıklarken sırayla + çıktı
+python3 scripts/ozel/kapi.py korpus harita   # yalnız seçilenler
 ```
 
-Altı kapı, toplam ~8 saniye. Biri kırmızıysa **hangisi** olduğunu adıyla söyler.
+`kapi.py` hepsini **paralel** koşar: hızlı olanlar toplam ~10 sn, en yavaş
+(`denetim` 48 sn) çoğu zaman gereksizdir. Kırmızı varsa hangisi olduğunu
+adıyla ve çıktısıyla söyler; çıkış kodu 1.
+
+**Kural: `kapi.py` yeşil değilse push etme.** Her kırmızı CI turu ~4 dakika +
+log + artefakt indirme demek; 2026-11-23'te üç tur bunun için harcandı ve
+ikisi yerelde yakalanabilirdi.
 
 ---
 
