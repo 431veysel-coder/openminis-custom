@@ -2408,6 +2408,13 @@
     <string name="task_filter_all">Tümü</string>
     <string name="task_hall_empty">Burada bir şey yok. Konsey koşusu ilerledikçe görev açar.</string>
     <string name="task_hall_hint">Konseylerin yapmaya karar verdikleri, bütün ekipler için. Bir görev ancak kanıt eklenmişse “bitti” olur.</string>
+    <!-- [37099d] Gorev odasi eylemleri -->
+    <string name="task_hall_empty_title">Henüz görev yok</string>
+    <string name="task_hall_empty_hint">Görev üç yoldan gelir: bir üye iş devredince, başkan bir maddeye görev işaretleyince, ya da buradan sen ekleyince.</string>
+    <string name="task_hall_add">Görev ekle</string>
+    <string name="task_hall_add_hint">Ne yapılacak</string>
+    <string name="task_hall_drop">Düşür</string>
+    <string name="common_add">Ekle</string>
     <string name="task_hall_run_header">Bu koşudan çıkan görevler</string>
     <string name="task_hall_title">Görevler</string>
     <string name="task_state_doing">Yapılıyor</string>

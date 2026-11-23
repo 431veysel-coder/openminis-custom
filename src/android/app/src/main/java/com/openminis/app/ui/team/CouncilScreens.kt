@@ -114,8 +114,17 @@ private fun statusLine(
 ): String = when {
     live?.finished != null ->
         "${live.finished.stoppedBy} · ${live.finished.rounds} tur · ${live.finished.tokensUsed} token"
-    live != null ->
-        "${phaseLabel(live.phase)} · tur ${live.round}/${live.roundsPlanned} · ${live.tokensUsed} token"
+    live != null -> buildString {
+        append(phaseLabel(live.phase))
+        append(" · tur ${live.round}/${live.roundsPlanned}")
+        // [37099d] Dalga bilgisi: 5 üyeli ekipte aynı anda 4'ü konuşur.
+        // Söylenmezse "biri geç yazdı, koşu bozuk" okunur.
+        if (live.waveSize > 0 && live.members.size > live.waveSize) {
+            val waves = (live.members.size + live.waveSize - 1) / live.waveSize
+            append(" · ${live.members.size} üye, $waves dalga")
+        }
+        append(" · ${live.tokensUsed} token")
+    }
     recorded != null -> recorded.statusLine()
     else -> stringResource(R.string.council_run_gone)
 }
@@ -442,7 +451,18 @@ private fun CommsRoom(live: CouncilLiveRegistry.LiveRun?) {
             lines.forEachIndexed { i, q ->
                 SettingsRow(
                     title = "${q.from} → ${q.to}",
-                    subtitle = q.question,
+                    subtitle = buildString {
+                        append(q.question)
+                        if (q.answer.isNotBlank()) {
+                            // [37099d] Cevap, hedefin sonraki tur pozisyonundan
+                            // eşlenir — kesin bir alıntı değil. Bunu söylemek,
+                            // kullanıcının bunu resmî cevap sanmasını önler.
+                            append("\n↳ tur ${q.answeredRound}: ")
+                            append(q.answer.take(240))
+                        } else {
+                            append("\n↳ cevap bekleniyor (hedefin sonraki turu)")
+                        }
+                    },
                     showDivider = i < lines.lastIndex,
                 )
             }

@@ -1,6 +1,6 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Belgeler — 69 dosya
+# Belgeler — 71 dosya
 
 | Belge | Başlık | İlk satır |
 |---|---|---|
@@ -23,8 +23,10 @@
 | `docs/ozel/SURUM-NOTU-1.15-ozel.15.md` | SURUM-NOTU-1.15-ozel.15.md | """Sürüm notu üreticisi — 1.15-ozel.15 için. |
 | `docs/ozel/SURUM-NOTU-1.15-ozel.16.md` | SURUM-NOTU-1.15-ozel.16.md | """Sürüm notu üreticisi — 1.15-ozel.16 için. |
 | `docs/ozel/SURUM-NOTU-1.15-ozel.17.md` | SURUM-NOTU-1.15-ozel.17.md | """Sürüm notu üreticisi — 1.15-ozel.17 için. |
+| `docs/ozel/SURUM-NOTU-1.15-ozel.22.md` | SÜRÜM NOTU — 1.15-ozel.22 / 37103 | değil**: üye üye `absentWhy` listeleniyor ve "bu bir sonuç değil, arıza |
 | `docs/ozel/TERMUX-APK-KARARI.md` | KARAR — Termux: katman mı, ayrı APK mı? | Soru (kullanıcı, 2026-11-22): *"Termux araç zincirleri bölümünde olmalı, tek |
 | `docs/ozel/TERMUX-ENTEGRASYONU.md` | TERMUX ENTEGRASYONU — tasarım, güvenlik, ön/arka yüz, etkiler | Bu belge bir niyet beyanı değil. Her bölüm ya **ölçülmüş** bir gerçeğe, ya |
+| `docs/ozel/YAPILACAKLAR.md` | YAPILACAKLAR — geniş kapsamlı, kategori kategori | hâlâ üye başına tek satır**. Sağlayıcı hatası, JSON bozukluğu, kota, model yok |
 | `docs/ozel/arsiv/ANA-BAGLAM.md` | Minis Özel — ANA BAĞLAM | Bu dosya cihazda yaşar. Her oturumun başında okunur. Yeni özellik eklerken buradaki |
 | `docs/ozel/arsiv/DENETIM-HATTI.md` | DENETİM HATTI — nasıl çalışır, neden böyle | Aynı hata ailesi dört kez CI'da patladı, her biri 4–5 dakikalık tur: |
 | `docs/ozel/arsiv/DURUM-11.1.md` | 11.1 DURUM — ne hazır, ne değil | Son commit: `c151536` · Sürüm `1.15-ozel.11.1` (37028) · **CI yeşil** |

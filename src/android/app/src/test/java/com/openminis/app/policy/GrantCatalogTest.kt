@@ -118,4 +118,21 @@ class GrantCatalogTest {
         val ids = GrantCatalog.activeRuleIds(map, now)
         assertEquals(setOf("termux:pkg"), ids)
     }
+
+    @Test
+    fun `kullanim sayaci yalniz global ve gecerli kayitlari toplar`() {
+        val used = GrantCatalog.grant(RiskRules.byId("termux:pkg")!!, nowMs = now).copy(uses = 7)
+        val expired = GrantCatalog.grant(RiskRules.byId("termux:pkg")!!, nowMs = now)
+            .copy(expiresAtMs = now - 1, uses = 99)
+        val session = GrantCatalog.grant(
+            RiskRules.byId("pkg:install")!!, scope = ApprovalScope.Session("s"), nowMs = now,
+        ).copy(uses = 3)
+        val map = mapOf(
+            ApprovalScope.Global.key to listOf(used, expired),
+            ApprovalScope.Session("s").key to listOf(session),
+        )
+        val counts = GrantCatalog.usageCounts(map, now)
+        // Süresi geçmiş kaydın 99 kullanımı sayılmaz: kullanıcıya "99 kez" demek yanlış olurdu.
+        assertEquals(mapOf("termux:pkg" to 7), counts)
+    }
 }

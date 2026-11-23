@@ -47,6 +47,8 @@ fun PermissionGrantsScreen(onBack: () -> Unit) {
     var byScope by remember { mutableStateOf(GrantStorage.load(context)) }
     val now = remember(byScope) { System.currentTimeMillis() }
     val active = remember(byScope) { GrantCatalog.activeRuleIds(byScope, now) }
+    // [37099d] Kullanım sayacı: izin verildi ama hiç kullanılmadıysa da bilgi.
+    val uses = remember(byScope) { GrantCatalog.usageCounts(byScope, now) }
     val categories = remember { GrantCatalog.categories() }
 
     // [37099c] Entegrasyonlar: android-a11y-cli + android-shizuku-cli.
@@ -162,7 +164,11 @@ fun PermissionGrantsScreen(onBack: () -> Unit) {
                     val isOn = item.rule.id in active
                     SettingsSwitchRow(
                         title = item.rule.id.removePrefix(cat.id + ":"),
-                        subtitle = item.blockedWhy ?: item.rule.note,
+                        subtitle = item.blockedWhy ?: buildString {
+                            append(item.rule.note)
+                            val n = uses[item.rule.id] ?: 0
+                            if (n > 0) append(" · $n kez kullanıldı")
+                        },
                         icon = null,
                         // Verilemeyen satır kapalı ve dokunulamaz: "kapalı" ile
                         // "burada izin verilemez" farkını anahtarın hiç

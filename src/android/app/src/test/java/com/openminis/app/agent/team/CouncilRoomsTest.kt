@@ -115,4 +115,58 @@ class CouncilRoomsTest {
         assertTrue(run.needs.isEmpty())
         CouncilLiveRegistry.forget("fresh")
     }
+
+    @Test
+    fun `sorunun cevabi hedefin sonraki turundan eslenir`() {
+        startRun("ans")
+        CouncilLiveRegistry.memberAsks(
+            runId = "ans", round = 1, from = "Ayşe",
+            questions = listOf(Question("Mehmet", "Hangi sürüm?")), tasks = emptyList(),
+        )
+        // Tur 2: Mehmet pozisyon verir — cevap bu metinden gelir.
+        CouncilLiveRegistry.matchAnswers("ans", round = 2, member = "Mehmet", claim = "Android 16, SDK 36")
+        val q = CouncilLiveRegistry.runs.value["ans"]!!.questions.single()
+        assertEquals("Android 16, SDK 36", q.answer)
+        assertEquals(2, q.answeredRound)
+        CouncilLiveRegistry.forget("ans")
+    }
+
+    @Test
+    fun `ayni turda verilen pozisyon cevap sayilmaz`() {
+        startRun("same")
+        CouncilLiveRegistry.memberAsks(
+            runId = "same", round = 2, from = "Ayşe",
+            questions = listOf(Question("Mehmet", "Soru")), tasks = emptyList(),
+        )
+        // q.round < round koşulu: aynı turda sorulan soruya aynı turda cevap olmaz.
+        CouncilLiveRegistry.matchAnswers("same", round = 2, member = "Mehmet", claim = "erken cevap")
+        assertTrue(CouncilLiveRegistry.runs.value["same"]!!.questions.single().answer.isEmpty())
+        CouncilLiveRegistry.forget("same")
+    }
+
+    @Test
+    fun `cevap bir kez yazilir`() {
+        startRun("once")
+        CouncilLiveRegistry.memberAsks(
+            runId = "once", round = 1, from = "Ayşe",
+            questions = listOf(Question("Mehmet", "Soru")), tasks = emptyList(),
+        )
+        CouncilLiveRegistry.matchAnswers("once", 2, "Mehmet", "ilk cevap")
+        CouncilLiveRegistry.matchAnswers("once", 3, "Mehmet", "ikinci cevap")
+        // Kullanıcının okuduğu satır sonradan değişirse hat "kayan" olur.
+        assertEquals("ilk cevap", CouncilLiveRegistry.runs.value["once"]!!.questions.single().answer)
+        CouncilLiveRegistry.forget("once")
+    }
+
+    @Test
+    fun `yanlis uyeye cevap yazilmaz`() {
+        startRun("wrong")
+        CouncilLiveRegistry.memberAsks(
+            runId = "wrong", round = 1, from = "Ayşe",
+            questions = listOf(Question("Mehmet", "Soru")), tasks = emptyList(),
+        )
+        CouncilLiveRegistry.matchAnswers("wrong", 2, "Ayşe", "kendi kendine cevap")
+        assertTrue(CouncilLiveRegistry.runs.value["wrong"]!!.questions.single().answer.isEmpty())
+        CouncilLiveRegistry.forget("wrong")
+    }
 }

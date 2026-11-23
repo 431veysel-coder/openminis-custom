@@ -190,23 +190,154 @@ fun RunTasksSection(
     runId: String,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
+    val runs by com.openminis.app.agent.team.CouncilLiveRegistry.runs.collectAsState()
+    val run = runs[runId]
     val live = rememberRunTasks(runId)
-    if (live.isEmpty()) return
+    var refusal by remember(runId) { mutableStateOf("") }
+    var adding by remember(runId) { mutableStateOf(false) }
+    var draftTitle by remember(runId) { mutableStateOf("") }
+    val members = run?.members?.keys?.toList().orEmpty()
+
+    fun persist(block: (com.openminis.app.agent.team.TaskBoard) -> Pair<com.openminis.app.agent.team.TaskBoard, String>) {
+        val teamId = run?.teamId ?: return
+        val (board, why) = com.openminis.app.agent.team.TaskStore.update(context, teamId, block)
+        refusal = why
+        if (why.isEmpty()) {
+            // Kayıt tek gerçek: yazılan panoyu canlı kayda da geçir, yoksa
+            // ekran diski değil belleği gösterir ve iki kaynak ayrışır.
+            board.tasks.forEach { com.openminis.app.agent.team.CouncilLiveRegistry.taskAdded(runId, it) }
+        }
+    }
+
     Column(modifier = modifier.fillMaxWidth()) {
-        SettingsSection(header = stringResource(R.string.task_hall_run_header)) {
-            live.forEachIndexed { i, task ->
+        if (live.isEmpty()) {
+            // [37099d] Önce burada `if (live.isEmpty()) return` vardı: boş görev
+            // odası **hiçbir şey** çizmiyordu — ne başlık ne açıklama. Kullanıcı
+            // "görev odası boş mu, bozuk mu" ayırt edemiyordu.
+            SettingsSection(
+                header = stringResource(R.string.task_hall_run_header),
+                footer = stringResource(R.string.task_hall_empty_hint),
+            ) {
                 SettingsRow(
-                    title = task.title,
-                    subtitle = buildString {
-                        append(task.state.wire)
-                        if (task.owner.isNotBlank()) append(" · ").append(task.owner)
-                        if (task.fromClaim.isNotBlank()) append(" · ").append(task.fromClaim)
-                    },
-                    showDivider = i < live.lastIndex,
-                    minHeight = 56.dp,
+                    title = stringResource(R.string.task_hall_empty_title),
+                    showDivider = false,
                 )
             }
+        } else {
+            SettingsSection(header = stringResource(R.string.task_hall_run_header)) {
+                live.forEach { task ->
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        SettingsRow(
+                            title = task.title,
+                            subtitle = buildString {
+                                append(task.state.wire)
+                                if (task.owner.isNotBlank()) append(" · ").append(task.owner)
+                                if (task.fromClaim.isNotBlank()) append(" · ").append(task.fromClaim)
+                                if (!task.canBeDone && task.state != com.openminis.app.agent.team.TaskState.DONE) {
+                                    append(" · kanıt yok")
+                                }
+                            },
+                            showDivider = false,
+                            minHeight = 56.dp,
+                        )
+                        // [37099d] Oda artık salt okunur değil: atama ve düşürme
+                        // burada. Sahipsiz görevi "birine ata" demek, ekranda
+                        // düğme olmadan anlamsız bir öğüttü.
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(start = 12.dp, bottom = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            members.take(3).forEach { m ->
+                                TextButton(onClick = {
+                                    persist { b ->
+                                        val (nb, why) = b.assign(task.id, m)
+                                        nb to why
+                                    }
+                                }) {
+                                    Text("→ $m", style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+                            if (task.state != com.openminis.app.agent.team.TaskState.DROPPED) {
+                                TextButton(onClick = {
+                                    persist { b ->
+                                        val (nb, _, why) = b.moveTo(
+                                            task.id,
+                                            com.openminis.app.agent.team.TaskState.DROPPED,
+                                            reason = "kullanıcı düşürdü — görev odasından",
+                                        )
+                                        nb to why
+                                    }
+                                }) {
+                                    Text(
+                                        stringResource(R.string.task_hall_drop),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.error,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
+
+        SettingsSection {
+            SettingsRow(
+                title = stringResource(R.string.task_hall_add),
+                onClick = { adding = true; draftTitle = "" },
+                showDivider = false,
+            )
+        }
+
+        if (refusal.isNotBlank()) {
+            Text(
+                refusal,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            )
+        }
+    }
+
+    if (adding) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { adding = false },
+            title = { Text(stringResource(R.string.task_hall_add)) },
+            text = {
+                androidx.compose.material3.OutlinedTextField(
+                    value = draftTitle,
+                    onValueChange = { draftTitle = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.task_hall_add_hint)) },
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val title = draftTitle.trim()
+                        if (title.isEmpty()) return@TextButton
+                        persist { b ->
+                            val (nb, _, why) = b.add(
+                                com.openminis.app.agent.team.TeamTask(
+                                    id = com.openminis.app.agent.team.TaskStore.newId(),
+                                    title = title,
+                                    runId = runId,
+                                    createdBy = "user",
+                                ),
+                            )
+                            nb to why
+                        }
+                        adding = false
+                    },
+                ) { Text(stringResource(R.string.common_add)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { adding = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            },
+        )
     }
 }
 

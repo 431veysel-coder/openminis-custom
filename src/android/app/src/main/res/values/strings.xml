@@ -3236,6 +3236,13 @@
     <string name="task_hall_title">Tasks</string>
     <string name="task_hall_hint">What the councils decided to do, across every team. A task only reaches "done" with evidence attached.</string>
     <string name="task_hall_empty">Nothing here. A council run opens tasks as it goes.</string>
+    <!-- [37099d] Gorev odasi eylemleri -->
+    <string name="task_hall_empty_title">No tasks yet</string>
+    <string name="task_hall_empty_hint">A task appears when a member hands work over, when the chair marks a claim as needing one, or when you add it here.</string>
+    <string name="task_hall_add">Add a task</string>
+    <string name="task_hall_add_hint">What needs doing</string>
+    <string name="task_hall_drop">Drop</string>
+    <string name="common_add">Add</string>
     <string name="task_hall_run_header">Tasks from this run</string>
     <string name="task_state_open">Open</string>
     <string name="task_state_doing">Doing</string>

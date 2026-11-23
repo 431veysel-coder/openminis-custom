@@ -64,6 +64,22 @@ object ExecutionCoordinator {
      * behaviour the tool contract already promises ("Each invocation spawns a
      * fresh process — there is no shared terminal session").
      */
+    /**
+     * [37099d] Bu komut havuzda değil, kendi sürecinde koşmalı mı?
+     *
+     * Şimdilik tek sebep: Termux paket komutları. Havuzlu kabuk tek süreçtir ve
+     * `-0` (sahte kök) ile bir kez başlar; Termux'un `apt`/`apt-get`'i kök
+     * olmayı kalıcı olarak reddettiği için o kabukta hiçbir zaman çalışmaz.
+     * Taze süreç komut başına `-i 10000:10000` verebildiği için çalışır.
+     *
+     * Katman kurulu değilse yönlendirme yapılmaz: `apt` zaten yok, havuzda
+     * denemek daha ucuz ve hata metni doğru ("apt: not found").
+     */
+    private fun requiresFreshProcess(command: String): Boolean = runCatching {
+        TermuxLayer.isInstalled(RootfsManager.getInstance(appContext).rootfsDir) &&
+            TermuxLayer.needsNonRootIdentity(command)
+    }.getOrDefault(false)
+
     private suspend fun executeFresh(
         sessionId: String,
         command: String,
@@ -344,7 +360,20 @@ object ExecutionCoordinator {
                     ) {
                         if (stoppedSince(sessionId, epoch)) {
                             CommandResult(output = NOT_STARTED_OUTPUT, exitCode = FreshProcessShell.CANCELLED_EXIT, durationMs = 0L)
-                        } else if (executionStrategy == ShellExecutionStrategy.FRESH_PROCESS) {
+                        } else if (executionStrategy == ShellExecutionStrategy.FRESH_PROCESS ||
+                            requiresFreshProcess(command)
+                        ) {
+                            // [37099d] Termux paket komutları **her zaman** taze süreçte
+                            // koşar. Sebep ölçüldü: Termux'un apt/apt-get'i kök olarak
+                            // çalışmayı kalıcı olarak reddediyor ("Ability to run this
+                            // command as root has been disabled permanently"), ve havuzlu
+                            // kabuk tek süreç olarak bir kez `-0` ile başlıyor — komut
+                            // başına kimlik değiştirilemez. Yani havuzda apt her zaman
+                            // susuyordu. Taze süreç `-i 10000:10000` ile başlar
+                            // (Termux'un gerçek koşulu), orada çalışıyor.
+                            //
+                            // Maliyet yalnız paket komutlarında: `ls`, `rg`, `git` gibi
+                            // günlük işler havuzda kalır.
                             executeFresh(sessionId, command, timeout, lineCallback, fsSessionId, epoch, spawned)
                         } else {
                             spawned.set(true)

@@ -391,9 +391,30 @@ class CouncilLoop(
         if (consensus.verdicts.isEmpty()) {
             // No chair output at all: fall back to the members' own claims so
             // the user still gets the disagreement instead of an empty screen.
-            return lastPositions.filter { !it.absent }.joinToString("\n\n") { p ->
-                "${p.member}: ${p.claim}"
+            //
+            // [37099d] Ölçülen arıza: hiçbir üye pozisyon üretmediğinde
+            // (`answered == 0` → NO_POSITIONS) bu dal **boş string** dönüyordu.
+            // Ekranda ne rapor ne gerekçe: kullanıcı "konsey çalıştı, boş
+            // döndü" görüyordu ve nedenini hiçbir yerde bulamıyordu. Şimdi her
+            // üyenin **neden** yok olduğu yazılıyor; uydurma bir cevap yerine
+            // eksikliğin kendisi rapor oluyor.
+            val answered = lastPositions.filter { !it.absent }
+            if (answered.isEmpty()) {
+                return buildString {
+                    appendLine("KONSEY SONUÇ ÜRETEMEDİ — hiçbir üye pozisyon vermedi.")
+                    appendLine()
+                    if (lastPositions.isEmpty()) {
+                        appendLine("Üye çağrısı hiç yapılmadı (liste boş ya da tur başlamadı).")
+                    } else {
+                        lastPositions.forEach { p ->
+                            appendLine("- ${p.member}: ${p.absentWhy.ifBlank { "gerekçe bildirilmedi" }}")
+                        }
+                    }
+                    appendLine()
+                    appendLine("Bu bir sonuç değil, bir arıza kaydıdır. Yapılacak: yukarıdaki gerekçeye göre üye modelini/sağlayıcısını düzelt, sonra yeniden koştur.")
+                }
             }
+            return answered.joinToString("\n\n") { p -> "${p.member}: ${p.claim}" }
         }
         val prompt = CouncilPrompts.synthesis(brief, consensus, evidence, dissent, language)
         val text = runCatching {

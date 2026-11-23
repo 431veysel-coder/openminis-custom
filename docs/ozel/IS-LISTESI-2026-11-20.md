@@ -1,5 +1,9 @@
 # İŞ LİSTESİ — 20 Kasım 2026
 
+> **BU BELGE BAYAT.** Güncel plan: [`YAPILACAKLAR.md`](YAPILACAKLAR.md) (2026-11-23).
+> Buradaki satırlar tarihsel kayıt olarak duruyor; açık maddelerin çoğu
+> `YAPILACAKLAR.md` içine taşındı ve numaralandı.
+
 > Bu liste uydurulmadı. Her satır bir **ölçümden** çıktı: `rg`, `integration_audit.py`,
 > `preflight.py`, `git status`, GitHub API. "Olmalı" değil, "şu an şu".
 > Eski plan `docs/ozel/SIRADAKI-SURUM.md` 37091 için yazılmıştı ve **bayat**:

@@ -134,6 +134,21 @@ object GrantCatalog {
         .map { it.ruleId }
         .toSet()
 
+    /**
+     * [37099d] Kural → kaç kez kullanıldı.
+     *
+     * Neden: toplu izin verildikten sonra kullanıcı "bu izni verdim, işe
+     * yaradı mı, ajan kötüye kullanıyor mu" sorusunu sorabiliyordu ve ekranda
+     * hiçbir cevap yoktu. `Grant.uses` alanı zaten vardı, yalnız okunmuyordu.
+     */
+    fun usageCounts(
+        byScope: Map<String, List<Grant>>,
+        nowMs: Long,
+    ): Map<String, Int> = byScope[ApprovalScope.Global.key].orEmpty()
+        .filter { it.decision == Decision.ALLOW && it.live(nowMs) }
+        .groupBy { it.ruleId }
+        .mapValues { (_, list) -> list.sumOf { it.uses } }
+
     /** "Hepsini geri al" — global kapsamdaki tüm kayıtlar silinir. */
     fun revokeAll(byScope: Map<String, List<Grant>>): Map<String, List<Grant>> =
         byScope.toMutableMap().apply { remove(ApprovalScope.Global.key) }

@@ -612,6 +612,7 @@ object CouncilRunner {
             task = task,
             memberNames = team.members.map { it.name to it.role },
             roundsPlanned = policy.budget.maxRounds,
+            waveSize = policy.budget.waveSize,
         )
 
         // Evidence the tools already fetched is not available before the run
@@ -668,6 +669,16 @@ object CouncilRunner {
                                     from = e.member,
                                     questions = e.questions,
                                     tasks = e.tasks,
+                                )
+                                // [37099d] Gelen pozisyon, ona sorulmuş soruların
+                                // cevabı sayılır (hedefin sonraki turu). Sıra
+                                // önemli: memberAsks önce, çünkü aynı turda
+                                // sorulan soru kendi cevabı olamaz (q.round < round).
+                                CouncilLiveRegistry.matchAnswers(
+                                    runId = runId,
+                                    round = e.round,
+                                    member = e.member,
+                                    claim = e.claim,
                                 )
                             }
                             is CouncilEvent.Canonicalized ->

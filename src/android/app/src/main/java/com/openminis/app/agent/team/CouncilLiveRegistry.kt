@@ -54,6 +54,14 @@ object CouncilLiveRegistry {
         val members: Map<String, MemberLive> = emptyMap(),
         val round: Int = 0,
         val roundsPlanned: Int = 0,
+        /**
+         * [37099d] Aynı anda konuşabilen üye sayısı (RAM'e göre).
+         *
+         * Neden ekranda: 5 üyeli bir ekipte dalga 4 ise 5. üye ikinci turda
+         * başlıyor. Bunu söylemeyen bir ekran "neden biri geç yazdı" sorusunu
+         * cevapsız bırakır ve kullanıcı koşuyu bozuk sanır.
+         */
+        val waveSize: Int = 0,
         val phase: Phase = Phase.STARTING,
         val tokensUsed: Int = 0,
         /** Claim lines for the agenda tab: id, text, votes. */
@@ -102,12 +110,23 @@ object CouncilLiveRegistry {
         val stances: Map<String, String> = emptyMap(),
     )
 
-    /** [37099c] İletişim hattındaki tek satır. */
+    /**
+     * [37099c] İletişim hattındaki tek satır.
+     *
+     * [answer] ve [answeredRound] [37099d] eklendi. Öncesinde hat yalnız
+     * soruyu gösteriyordu: kullanıcı "sordu, peki cevap ne oldu" diye
+     * bakıyor, hiçbir şey bulamıyordu. Cevap ayrı bir alanda tutulmuyor —
+     * hedef üyenin **sonraki turdaki** pozisyonunun iddiasından eşleniyor
+     * ([matchAnswers]). Uydurulmuş bir cevap yazmaktansa boş bırakmak
+     * doğrudur: eşleşme yoksa `answer` boş kalır.
+     */
     data class QuestionLine(
         val round: Int,
         val from: String,
         val to: String,
         val question: String,
+        val answer: String = "",
+        val answeredRound: Int = 0,
     )
 
     /** [37099c] İhtiyaçlar hattındaki tek satır. */
@@ -151,6 +170,7 @@ object CouncilLiveRegistry {
         task: String,
         memberNames: List<Pair<String, String>>,
         roundsPlanned: Int,
+        waveSize: Int = 0,
     ) {
         _runs.update { current ->
             current + (runId to LiveRun(
@@ -163,6 +183,7 @@ object CouncilLiveRegistry {
                     name to MemberLive(name = name, role = role)
                 },
                 roundsPlanned = roundsPlanned,
+                waveSize = waveSize,
             ))
         }
     }
@@ -258,6 +279,48 @@ object CouncilLiveRegistry {
                 questions = run.questions + newQuestions,
                 needs = run.needs + newNeeds,
             ))
+        }
+    }
+
+    /**
+     * [37099d] Soruların cevabını eşler.
+     *
+     * ## Neden eşleme, neden ayrı alan değil
+     *
+     * Protokolde "şu soruya şu cevap" diye bir alan yok: üye, soruyu aldığı
+     * turda **pozisyon** yazar ve cevabı o metnin içinde verir. Ayrı bir cevap
+     * alanı eklemek istem şemasını değiştirmek demekti (ve model onu
+     * doldurmayabilirdi). Bunun yerine, hedef üyenin o turdan **sonraki**
+     * pozisyon metni cevap kabul edilir.
+     *
+     * ## Neden yalnız bir kez
+     *
+     * Aynı soruya sonraki turlarda tekrar cevap yazılırsa ilk cevap korunur:
+     * kullanıcının okuduğu satır sonradan değişirse hat "canlı" değil
+     * "kayan" olur.
+     *
+     * ## Sınır (dürüst)
+     *
+     * Bu bir **yaklaşıklama**: üye cevabı başka bir konuya geçerek de
+     * verebilir. Metin, eşleşmenin ne olduğunu söyler ("hedefin sonraki
+     * pozisyonu"), böylece kullanıcı bunu kesin bir cevap sanmaz.
+     */
+    fun matchAnswers(runId: String, round: Int, member: String, claim: String) {
+        if (claim.isBlank()) return
+        _runs.update { current ->
+            val run = current[runId] ?: return@update current
+            var changed = false
+            val updated = run.questions.map { q ->
+                if (q.answer.isBlank() && q.answeredRound == 0 &&
+                    q.to.equals(member, ignoreCase = true) && q.round < round
+                ) {
+                    changed = true
+                    q.copy(answer = claim.take(400), answeredRound = round)
+                } else {
+                    q
+                }
+            }
+            if (!changed) current else current + (runId to run.copy(questions = updated))
         }
     }
 
