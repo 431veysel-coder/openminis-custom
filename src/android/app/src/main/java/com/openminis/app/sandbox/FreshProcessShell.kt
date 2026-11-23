@@ -254,7 +254,16 @@ internal class FreshProcessShell(
         val rootfsManager = RootfsManager.getInstance(context)
         val cmd = mutableListOf<String>()
         cmd.add(rootfsManager.prootBinary.absolutePath)
-        cmd.add("-0")
+        // [37099c] Termux apt/apt-get kok olmayi reddediyor (olculdu).
+        // Ayni kural dort kurucuda: bkz. TermuxLayer.needsNonRootIdentity.
+        if (com.openminis.app.sandbox.TermuxLayer.isInstalled(rootfsManager.rootfsDir) &&
+            com.openminis.app.sandbox.TermuxLayer.needsNonRootIdentity(command)
+        ) {
+            cmd.add("-i")
+            cmd.add(com.openminis.app.sandbox.TermuxLayer.NON_ROOT_IDENTITY)
+        } else {
+            cmd.add("-0")
+        }
         cmd.add("--link2symlink")
         cmd.add("-r"); cmd.add(rootfsManager.rootfsDir.absolutePath)
         cmd.add("-b"); cmd.add("/dev")

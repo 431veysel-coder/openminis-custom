@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.openminis.app.R
+import com.openminis.app.offload.OffloadPermissionManager
 import com.openminis.app.ozel.GrantStorage
 import com.openminis.app.policy.ApprovalScope
 import com.openminis.app.policy.Grant
@@ -47,6 +48,24 @@ fun PermissionGrantsScreen(onBack: () -> Unit) {
     val now = remember(byScope) { System.currentTimeMillis() }
     val active = remember(byScope) { GrantCatalog.activeRuleIds(byScope, now) }
     val categories = remember { GrantCatalog.categories() }
+
+    // [37099c] Entegrasyonlar: android-a11y-cli + android-shizuku-cli.
+    // Bunlar onay defterine değil `OffloadPermissionManager`'a yazılır —
+    // ayrı bir kapı (offload IPC), ayrı bir depo. İkisinin varsayılanı
+    // NOT_ALLOWED: başka uygulamaları sürebildikleri için bilinçli.
+    var agentLevels by remember {
+        mutableStateOf(
+            mapOf(
+                "a11y_cli" to OffloadPermissionManager.getLevel("a11y_cli"),
+                "shizuku_cli" to OffloadPermissionManager.getLevel("shizuku_cli"),
+            )
+        )
+    }
+
+    fun setAgentLevel(tool: String, level: OffloadPermissionManager.PermissionLevel) {
+        OffloadPermissionManager.setLevel(tool, level)
+        agentLevels = agentLevels + (tool to level)
+    }
 
     fun write(next: Map<String, List<Grant>>) {
         GrantStorage.save(context, next)
@@ -96,6 +115,38 @@ fun PermissionGrantsScreen(onBack: () -> Unit) {
                 onClick = { write(GrantCatalog.revokeAll(byScope)) },
                 showDivider = false,
             )
+        }
+
+        SettingsSection(
+            header = stringResource(R.string.permission_grants_integrations),
+            footer = stringResource(R.string.permission_grants_integrations_footer),
+        ) {
+            SettingsRow(
+                title = stringResource(R.string.permission_grants_integrations_all),
+                subtitle = stringResource(R.string.permission_grants_integrations_all_sub),
+                icon = Icons.Outlined.Lock,
+                onClick = {
+                    setAgentLevel("a11y_cli", OffloadPermissionManager.PermissionLevel.BYPASS)
+                    setAgentLevel("shizuku_cli", OffloadPermissionManager.PermissionLevel.BYPASS)
+                },
+                showDivider = true,
+            )
+            listOf("a11y_cli" to R.string.permission_grants_a11y, "shizuku_cli" to R.string.permission_grants_shizuku)
+                .forEachIndexed { index, (tool, labelRes) ->
+                    SettingsSwitchRow(
+                        title = stringResource(labelRes),
+                        subtitle = stringResource(R.string.permission_grants_agent_level, agentLevels[tool]?.name ?: ""),
+                        checked = agentLevels[tool] == OffloadPermissionManager.PermissionLevel.BYPASS,
+                        onCheckedChange = { on ->
+                            setAgentLevel(
+                                tool,
+                                if (on) OffloadPermissionManager.PermissionLevel.BYPASS
+                                else OffloadPermissionManager.PermissionLevel.NOT_ALLOWED,
+                            )
+                        },
+                        showDivider = index == 0,
+                    )
+                }
         }
 
         categories.forEach { cat ->

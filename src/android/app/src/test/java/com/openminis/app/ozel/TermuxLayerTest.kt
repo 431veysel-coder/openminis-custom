@@ -225,6 +225,31 @@ class TermuxLayerTest {
     }
 
     @Test
+    fun `apt komutlari kok olmayan kimlik ister`() {
+        // [37099c] Ölçüldü: Termux'un apt/apt-get'i kök olarak çalışmayı kalıcı
+        // olarak reddediyor ("Ability to run this command as root has been
+        // disabled permanently..."). PRoot bizi sahte kök yaptığı için
+        // katman kuruluyken bile apt susuyordu.
+        for (cmd in listOf("apt update", "apt-get install -y jq", "pkg install python", "cd /x && apt update")) {
+            assertTrue("kök olmayan kimlik gerekli: $cmd", TermuxLayer.needsNonRootIdentity(cmd))
+        }
+    }
+
+    @Test
+    fun `diger komutlar kok kimlikte kalir`() {
+        // dpkg / apt-cache / bash kök olarak sorunsuz çalışıyor (ölçüldü);
+        // kimliği gereksiz düşürmek `apk add` gibi kök isteyen işleri bozar.
+        for (cmd in listOf("apk add jq", "dpkg -l", "apt-cache policy", "bash -c 'echo hi'", "ls -la")) {
+            assertFalse("kök kimlik korunmalı: $cmd", TermuxLayer.needsNonRootIdentity(cmd))
+        }
+    }
+
+    @Test
+    fun `kimlik bicimi proot icin gecerli`() {
+        assertTrue(Regex("""^\d+:\d+$""").matches(TermuxLayer.NON_ROOT_IDENTITY))
+    }
+
+    @Test
     fun `katman yoksa proot bagi yok`() {
         // Kurulu değilken `-b` eklemek var olmayan bir yolu bağlamaya çalışır;
         // proot bunu sessizce atlar ama komutu her seferinde şişirir.

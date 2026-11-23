@@ -869,6 +869,13 @@
     <string name="perm_cat_sql_sub">destructive queries</string>
     <string name="perm_cat_credential">Credentials</string>
     <string name="perm_cat_credential_sub">reading key files</string>
+    <string name="permission_grants_integrations">Integrations</string>
+    <string name="permission_grants_integrations_footer">These two CLIs drive the real phone: accessibility reads and taps the screen, Shizuku runs privileged system commands. The agent gate here is separate from the Android authorization below it — both must be on. System authorization is granted in Android, not here.</string>
+    <string name="permission_grants_integrations_all">Allow both integrations</string>
+    <string name="permission_grants_integrations_all_sub">One tap sets android-a11y-cli and android-shizuku-cli to always allowed</string>
+    <string name="permission_grants_a11y">android-a11y-cli (real screen)</string>
+    <string name="permission_grants_shizuku">android-shizuku-cli (privileged)</string>
+    <string name="permission_grants_agent_level">Agent access: %1$s</string>
     <string name="permission_grants_title">Permissions</string>
     <string name="permission_grants_all_header">Bulk</string>
     <string name="permission_grants_all_grant">Trust every reversible sandbox action</string>

@@ -741,8 +741,21 @@ object PRootKernel {
 
         cmd.add(rootfsManager.prootBinary.absolutePath)
 
-        // Run as fake root (uid 0)
-        cmd.add("-0")
+        // [37099c] Kimlik: varsayılan sahte kök (-0). Termux'un apt/apt-get'i
+        // kök olarak çalışmayı kalıcı olarak reddediyor, o yüzden o komutlar
+        // gerçek Termux'taki gibi kök olmayan kimlikle koşar (-i).
+        // Ölçüm 2026-11-23: "Ability to run this command as root has been
+        // disabled permanently for safety purposes." — katman kuruluydu,
+        // bash ve dpkg çalışıyordu, yalnız apt susuyordu.
+        if (com.openminis.app.sandbox.TermuxLayer.isInstalled(rootfsManager.rootfsDir) &&
+            com.openminis.app.sandbox.TermuxLayer.needsNonRootIdentity(shellCommand)
+        ) {
+            cmd.add("-i")
+            cmd.add(com.openminis.app.sandbox.TermuxLayer.NON_ROOT_IDENTITY)
+        } else {
+            // Run as fake root (uid 0)
+            cmd.add("-0")
+        }
 
         // T141: Translate hardlink() syscalls to symlink(). Android's /data
         // (ext4/F2FS as mounted by zygote) refuses cross-directory hardlinks

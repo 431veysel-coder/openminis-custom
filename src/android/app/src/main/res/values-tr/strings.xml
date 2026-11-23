@@ -2460,6 +2460,13 @@
     <string name="perm_cat_sql_sub">yıkıcı sorgular</string>
     <string name="perm_cat_credential">Kimlik bilgileri</string>
     <string name="perm_cat_credential_sub">anahtar dosyası okuma</string>
+    <string name="permission_grants_integrations">Entegrasyonlar</string>
+    <string name="permission_grants_integrations_footer">Bu iki CLI gerçek telefonu sürer: erişilebilirlik ekranı okur ve dokunur, Shizuku ayrıcalıklı sistem komutları çalıştırır. Buradaki ajan kapısı, altındaki Android yetkisinden ayrıdır — ikisi de açık olmalı. Sistem yetkisi Android\'de verilir, burada değil.</string>
+    <string name="permission_grants_integrations_all">İki entegrasyona da izin ver</string>
+    <string name="permission_grants_integrations_all_sub">Tek dokunuşla android-a11y-cli ve android-shizuku-cli her zaman izinli olur</string>
+    <string name="permission_grants_a11y">android-a11y-cli (gerçek ekran)</string>
+    <string name="permission_grants_shizuku">android-shizuku-cli (ayrıcalıklı)</string>
+    <string name="permission_grants_agent_level">Ajan erişimi: %1$s</string>
     <string name="permission_grants_title">İzinler</string>
     <string name="permission_grants_all_header">Toplu</string>
     <string name="permission_grants_all_grant">Geri alınabilir tüm sandbox işlerine izin ver</string>

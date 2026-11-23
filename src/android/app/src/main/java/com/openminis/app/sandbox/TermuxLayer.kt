@@ -381,6 +381,39 @@ object TermuxLayer {
     enum class Layer { ALPINE, TERMUX, MIXED, EITHER }
 
     /**
+     * [37099c] Bu komut **kök olmayan** sahte kimlikle çalışmalı mı?
+     *
+     * ## Neden (ölçüldü)
+     *
+     * Termux'un `apt` / `apt-get` ikilileri kök olarak çalışmayı **kalıcı olarak**
+     * reddediyor:
+     *
+     * ```
+     * Ability to run this command as root has been disabled permanently for safety purposes.
+     * ```
+     *
+     * Bizim PRoot konuğu `-0` ile sahte kök olduğu için katman kuruluyken bile
+     * `apt update` / `apt install` hiçbir şey yapmıyordu — dosyalar yerinde,
+     * `bash --version` çalışıyor, `dpkg -l` 83 paket listeliyor, ama kurulum
+     * komutu sessizce reddediliyor. Ölçüm 2026-11-23, .19 kurulu cihazda.
+     *
+     * Gerçek Termux'ta bu komutlar uygulama kullanıcısı olarak çalışır (kök
+     * değil), yani PRoot'a `-i <uid>:<gid>` vermek **Termux'un normal
+     * koşulunu** yeniden kuruyor, bir kaçış yolu icat etmiyor.
+     *
+     * ## Neden yalnız apt/pkg
+     *
+     * `dpkg`, `apt-cache`, `bash`, `pkg-config` kök olarak sorunsuz çalışıyor
+     * (ölçüldü). Kimliği gereksiz yere düşürmek, `apk add` gibi kök isteyen
+     * işleri bozardı.
+     */
+    fun needsNonRootIdentity(command: String): Boolean =
+        Regex("""(^|[\s;&|"'(`])(apt|apt-get|pkg)(\s|$)""").containsMatchIn(command)
+
+    /** Kök olmayan kimlik — Termux'un gerçek cihazdaki uygulama uid'i. */
+    const val NON_ROOT_IDENTITY: String = "10000:10000"
+
+    /**
      * Kurulum adımları — sırayla, her biri tekrar başlatılabilir.
      *
      * "Tekrar başlatılabilir" önemli: 31 MB indirme telefonda kopabilir.
