@@ -132,27 +132,7 @@ object VirtualScreenHost {
      * çalışıyorum" sanıp kullanıcının ekranını değiştirir. İstemci bunu kısa
      * bir satır olarak sistem istemine ekler.
      */
-    fun brief(ctx: Context): String {
-        // [37099] Anahtarın gerçek okuyucusu burası: kapalıyken ajan sistem
-        // isteminde sanal ekrandan hiç söz görmez. Açık bir anahtarın üretimde
-        // okuyucusu olma kuralı (bkz. OzelFeatures.VIRTUAL_SCREEN).
-        if (!com.openminis.app.data.OzelFeatures.isEnabled(ctx, com.openminis.app.data.OzelFeatures.Feature.VIRTUAL_SCREEN)) {
-            return ""
-        }
-        val s = VirtualScreenStore.load(ctx)
-        val visible = s.visiblePanes()
-        if (visible.isEmpty()) {
-            return "Virtual screen: EMPTY (no pane open). Nothing is being rendered for the agent."
-        }
-        val parts = visible.map { p ->
-            val loc = p.location?.takeIf { it.isNotBlank() } ?: "—"
-            "${p.pane.id}(loc=$loc, scroll=${p.scrollY})"
-        }
-        val focus = s.focus?.id ?: "none"
-        return "Virtual screen: ${parts.joinToString(", ")} · focus=$focus. " +
-            "This surface is INSIDE the app: clicking here changes nothing on the user's real screen. " +
-            "For the real screen use the accessibility tool (that one asks for approval)."
-    }
+    fun brief(ctx: Context): String = VirtualScreenPrompt.section(ctx)
 
     private fun commit(ctx: Context, state: VirtualScreen.State): VirtualScreen.State {
         VirtualScreenStore.save(ctx, state)

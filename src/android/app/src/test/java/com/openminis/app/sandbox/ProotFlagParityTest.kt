@@ -157,4 +157,25 @@ class ProotFlagParityTest {
             fresh.contains("in sessionBindMounts"),
         )
     }
+
+    @Test
+    fun `every builder carries the termux binds`() {
+        // [37099b] Ölçülen hata: Termux bağları yalnız `PRootKernel`'e eklenmişti.
+        // Katman kuruluyken (2026-11-23 05:59) canlı proot satırı yalnız
+        // `-b /dev -b /proc -b /sys` içeriyordu; `/system` yoktu → `apt` "not found".
+        // Yani kurulan katman, kurulmamış gibi davranıyordu — dosya var, haber yok.
+        val builders = listOf(
+            "PRootKernel.kt",
+            "TerminalSession.kt",
+            "PersistentShell.kt",
+            "FreshProcessShell.kt",
+        )
+        for (file in builders) {
+            val body = src("src/main/java/com/openminis/app/sandbox/$file")
+            assertTrue(
+                "$file must bind the Termux layer through TermuxLayer.prootBindArgs",
+                body.contains("TermuxLayer.prootBindArgs(rootfsManager.rootfsDir)"),
+            )
+        }
+    }
 }

@@ -133,13 +133,26 @@ object TranslationPrefs {
 
     /**
      * Which model entry to translate with: the user's pin if it still exists,
-     * else the first model they nominated for the agent loop. Null when
-     * neither is available — the button then explains that a model must be
-     * picked instead of silently spending an unconfigured model's quota.
+     * else the first model they nominated for the agent loop, else the first
+     * usable model is offered back to the caller — and the caller decides
+     * whether to use it.
+     *
+     * [37099b] Üçüncü halka ölçülen bir arızadan doğdu: bu cihazda
+     * `defaults.agentLoopEntries` **boş** (ölçüm: `minis-config get
+     * defaults.agentLoopEntries` → `[]`) ve kullanıcı çeviri modeli
+     * sabitlememişti. Sonuç: düğmeye basınca hiçbir model bulunamıyor,
+     * "Translation failed — no model available" yazıyordu — 40+ model kurulu
+     * olduğu hâlde. Kullanıcı düğmeye basarak zaten harcamayı onaylıyor;
+     * bu yüzden son halka olarak ilk *metin üretebilen* model kullanılır.
+     *
+     * Görsel/OCR/gömme modelleri çağıran tarafça elenir ([available] yalnız
+     * metin çıktısı verebilenleri taşır) — yanlış modeli seçmek "başarısız"
+     * mesajını hak eden bir hatadır, sessizce yanlış cevap değil.
      */
     fun effectiveModelEntryId(ctx: Context, available: List<String>, loopEntries: List<String>): String? {
         val pinned = modelEntryId(ctx)
         if (pinned.isNotBlank() && pinned in available) return pinned
-        return loopEntries.firstOrNull { it in available }
+        loopEntries.firstOrNull { it in available }?.let { return it }
+        return available.firstOrNull()
     }
 }

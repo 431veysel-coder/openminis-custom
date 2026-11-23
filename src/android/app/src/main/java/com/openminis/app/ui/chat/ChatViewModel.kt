@@ -1617,6 +1617,8 @@ class ChatViewModel(
      *  NEXT loop turn is the wrap-up turn (tools withdrawn, deliverable asked). */
     @Volatile internal var helperWrapUpRequested = false
 
+    @Volatile internal var helperStartedAtMs = 0L
+
     /**
      * [T-subagent-termination] The loop sent this helper its one-shot closing
      * request after a turn that ended with no text. Read by the delegation
@@ -2937,7 +2939,9 @@ class ChatViewModel(
                 tierUsed = com.openminis.app.agent.jobs.HelperModelTier.PRIMARY,
                 agentName = subAgent.name.takeIf { !subAgent.isBuiltIn },
                 agentInstructions = subAgent.instructions,
+                minutes = com.openminis.app.agent.jobs.HelperRunner.DEFAULT_MINUTES,
             )
+            it.helperStartedAtMs = System.currentTimeMillis()
             it.adoptBrowserTabPool(browserTabPool)
         }
 
@@ -11645,6 +11649,8 @@ class ChatViewModel(
         var helperWrapUpInjected = false
         // [T-subagent-turn-countdown] Fired once, a few rounds before the cliff.
         var helperTurnWarningInjected = false
+        // [37099b] Saat uyarısı: tur uyarısından bağımsız, bir kez.
+        var helperTimeWarningInjected = false
         // [T-subagent-termination] The closing request was sent in this run (once).
         var helperClosingNudgeSent = false
         // [T-scheduled-tool-prefill] One-shot: the next turn that reaches the
@@ -11758,6 +11764,33 @@ class ChatViewModel(
                         agentHistory.add(LLMMessage(role = LLMMessage.Role.USER, content = note))
                     }
                     AppLogger.info(TAG, "[subagent_task] turn budget warning injected remaining=$remaining turn=${turn + 1}/$turnCap")
+                }
+            }
+            // [37099b] Saat uyarısı — tur uyarısının ikizi.
+            //
+            // Ölçüm (2026-11-23): üç paralel denetçi 13-28 turda, yani tur
+            // sınırına varmadan 11m30s'de süre doldu; hepsi final yazamadı.
+            // Run'ı bitiren şey saat olduğu hâlde çocuk saatin varlığını
+            // bilmiyordu: istemde tur sayısı vardı, dakika yoktu.
+            if (helperConfig != null && !helperWrapUpInjected && !helperTimeWarningInjected) {
+                val started = helperStartedAtMs
+                val cfgMinutes = helperConfig?.minutes ?: 0
+                if (started > 0L && cfgMinutes > 0) {
+                    val elapsedMs = System.currentTimeMillis() - started
+                    val remainingMin = cfgMinutes - (elapsedMs / 60_000L).toInt()
+                    if (remainingMin <= com.openminis.app.agent.jobs.HelperRunner.TIME_WARNING_LEAD_MINUTES) {
+                        helperTimeWarningInjected = true
+                        val note = com.openminis.app.agent.jobs.HelperRunner.timeBudgetWarning(remainingMin)
+                        val lastIdx = agentHistory.lastIndex
+                        if (lastIdx >= 0 && agentHistory[lastIdx].role == LLMMessage.Role.USER) {
+                            val last = agentHistory[lastIdx]
+                            agentHistory[lastIdx] = if (last.contentParts.isEmpty()) last.copy(content = (last.content + "\n\n" + note).trim())
+                            else last.copy(contentParts = last.contentParts + AgentContentPart.Text(note))
+                        } else {
+                            agentHistory.add(LLMMessage(role = LLMMessage.Role.USER, content = note))
+                        }
+                        AppLogger.info(TAG, "[subagent_task] time budget warning injected remainingMin=$remainingMin turn=${turn + 1}/$turnCap")
+                    }
                 }
             }
             // [T-sub-agents-steer] Deliver any course correction the parent
@@ -15210,7 +15243,11 @@ class ChatViewModel(
                     // for this definition; the built-in carries none.
                     agentName = subAgent.name.takeIf { !subAgent.isBuiltIn },
                     agentInstructions = subAgent.instructions,
+                    // [37099b] Saat bütçesi çocuğa taşınır. Ölçüm 2026-11-23:
+                    // üç denetçi 11m30s'de kesildi, tur sınırına varmadan.
+                    minutes = args.minutes,
                 )
+                it.helperStartedAtMs = startedAt
                 it.adoptBrowserTabPool(browserTabPool)
             }
         }
@@ -17526,6 +17563,13 @@ Memory system (currently DISABLED):
         // bozmaz. Kapalıyken boş string: kapalı bir özelliği anlatmak modele
         // yapamayacağı bir şeyi düşündürür.
         val termuxSection = com.openminis.app.ozel.TermuxPrompt.section(context)
+        // [37099b] Sanal ekran — A/B farkı, ayarlar, kullanım örnekleri ve
+        // güncel bölme durumu. Neden istemde: `VirtualScreenHost.brief()`
+        // yazılmış ama hiçbir yerden çağrılmamıştı (ölçüm: tüm depoda tek
+        // referans kendi KDoc'u). Araç var, haber yok = özellik yok.
+        // Metin anahtar kapalıyken boş: kapalı bir özelliği anlatmak modele
+        // yapamayacağı bir şeyi düşündürür (`.14` STATION dersi).
+        val virtualScreenSection = com.openminis.app.screen.VirtualScreenPrompt.section(context)
         // [T-tools-granular-switches] The prompt must not advertise a tool the
         // schema does not carry. With browser_use switched off, the model would
         // otherwise be told it has a browser, find none in the schema, and
@@ -17656,7 +17700,7 @@ Environment variables:
 - Shell environment variables may contain sensitive API keys, tokens, or passwords. NEVER echo, print, cat, or otherwise output their values to stdout/stderr. Always reference them by variable name (e.g. ${'$'}API_KEY) inside scripts or commands — never inline the literal value.
 - When a skill or task requires an environment variable that is not set, tell the user which variable is missing and provide a tappable deep link to create it: [Set ENV_NAME](minis://settings/environments?create_key=ENV_NAME&create_value=) — the user can tap it to open the Environment Variables page with the key pre-filled.
 - Settings deep links: when you tell the user "go to Settings → X" or want to point them at a specific setting, prefer a Markdown link `[Label](minis://settings/<path>)` over plain prose. Available paths: providers (list), providers/<instanceId> (one provider), model-groups (incl. Agent Loop), model-groups/<groupId>, usage (token usage), skills, memory, storage, shared-folders (Shared Folders: /var/minis/{shared,skills,memory}), mount-external (Mount External Folders), logs, appearance, background, about, permissions, environments[?create_key=K&create_value=V[&create_note=N]], rootfs (also reachable as mirrors), network (Network Routing: Restore Direct Connections, Diagnose Network, default route, per-feature and per-provider routes), tailscale, proxy (upstream proxies), dns (Shell Container DNS). Unknown paths fall back to Settings home, but prefer the exact path so users land where they want. These settings/action links are app deep links — render them as Markdown links in chat (same action-vs-resource rule as the minis:// section above: only /var/minis resource URLs may go to browser_use).
-- To check if a variable is set, use `[ -n "${'$'}VAR" ] && echo 'set' || echo 'not set'`. NEVER use echo ${'$'}VAR, printenv VAR, or any command that would output the actual value into the conversation context.${memorySystemSection}${notesSection}${termuxSection}
+- To check if a variable is set, use `[ -n "${'$'}VAR" ] && echo 'set' || echo 'not set'`. NEVER use echo ${'$'}VAR, printenv VAR, or any command that would output the actual value into the conversation context.${memorySystemSection}${notesSection}${termuxSection}${virtualScreenSection}
 
 Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended, so in-app scheduled scripts may not run as expected. For follow-ups and recurring prompts, run `minis-scheduled create …` via shell_execute: it fires through a system alarm, so it runs a new turn even when Minis is in the background or closed (a force-stop cancels pending tasks until the app is next opened). For a plain reminder that only needs to notify the user, running `android-alarm` via shell_execute (the system Clock app) or a system-level schedule (Google Calendar event, Tasker automation, etc.) also works. (Waiting or polling WITHIN the current turn is different — that is what shell_execute `delay` chains are for, per the shell_execute notes above.)"""
 

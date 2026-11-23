@@ -155,6 +155,29 @@ class VirtualScreenTest {
     }
 
     @Test
+    fun `yeniden siralama kayittan sonra korunur`() {
+        // [37099b] Ölçülen hata: reorder bellekte çalışıyor, encode yazıyor,
+        // ama decode sonunda enum sırasına eziyordu. Ajan her açılışta
+        // düzenini kaybediyordu.
+        val s = VirtualScreen.reorder(S, listOf(VirtualScreen.Pane.TERMINAL, VirtualScreen.Pane.BROWSER))
+        val back = VirtualScreen.decode(VirtualScreen.encode(s))
+        assertEquals(
+            listOf(VirtualScreen.Pane.TERMINAL, VirtualScreen.Pane.BROWSER, VirtualScreen.Pane.NOTES),
+            back.panes.map { it.pane },
+        )
+    }
+
+    @Test
+    fun `eski kayit sirasiz da okunur`() {
+        // Biçim değişikliği göç istemez: sıra alanı olmayan kayıt enum sırasına düşer.
+        val legacy = "terminal|1||0|~browser|1||0|~~terminal"
+        assertEquals(
+            listOf(VirtualScreen.Pane.BROWSER, VirtualScreen.Pane.TERMINAL),
+            VirtualScreen.decode(legacy).visiblePanes().map { it.pane },
+        )
+    }
+
+    @Test
     fun `hepsi kapali kaydi korunur`() {
         // "Hepsini kapat" geçerli bir durum; kayıttan sonra varsayılana
         // dönmek kullanıcının kararını silmek olurdu.

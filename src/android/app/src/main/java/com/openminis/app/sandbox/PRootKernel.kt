@@ -784,12 +784,9 @@ object PRootKernel {
         // sınırı anlamsızlaşırdı.
         val termuxReady = com.openminis.app.sandbox.TermuxLayer.isInstalled(rootfsManager.rootfsDir)
         if (termuxReady) {
-            for ((host, linux) in com.openminis.app.sandbox.TermuxLayer.requiredBinds()) {
-                if (java.io.File(host).exists()) {
-                    cmd.add("-b")
-                    cmd.add("$host:$linux")
-                }
-            }
+            cmd.addAll(
+                com.openminis.app.sandbox.TermuxLayer.prootBindArgs(rootfsManager.rootfsDir)
+            )
             Log.i(TAG, "termux layer active: binds=${com.openminis.app.sandbox.TermuxLayer.requiredBinds().size}")
         }
 

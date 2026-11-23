@@ -261,6 +261,10 @@ internal class FreshProcessShell(
         cmd.add("-b"); cmd.add("/proc")
         cmd.add("-b"); cmd.add("/sys")
         cmd.add("-w"); cmd.add("/root")
+
+        // [37099b] Termux katmani: bionic yukleyicisi konukta gorunmuyor.
+        // Bkz. TermuxLayer.prootBindArgs — tek kaynak, dort kurucu da ayni.
+        cmd.addAll(com.openminis.app.sandbox.TermuxLayer.prootBindArgs(rootfsManager.rootfsDir))
         for ((linuxPath, hostPath) in sessionBindMounts) {
             cmd.add("-b"); cmd.add("$hostPath:$linuxPath")
         }

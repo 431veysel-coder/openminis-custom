@@ -143,6 +143,49 @@ object TermuxLayer {
         "/apex" to "/apex",
     )
 
+    /**
+     * [37099b] PRoot komut satırına eklenecek `-b` argümanları — **tek kaynak**.
+     *
+     * ## Neden burada
+     *
+     * Depoda proot komutunu kuran **dört** ayrı yer var: `PRootKernel.buildProotCommand`,
+     * `PersistentShell.startProcess`, `FreshProcessShell.spawn`, `TerminalSession`.
+     * Bağlar ilkine eklenmişti; `shell_execute` ise ikinciyi/üçüncüyü kullanıyor.
+     * Ölçüm (2026-11-23): katman 05:59'da kuruldu, 07:43'te canlı proot satırı
+     * `-b /dev -b /proc -b /sys` içeriyor, `/system` **yok** → `apt` "not found".
+     * Dosya var, haber yok = özellik yok (Termux'un kendi dersi, dört yerde
+     * tekrarlanmış hâli).
+     *
+     * ## Neden hedef dizini biz açıyoruz
+     *
+     * PRoot `-b kaynak:hedef` için hedefin kökte bulunmasını bekler. Alpine
+     * kökünde `/system` ve `/apex` yok; proot bağlamayı sessizce atlar ve
+     * hata vermez. Bu yüzden bağlamadan **önce** yer tutucu dizin açılır.
+     *
+     * ## Neden `/data` yok
+     *
+     * `/data` bağlanırsa ajan gerçek uygulama verisine ulaşır ve onay
+     * kapısının sandbox sınırı anlamsızlaşır. Yalnız `/system`, `/apex`.
+     */
+    fun prootBindArgs(
+        rootfsDir: File,
+        hostExists: (String) -> Boolean = { File(it).exists() },
+    ): List<String> {
+        if (!isInstalled(rootfsDir)) return emptyList()
+        val out = mutableListOf<String>()
+        for ((host, linux) in requiredBinds()) {
+            if (!hostExists(host)) continue
+            val target = File(rootfsDir, linux.trimStart('/'))
+            if (!target.exists()) {
+                runCatching { target.mkdirs() }
+            }
+            if (!target.exists()) continue
+            out += "-b"
+            out += "$host:$linux"
+        }
+        return out
+    }
+
     /** Probe sonucu: kurulabilir mi, neden değil, hangi yükleyici bulundu. */
     data class Probe(
         val canInstall: Boolean,

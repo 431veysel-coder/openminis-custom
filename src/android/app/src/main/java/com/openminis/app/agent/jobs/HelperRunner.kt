@@ -38,6 +38,18 @@ data class HelperConfig(
      * to the child's system prompt. Empty = nothing appended.
      */
     val agentInstructions: String = "",
+    /**
+     * [37099b] Çocuğun **duvar saati** bütçesi (dakika).
+     *
+     * Neden gerekli: çocuk yalnız tur sayısını biliyordu. Ölçüm (2026-11-23):
+     * üç paralel denetçi 13-28 turda, yani tur sınırına varmadan 11m30s'de
+     * **süre doldu**; hiçbiri final yazamadı ve son mesajları "başlıyorum"
+     * oldu. Sebep bilgi eksikliği: saat bütçesinin varlığını bilmeyen çocuk,
+     * işi geniş taramalarla geçirip yazmaya hiç varmıyor.
+     *
+     * Değer, ebeveynin `max_minutes` argümanıdır; varsayılan 10.
+     */
+    val minutes: Int = HelperRunner.DEFAULT_MINUTES,
 )
 
 data class DelegateTaskArgs(
@@ -309,6 +321,24 @@ object HelperRunner {
             "Stop investigating now and spend what is left on finishing: if the task asked you to write a file or produce an artifact, do it in the next round, then write your final answer. " +
             "Remember the final message must contain the complete deliverable itself, not a pointer to it."
 
+    /** [37099b] Süre uyarısı eşiği: son N dakikada bir kez söylenir. */
+    const val TIME_WARNING_LEAD_MINUTES = 3
+
+    /**
+     * [37099b] **Duvar saati** bütçesi uyarısı — tur uyarısının ikizi.
+     *
+     * Ölçüm (2026-11-23): üç denetçi 11m30s'de süre dolduğunda 13-28 turdaydı,
+     * yani tur sınırı uzaktaydı; run'ı bitiren şey saatti. Çocuk saat bütçesini
+     * ne istemde görüyordu ne de çalışırken duyuyordu; süre dolunca araçları
+     * olmadan, hiçbir şey yazmamış hâlde kesiliyordu.
+     *
+     * Metin sayıyı söyler, çünkü çocuğun hesaplayamadığı tek şey bu.
+     */
+    fun timeBudgetWarning(remainingMinutes: Int): String =
+        "[Time check: about ${if (remainingMinutes <= 0) "no" else remainingMinutes} minute${if (remainingMinutes == 1) "" else "s"} left before the run is stopped.] " +
+            "The clock, not the round count, ends this run next. Write the deliverable NOW: produce the full report/answer in your final message (and the file, if one was asked for) using what you already have. " +
+            "Do not start a new investigation, and do not end on a tool call — the parent receives only your text."
+
     /** What the parent reads when the child really ended without any text. */
     fun emptyResultNote(status: String): String =
         "(the agent ended with status $status before writing a final answer; there is no deliverable — re-delegate with a narrower task or a larger budget rather than reading its transcript)"
@@ -320,7 +350,7 @@ object HelperRunner {
         "You are running as a helper (sub-agent) inside an app called Minis, on an Android device with a fully functional Linux shell (Alpine Linux, aarch64). This is the calling environment, not your identity — keep your own model identity unchanged.\n" +
             "A parent agent delegated ONE focused task to you: \"${cfg.title}\". You cannot see the parent conversation and it cannot see yours; everything you need is in the task text. Work the task to completion using your tools, then finish with a single clear final answer — that final message is returned verbatim to the parent agent as the result, and it is the ONLY thing the parent receives. So the final message must contain the complete deliverable itself: the full report, document, list, code or answer the task asked for, in full — never a summary of what you did, a pointer to a file you wrote, or \"see above\". If you produced a file, paste its full content into the final message as well. Do not ask the parent or the user questions; make reasonable assumptions and state them. Do not restate the task or add meta-commentary. Do not create scheduled tasks or delegate further.\n" +
             browserSharingSection(browserEnabled) +
-            "You have at most ${cfg.maxTurns} tool rounds; on the last one tools are withdrawn and you are asked to write the deliverable from what you have, so start writing before you run out. If the task genuinely exceeds what you can do at your capability level, end your final message with a line `[ESCALATE] <one-line reason>` so the parent can rerun it on a stronger model.\n\n" +
+            "You have at most ${cfg.maxTurns} tool rounds and ${cfg.minutes} minutes of wall-clock time; either limit ends the run on its own, and whatever you have produced at that moment is all the parent receives. So: do not survey a whole repository when a targeted search answers the question, and start writing the deliverable while you still have room. If the task genuinely exceeds what you can do at your capability level, end your final message with a line `[ESCALATE] <one-line reason>` so the parent can rerun it on a stronger model.\n\n" +
             subAgentInstructionsSection(cfg.agentInstructions)
 
     /**

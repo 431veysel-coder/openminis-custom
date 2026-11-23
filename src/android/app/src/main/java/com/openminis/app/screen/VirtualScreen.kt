@@ -201,7 +201,13 @@ object VirtualScreen {
     // ── durum kaydı ────────────────────────────────────────────────────────
 
     /**
-     * Durumu tek satıra yazar: `browser|1|https://x|120|draft~terminal|1|/root|0|~notes|0||0|`
+     * Durumu tek satıra yazar: `browser|1|https://x|120|draft~terminal|1|/root|0|~notes|0||0|~~browser~~browser,terminal,notes`
+     *
+     * [37099b] Son alan **çizim sırası**: kullanıcı bölmeleri yeniden
+     * sıralayabildiği hâlde `decode` sonunda enum sırasına geri eziyordu
+     * (ölçüm: bellekte `terminal,browser,notes` → diskten `browser,terminal,notes`).
+     * Sıra kayıtta yoksa eski biçim kabul edilir ve enum sırası kullanılır —
+     * göç istemez.
      *
      * Neden JSON değil: bu kayıt her ekran açılışında okunur ve biçim insan
      * tarafından `rg` ile okunabilmeli. JSON daha doğru olurdu ama iki satırlık
@@ -216,13 +222,17 @@ object VirtualScreen {
             p.scrollY.toString(),
             esc(p.draft),
         ).joinToString("|")
-    } + "~~" + (s.focus?.id ?: "-")
+    } + "~~" + (s.focus?.id ?: "-") + "~~" + s.panes.joinToString(",") { it.pane.id }
 
     fun decode(raw: String): State {
         if (raw.isBlank()) return State()
         val parts = raw.split("~~")
         val paneText = parts.firstOrNull().orEmpty()
         val focus = Pane.parse(parts.getOrNull(1))
+        val savedOrder = parts.getOrNull(2)
+            ?.split(",")
+            ?.mapNotNull { Pane.parse(it) }
+            ?.takeIf { it.isNotEmpty() }
         val panes = paneText.split("~").mapNotNull { line ->
             val f = line.split("|")
             val pane = Pane.parse(f.getOrNull(0)) ?: return@mapNotNull null
@@ -238,7 +248,8 @@ object VirtualScreen {
         // Kayıtta olmayan yeni bölmeler (eski sürümden gelen durum) kapalı eklenir.
         val known = panes.map { it.pane }.toSet()
         val merged = panes + defaultPanes().filter { it.pane !in known }.map { it.copy(visible = false) }
-        val order = Pane.entries
+        // [37099b] Kayıtlı çizim sırası varsa o; yoksa eski kayıt: enum sırası.
+        val order = savedOrder?.plus(Pane.entries.filter { it !in savedOrder }) ?: Pane.entries
         return State(
             panes = merged.sortedBy { order.indexOf(it.pane) },
             focus = focus?.takeIf { p -> merged.any { it.pane == p && it.visible } },

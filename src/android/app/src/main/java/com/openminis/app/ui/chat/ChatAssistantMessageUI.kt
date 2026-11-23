@@ -270,6 +270,7 @@ import com.openminis.app.data.model.ProviderConfig
 import com.openminis.app.data.model.ProviderType
 import com.openminis.app.data.model.RoutingStrategy
 import com.openminis.app.data.model.ThinkingLevel
+import com.openminis.app.data.model.effectiveOutputModalities
 import com.openminis.app.data.repository.ChatRepository
 import com.openminis.app.data.repository.MemoryRepository
 import com.openminis.app.data.repository.ProviderRepository
@@ -1167,7 +1168,15 @@ internal fun ThinkingBlock(block: AssistantBlock, isStreaming: Boolean, isLast: 
                     val result = if (repo == null) {
                         null
                     } else {
-                        val visible = repo.config.value.modelEntries.filter { !it.isHidden }
+                        val visible = repo.config.value.modelEntries.filter {
+                            !it.isHidden &&
+                                !it.isUnavailableFromProvider &&
+                                // [37099b] Çeviri metin üretmeli. OCR ve gömme
+                                // modelleri listeye girerse "otomatik" onları
+                                // seçer ve her çeviri başarısız olur.
+                                (it.baseModel.effectiveOutputModalities == null ||
+                                    it.baseModel.effectiveOutputModalities!!.contains("text"))
+                        }
                         com.openminis.app.ui.chat.ThinkingTranslator.translate(
                             repo = repo,
                             context = context,

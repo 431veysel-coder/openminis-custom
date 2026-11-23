@@ -28,6 +28,7 @@ import com.openminis.app.R
 import com.openminis.app.data.TranslationPacks
 import com.openminis.app.data.TranslationPrefs
 import com.openminis.app.data.model.ModelEntry
+import com.openminis.app.data.model.effectiveOutputModalities
 import com.openminis.app.ui.components.RowLabel
 import com.openminis.app.ui.components.SectionTextField
 import com.openminis.app.ui.chat.ThinkingTranslator
@@ -56,7 +57,13 @@ fun TranslationSettingsScreen(
     val config by app.providerRepository.config.collectAsState()
 
     val entries: List<ModelEntry> = remember(config) {
-        config.modelEntries.filter { !it.isHidden }
+        // [37099b] Yalnız metin üretebilenler: OCR/gömme modeli seçilirse
+        // "otomatik" onu seçer ve her çeviri başarısız olur.
+        config.modelEntries.filter {
+            !it.isHidden && !it.isUnavailableFromProvider &&
+                (it.baseModel.effectiveOutputModalities == null ||
+                    it.baseModel.effectiveOutputModalities!!.contains("text"))
+        }
     }
 
     var enabled by remember { mutableStateOf(TranslationPrefs.enabled(context)) }

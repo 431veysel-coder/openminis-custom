@@ -223,4 +223,54 @@ class TermuxLayerTest {
         assertFalse(TermuxLayer.isExtracted(root))
         assertTrue(TermuxLayer.EXTRACT_MARKER.startsWith("."))
     }
+
+    @Test
+    fun `katman yoksa proot bagi yok`() {
+        // Kurulu değilken `-b` eklemek var olmayan bir yolu bağlamaya çalışır;
+        // proot bunu sessizce atlar ama komutu her seferinde şişirir.
+        assertTrue(TermuxLayer.prootBindArgs(File("/rootfs-yok")).isEmpty())
+    }
+
+    @Test
+    fun `katman kuruluyken bionic bolumleri baglanir`() {
+        // [37099b] Ölçülen hata: bağlar yalnız PRootKernel'e eklenmişti,
+        // shell_execute'in kullandığı kurucularda yoktu → `apt: not found`.
+        val root = File("/tmp/termux-bind-test").also { it.deleteRecursively(); it.mkdirs() }
+        try {
+            val prefix = TermuxLayer.guestPrefixDir(root)
+            File(prefix, "bin").mkdirs()
+            File(prefix, "bin/apt").writeText("x")
+            File(prefix, "etc/apt").mkdirs()
+            File(prefix, "etc/apt/sources.list").writeText("x")
+            assertTrue(TermuxLayer.isInstalled(root))
+
+            val args = TermuxLayer.prootBindArgs(root) { it == "/system" || it == "/apex" }
+            assertEquals(
+                listOf("-b", "/system:/system", "-b", "/apex:/apex"),
+                args,
+            )
+            // Hedef dizin kökün içinde açılmalı, yoksa proot bağlamayı atlar.
+            assertTrue(File(root, "system").isDirectory)
+            assertTrue(File(root, "apex").isDirectory)
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `kaynak cihazda yoksa baglama denenmez`() {
+        val root = File("/tmp/termux-bind-test2").also { it.deleteRecursively(); it.mkdirs() }
+        try {
+            val prefix = TermuxLayer.guestPrefixDir(root)
+            File(prefix, "bin").mkdirs()
+            File(prefix, "bin/apt").writeText("x")
+            File(prefix, "etc/apt").mkdirs()
+            File(prefix, "etc/apt/sources.list").writeText("x")
+            // Yalnız /system var (bazı imajlarda /apex yerine linker /system'de).
+            val args = TermuxLayer.prootBindArgs(root) { it == "/system" }
+            assertEquals(listOf("-b", "/system:/system"), args)
+        } finally {
+            root.deleteRecursively()
+        }
+    }
 }

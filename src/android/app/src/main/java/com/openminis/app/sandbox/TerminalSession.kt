@@ -455,6 +455,12 @@ class TerminalSession(private val context: Context) {
         cmd.add("-b"); cmd.add("/sys")
         cmd.add("-w"); cmd.add("/root")
 
+        // [37099b] Termux katmanı: bionic yükleyicisi konukta görünmüyor.
+        // Bkz. TermuxLayer.prootBindArgs — tek kaynak, dört kurucu da aynı.
+        // Terminalden `apt` çalışmaması, ajanın kabuğundan çalışmamasıyla
+        // aynı hata sınıfı: aynı sandbox, iki farklı davranış.
+        cmd.addAll(com.openminis.app.sandbox.TermuxLayer.prootBindArgs(rootfsManager.rootfsDir))
+
         // [T-android-session-private-mounts] The same mount set the agent's
         // shell for [sessionId] gets (SessionMounts is the single builder), so
         // a file saved here is the file the agent sees. This used to replay
