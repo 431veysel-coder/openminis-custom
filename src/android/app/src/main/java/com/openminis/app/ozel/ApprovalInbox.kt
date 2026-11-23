@@ -48,6 +48,15 @@ class ApprovalInbox(
 
     private val waiters = ConcurrentHashMap<String, CompletableDeferred<Answer>>()
 
+    /**
+     * [37099] Kaç çağrı aynı kimliği bekliyor.
+     *
+     * Neden gerekli: aynı kimlikli iki `ask` tek `Deferred` paylaşır. İlk
+     * çağıran `finally`'de kaydı silerse, hâlâ bekleyen ikinci çağrının
+     * cevabı hiçbir yere ulaşmaz. Kart ancak son bekleyen çıkarken kalkar.
+     */
+    private val joinCount = ConcurrentHashMap<String, Int>()
+
     private val _pending = MutableStateFlow<List<ApprovalRequest>>(emptyList())
 
     /** Arayüzün çizdiği kartlar; kuyruk sırası korunur. */
@@ -68,14 +77,39 @@ class ApprovalInbox(
      * dinlemez, ve "neden hiçbir şey olmadı" sorusu doğar.
      */
     suspend fun ask(request: ApprovalRequest): Answer? {
-        val def = CompletableDeferred<Answer>()
-        waiters[request.id] = def
-        _pending.value = (_pending.value.filterNot { it.id == request.id } + request)
+        // [37099] GERÇEK HATA: burada `waiters[id] = CompletableDeferred()`
+        // yazıyordu, yani aynı kimlikle ikinci bir `ask` birincinin
+        // `Deferred`'ını **eziyordu**. Birinci çağıran artık kimsenin
+        // tamamlamadığı bir deferred'ı bekliyordu: `timeoutMs = 0` ise sonsuza
+        // kadar asılı kalıyor (süresiz bekleme testlerde ve elle onayda
+        // kullanılıyor), sonluysa zaman aşımına kadar boşuna bekliyordu.
+        //
+        // Sınıfın kendi belgesi bunu zaten doğru yazıyordu ("bekleyen ilk
+        // çağrı aynı Deferred'ı beklemeye devam eder") — kod belgeyi
+        // uygulamıyordu. Test yakaladı: `ayni kimlikli kart kuyrukta birlesir`
+        // CI'da kırmızı. Yerelde JVM olmadığı için ancak CI görebildi.
+        //
+        // Düzeltme: var olan deferred PAYLAŞILIR, sayılır ve son bekleyen
+        // çıkarken temizlenir. Sayaç şart — ilk çağıran `finally`'de kaydı
+        // silseydi, hâlâ bekleyen ikincinin cevabı kaybolurdu.
+        val shared = CompletableDeferred<Answer>()
+        val def = waiters.putIfAbsent(request.id, shared) ?: shared
+        val isOwner = def === shared
+        joinCount.merge(request.id, 1, Int::plus)
+        if (isOwner) {
+            _pending.value = (_pending.value.filterNot { it.id == request.id } + request)
+        }
         try {
             return if (timeoutMs <= 0L) def.await() else withTimeoutOrNull(timeoutMs) { def.await() }
         } finally {
-            waiters.remove(request.id)
-            _pending.value = _pending.value.filterNot { it.id == request.id }
+            // Kart yalnız SON bekleyen çıkarken kalkar; biri zaman aşımına
+            // uğradı diye diğerinin kartını ekrandan düşürmek yanlış olurdu.
+            val left = joinCount.merge(request.id, -1, Int::plus) ?: 0
+            if (left <= 0) {
+                joinCount.remove(request.id, left)
+                waiters.remove(request.id, def)
+                _pending.value = _pending.value.filterNot { it.id == request.id }
+            }
         }
     }
 
@@ -105,6 +139,11 @@ class ApprovalInbox(
     fun clear(): Int {
         val n = waiters.size
         waiters.clear()
+        // [37099] Sayaç da sıfırlanmalı: temizlikten sonra bir `ask`
+        // `joinCount`'ta 1 görüp kartı ekrana koymayabilirdi (sayaç 0'a
+        // düşünce kartı kaldıran mantık, hiç eklenmemiş kartı aramaya devam
+        // ederdi).
+        joinCount.clear()
         _pending.value = emptyList()
         return n
     }
