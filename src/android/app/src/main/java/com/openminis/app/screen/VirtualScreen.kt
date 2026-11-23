@@ -90,6 +90,15 @@ object VirtualScreen {
         val focus: Pane? = Pane.BROWSER,
         /** Son yakalama zamanı (ms, monoton). 0 = hiç yakalanmadı. */
         val lastCaptureAt: Long = 0L,
+        /**
+         * [37099i · §5.3] **Bölme başına** son yakalama.
+         *
+         * Belge "aynı bölme 250 ms'de bir yakalanmaz" diyordu, kod yalnız
+         * global bir damga tutuyordu. Fark gerçek: üç bölme açıkken herhangi
+         * biri yakalanınca diğer ikisi de bütçesini harcamış sayılıyordu —
+         * yani hızlı dönen bir sekme, iki durgun sekmeyi aç bırakıyordu.
+         */
+        val lastCaptureByPane: Map<Pane, Long> = emptyMap(),
     ) {
         fun pane(p: Pane): PaneState? = panes.firstOrNull { it.pane == p }
         fun visiblePanes(): List<PaneState> = panes.filter { it.visible }
@@ -150,13 +159,29 @@ object VirtualScreen {
      * GPU işi; saniyede bir yakalamak pili yakar, hiç yakalamamak ajanı kör
      * bırakır.
      */
+    /**
+     * [37099i] Yakalanması gereken bölmeler — bütçe **bölme başına**.
+     *
+     * Global damga korunuyor: `lastCaptureAt == 0` ise hiç yakalama yapılmadı
+     * demektir ve ilk turda bütün görünür bölmeler yakalanır (soğuk açılış).
+     * Sonrasında her bölme kendi 250 ms bütçesini taşır.
+     */
     fun needsCapture(s: State, now: Long, minGapMs: Long = 250L): List<Pane> {
         if (s.visiblePanes().isEmpty()) return emptyList()
-        if (s.lastCaptureAt != 0L && now - s.lastCaptureAt < minGapMs) return emptyList()
-        return s.visiblePanes().map { it.pane }
+        return s.visiblePanes().map { it.pane }.filter { pane ->
+            val last = s.lastCaptureByPane[pane] ?: 0L
+            last == 0L || now - last >= minGapMs
+        }
     }
 
-    fun markCaptured(s: State, now: Long): State = s.copy(lastCaptureAt = now)
+    fun markCaptured(s: State, now: Long, pane: Pane? = null): State {
+        val perPane = if (pane != null) s.lastCaptureByPane + (pane to now) else s.lastCaptureByPane
+        return s.copy(lastCaptureAt = now, lastCaptureByPane = perPane)
+    }
+
+    /** [37099i] Birden fazla bölmeyi tek geçişte işaretler. */
+    fun markCapturedAll(s: State, now: Long, panes: List<Pane>): State =
+        panes.fold(s) { acc, p -> markCaptured(acc, now, p) }
 
     // ── A / B eylem ayrımı ─────────────────────────────────────────────────
 

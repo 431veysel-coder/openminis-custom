@@ -185,4 +185,32 @@ class VirtualScreenTest {
         val back = VirtualScreen.decode(VirtualScreen.encode(empty))
         assertTrue(back.visiblePanes().isEmpty())
     }
+
+    @Test
+    fun `bolme basina yakalama butcesi ayridir`() {
+        // [37099i] Ölçülen hata: global damga yüzünden hızlı dönen bir bölme,
+        // iki durgun bölmeyi 250 ms boyunca aç bırakıyordu.
+        var s = VirtualScreen.State()
+        val t0 = 1_000L
+        s = VirtualScreen.markCapturedAll(s, t0, VirtualScreen.needsCapture(s, t0))
+        assertEquals(3, s.lastCaptureByPane.size)
+
+        // 100 ms sonra browser'ın süresi dolmadı, hiçbiri istenmez.
+        assertEquals(0, VirtualScreen.needsCapture(s, t0 + 100).size)
+
+        // 300 ms sonra hepsi istenir.
+        assertEquals(3, VirtualScreen.needsCapture(s, t0 + 300).size)
+    }
+
+    @Test
+    fun `tek bolme yakalaninca digerleri ac kalmaz`() {
+        var s = VirtualScreen.State()
+        val t0 = 5_000L
+        s = VirtualScreen.markCapturedAll(s, t0, listOf(VirtualScreen.Pane.BROWSER))
+        // Browser yeni yakalandı; terminal ve not henüz hiç yakalanmadı → istenir.
+        val wanted = VirtualScreen.needsCapture(s, t0 + 10)
+        assertTrue("durgun bölmeler istenmeli", wanted.contains(VirtualScreen.Pane.TERMINAL))
+        assertTrue(wanted.contains(VirtualScreen.Pane.NOTES))
+        assertTrue("az önce yakalanan istenmemeli", !wanted.contains(VirtualScreen.Pane.BROWSER))
+    }
 }

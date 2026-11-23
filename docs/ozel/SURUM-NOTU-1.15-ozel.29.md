@@ -1,4 +1,4 @@
-# SÜRÜM NOTU — 1.15-ozel.28 / 37109
+# SÜRÜM NOTU — 1.15-ozel.29 / 37110
 
 > **Derlenmedi.** Kullanıcı talebiyle bu turda APK üretilmedi; kaynak dalda
 > hazır. Derleme yapılmadan önce CI'daki `compile` + `unit test` adımları
@@ -156,3 +156,15 @@ paket yokken görünür.
 **§6.2 "kalanı çevir" zaten vardı:** `ThinkingTranslator` önbellekten kaldığı
 yerden devam ediyor (`done` sayacı, `complete` bayrağı). Ek düğme icat
 etmedim — olmayan bir eksiği kapatmak, boş bir düğme eklemek olurdu.
+
+## .29 ek — sanal ekran
+
+**§5.3 bölme başına yakalama bütçesi (kapandı).** Belge "aynı bölme 250 ms'de
+bir yakalanmaz" diyordu; kod tek **global** damga tutuyordu. Fark gerçek: üç
+bölme açıkken biri yakalanınca diğer ikisi de bütçesini harcamış sayılıyor,
+hızlı dönen bir sekme iki durgun sekmeyi aç bırakıyordu. `State.lastCaptureByPane`
++ `markCapturedAll`. Soğuk açılış korunuyor: hiç yakalanmamış bölme istenir.
+
+**Yapılmayan (§5.1, §5.2):** tek tuval çizimi ve `screen` aracı (open/click/
+type/scroll). İkisi de gerçek bir yüzey mimarisi kararı ve cihazda yakalama
+kanıtı istiyor; bu turda kapatılmış gibi göstermiyorum.
