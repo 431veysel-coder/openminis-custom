@@ -344,14 +344,20 @@ class CouncilLoop(
                             RawReply("", 0, e.message ?: "runner hatası")
                         }
                         val position = if (reply.failure.isNotBlank()) {
-                            // [37099e · §1.1] Gerekçe sınıflandırılarak yazılır:
-                            // "kota", "kimlik reddedildi", "JSON bozuk" ayrı
-                            // düzeltmeler ister; ham metin bu ayrımı taşımıyordu.
+                            // [37099e · §1.1] gerekçe **ham** saklanır; sınıf
+                            // etiketi sunumda eklenir (`MemberFailure.line`).
+                            //
+                            // Neden böyle: ilk denemede etiketi buraya yazdım
+                            // ("kota: rate limited") ve mevcut bir testi
+                            // kırdım — haklı olarak. Kayıt, sağlayıcının
+                            // söylediğini taşımalı; yorum eklemek onu
+                            // sonradan yeniden sınıflandırmayı imkânsız kılar
+                            // (etiket metnin içine gömülür).
                             Position(
                                 member = member.name,
                                 claim = "",
                                 absent = true,
-                                absentWhy = MemberFailure.line(reply.failure),
+                                absentWhy = reply.failure,
                             )
                         } else {
                             PositionParser.parse(reply.text, member.name)
@@ -416,7 +422,8 @@ class CouncilLoop(
                     } else {
                         lastPositions.forEach { p ->
                             val why = p.absentWhy.ifBlank { "gerekçe bildirilmedi" }
-                            appendLine("- ${p.member}: $why")
+                            // Sunumda sınıf etiketi eklenir; kayıt ham kaldı.
+                            appendLine("- ${p.member}: ${MemberFailure.line(why)}")
                             // [37099e · §1.1] Sınıf → yapılacak. Kullanıcı
                             // "neden çalışmadı" sorusunun cevabını buradan alsın.
                             val advice = MemberFailure.classify(why).advice
