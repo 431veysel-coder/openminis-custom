@@ -1,11 +1,11 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Testler — 6631 birim testi
+# Testler — 6648 birim testi
 
 | | |
 |---|---|
-| Birim test dosyası | 770 |
-| Birim `@Test` | 6631 |
+| Birim test dosyası | 772 |
+| Birim `@Test` | 6648 |
 | Cihaz testi dosyası | 12 |
 | Cihaz `@Test` | 124 |
 
@@ -19,7 +19,7 @@
 | `sandbox` | 42 |
 | `speech` | 31 |
 | `service` | 23 |
-| `ozel` | 21 |
+| `ozel` | 22 |
 | `scheduled` | 15 |
 | `auth` | 14 |
 | `config` | 14 |

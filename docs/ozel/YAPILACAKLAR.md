@@ -1,6 +1,7 @@
 # YAPILACAKLAR — geniş kapsamlı, kategori kategori
 
-> **Durum:** 2026-11-23 · sürüm `1.15-ozel.22` (derlenmedi, yalnız kaynak)
+> **Durum:** 2026-11-25 · sürüm `1.15-ozel.35` / 37116 (derlenmedi, yalnız kaynak)
+> Tur planı: [`PLAN-35-45.md`](PLAN-35-45.md)
 > Bu dosya **plan**dır, ölçüm değil. Ölçüm için `HARITA.md` ve `harita/`.
 > Her madde: ne · neden · nerede · nasıl anlaşılır (kabul ölçütü).
 > Sıra: **P0** = kullanıcıyı bugün engelliyor, **P1** = sürüm hedefi,
@@ -26,6 +27,8 @@
 | K12 | Görev odası eylemleri (ekle/ata/düşür) | `RunTasksSection` |
 | K13 | Dalga bilgisi (5 üye / 2 dalga) | `LiveRun.waveSize` |
 | K14 | İzin kullanım sayacı ("7 kez kullanıldı") | `GrantCatalog.usageCounts` |
+| K15 | Onay modu: sohbet bazlı kart yerine uygulama geneli izin (`SETTINGS_ONLY` varsayılan) | `policy/ApprovalMode.kt` + `ApprovalModeTest` (7) |
+| K16 | Sesli onay uyarısı (TTS + titreşim + bildirim + tekrar) | `ozel/ApprovalVoice*.kt` + `ApprovalVoiceTextTest` (10) |
 
 ---
 
@@ -113,13 +116,22 @@
 
 ## 3 · İzinler ve onay (P1)
 
-### 3.1 Onay kartı yorgunluğu — kalan kısım
+### 3.1 ~~Onay kartı yorgunluğu — kalan kısım~~ ✅ .35
+
+> `.35`te mod eklendi: `SETTINGS_ONLY` varsayılan, kart yalnız verilemeyen
+> kurallar için. "Karttan kural aç" bağlantısı yerine tek karar yeri (Ayarlar).
+> Eski metin aşağıda kayıt olarak duruyor.
 - **Ne:** K7 toplu izni getirdi. Kalan: kart **hangi kural** için çıktığını
   kısa bir "bu kuralı hep aç" bağlantısıyla göstermiyor.
 - **Kabul:** Kartta "bu kuralı Ayarlar'da aç" satırı; tıklayınca ilgili
   kategoriye gider.
 
-### 3.2 Kapsam yükseltme (oturum → proje → cihaz)
+### 3.2 ~~Kapsam yükseltme (oturum → proje → cihaz)~~ ✅ .35
+
+> `.35`te `SETTINGS_ONLY` zaten `Global` kapsam yazıyor; kullanıcı kart görmeden
+> uygulama geneli izne sahip. Eski metin kayıt olarak duruyor.
+
+### 3.2b Kapsam yükseltme (eski kayıt)
 - **Ne:** `ApprovalScope` üç kapsamı biliyor; kart yalnız dar olanı öneriyor.
 - **Neden:** Güvenlik kuralı gereği doğru; ama kullanıcı "bu projede hep"i
   seçemiyor.

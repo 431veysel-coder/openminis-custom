@@ -8,6 +8,7 @@ import com.openminis.app.policy.Decision
 import com.openminis.app.policy.GateDecision
 import com.openminis.app.policy.GrantBook
 import com.openminis.app.policy.RiskClassifier
+import com.openminis.app.policy.RiskRules
 import com.openminis.app.policy.RiskReason
 import com.openminis.app.policy.RiskVerdict
 import com.openminis.app.policy.Reach
@@ -113,11 +114,13 @@ object PolicyGate {
         if (verdict.level < ApprovalPolicy.ASK_FROM) return GateDecision.Silent(verdict, null)
 
         val book = bookFor(ctx, sessionId, folderId)
-        var decision = ApprovalPolicy.decide(verdict, book, System.currentTimeMillis())
+        val now = System.currentTimeMillis()
+        val mode = ApprovalSettings.mode(ctx)
+        val decision = ApprovalPolicy.decide(verdict, book, now)
         if (decision is GateDecision.Silent) {
             // A live grant answered it: count the use so the cap can trip.
-            (decision as GateDecision.Silent).grant?.let { g ->
-                book.consume(g, System.currentTimeMillis())
+            decision.grant?.let { g ->
+                book.consume(g, now)
                 persist(ctx, book)
             }
             return decision
@@ -125,6 +128,37 @@ object PolicyGate {
         if (decision is GateDecision.Deny) return decision
 
         val request = (decision as GateDecision.Ask).request
+
+        // [37116] Onay modu: "sohbette sorma, bir kez Ayarlar'da karar ver."
+        //
+        // Mod `ASK_EACH` ise bu blok hiç çalışmaz. Diğer iki modda, çağrı
+        // başına değil **kural** başına bir kez karar verilir: kural
+        // `autoGrants` diyorsa uygulama geneli (`Global`) izin yazılır ve iş
+        // sessiz geçer. Sonraki bütün sohbetlerde aynı kural yine sessizdir,
+        // çünkü kayıt diskte.
+        //
+        // Neden burada "tembel" yazılıyor da Ayarlar'da toplu yazılmıyor:
+        // kayıtların ömrü var (`ApprovalPolicy.ttlMs`) ve sonradan eklenen bir
+        // kural eski bir toplu yazımın içinde olmaz. Tembel yazım iki durumu
+        // da kendiliğinden onarır; "süresi bitti, yine soruyor" hatası doğmaz.
+        //
+        // `deny:` sınıfı buradan **geçemez**: `autoGrants` onları her modda
+        // `false` döner, ayrıca `ApprovalPolicy.decide` zaten `Deny` üretip
+        // yukarıda döndü.
+        val rule = RiskRules.byId(verdict.ruleId)
+        if (rule != null && mode.autoGrants(rule)) {
+            val grant = ApprovalPolicy.grantFor(
+                request = request,
+                scope = ApprovalScope.Global,
+                decision = Decision.ALLOW,
+                nowMs = now,
+                note = "Ayarlar › İzinler · mod: ${mode.key}",
+            )
+            book.put(grant)
+            book.consume(grant, now)
+            persist(ctx, book)
+            return GateDecision.Silent(verdict, grant)
+        }
         val answer = ask(request)
             ?: return GateDecision.Deny(
                 verdict.ruleId,

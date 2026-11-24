@@ -51,6 +51,12 @@ fun PermissionGrantsScreen(onBack: () -> Unit) {
     val uses = remember(byScope) { GrantCatalog.usageCounts(byScope, now) }
     val categories = remember { GrantCatalog.categories() }
 
+    // [37116] Onay modu: "sohbette sorma, bir kez burada karar ver".
+    // State diskten okunur ve her değişimde yeniden yazılır — ikinci bir
+    // kopya tutmak (bellek + dosya) bayat değer üretir.
+    var mode by remember { mutableStateOf(com.openminis.app.ozel.ApprovalSettings.mode(context)) }
+    var voice by remember { mutableStateOf(com.openminis.app.ozel.ApprovalSettings.voice(context)) }
+
     // [37099c] Entegrasyonlar: android-a11y-cli + android-shizuku-cli.
     // Bunlar onay defterine değil `OffloadPermissionManager`'a yazılır —
     // ayrı bir kapı (offload IPC), ayrı bir depo. İkisinin varsayılanı
@@ -91,6 +97,112 @@ fun PermissionGrantsScreen(onBack: () -> Unit) {
         title = stringResource(R.string.permission_grants_title),
         onBack = onBack,
     ) {
+        // [37116] Onay modu — kartın ne zaman çıkacağının tek kararı.
+        SettingsSection(
+            header = stringResource(R.string.approval_mode_header),
+            footer = stringResource(R.string.approval_mode_footer),
+        ) {
+            com.openminis.app.policy.ApprovalMode.displayOrder.forEachIndexed { index, m ->
+                SettingsChoiceRow(
+                    title = stringResource(
+                        when (m) {
+                            com.openminis.app.policy.ApprovalMode.SETTINGS_ONLY -> R.string.approval_mode_settings_only
+                            com.openminis.app.policy.ApprovalMode.ALLOW_ALL -> R.string.approval_mode_allow_all
+                            com.openminis.app.policy.ApprovalMode.ASK_EACH -> R.string.approval_mode_ask_each
+                        },
+                    ),
+                    selected = mode == m,
+                    onSelect = {
+                        mode = m
+                        com.openminis.app.ozel.ApprovalSettings.setMode(context, m)
+                    },
+                    showDivider = index != com.openminis.app.policy.ApprovalMode.displayOrder.lastIndex,
+                )
+            }
+        }
+
+        // [37116] Sesli uyarı — "duyamıyorum" şikâyetinin doğrudan cevabı.
+        SettingsSection(
+            header = stringResource(R.string.approval_voice_header),
+            footer = stringResource(R.string.approval_voice_footer),
+        ) {
+            SettingsSwitchRow(
+                title = stringResource(R.string.approval_voice_enabled),
+                subtitle = stringResource(
+                    when (voice.mode) {
+                        com.openminis.app.ozel.VoiceMode.OFF -> R.string.approval_voice_state_off
+                        com.openminis.app.ozel.VoiceMode.ONCE -> R.string.approval_voice_state_once
+                        com.openminis.app.ozel.VoiceMode.REPEATING -> R.string.approval_voice_state_repeating
+                    },
+                    voice.repeatSeconds,
+                ),
+                checked = voice.mode != com.openminis.app.ozel.VoiceMode.OFF,
+                onCheckedChange = { on ->
+                    val next = voice.copy(
+                        mode = if (on) com.openminis.app.ozel.VoiceMode.REPEATING
+                        else com.openminis.app.ozel.VoiceMode.OFF,
+                    )
+                    voice = next
+                    com.openminis.app.ozel.ApprovalSettings.setVoice(context, next)
+                },
+            )
+            SettingsSwitchRow(
+                title = stringResource(R.string.approval_voice_repeat_once),
+                subtitle = stringResource(R.string.approval_voice_repeat_once_sub),
+                checked = voice.mode == com.openminis.app.ozel.VoiceMode.ONCE,
+                enabled = voice.mode != com.openminis.app.ozel.VoiceMode.OFF,
+                onCheckedChange = { once ->
+                    val next = voice.copy(
+                        mode = if (once) com.openminis.app.ozel.VoiceMode.ONCE
+                        else com.openminis.app.ozel.VoiceMode.REPEATING,
+                    )
+                    voice = next
+                    com.openminis.app.ozel.ApprovalSettings.setVoice(context, next)
+                },
+            )
+            SettingsSwitchRow(
+                title = stringResource(R.string.approval_voice_speak_operation),
+                subtitle = stringResource(R.string.approval_voice_speak_operation_sub),
+                checked = voice.speakOperation,
+                onCheckedChange = { on ->
+                    val next = voice.copy(speakOperation = on)
+                    voice = next
+                    com.openminis.app.ozel.ApprovalSettings.setVoice(context, next)
+                },
+            )
+            SettingsSwitchRow(
+                title = stringResource(R.string.approval_voice_vibrate),
+                subtitle = stringResource(R.string.approval_voice_vibrate_sub),
+                checked = voice.vibrate,
+                onCheckedChange = { on ->
+                    val next = voice.copy(vibrate = on)
+                    voice = next
+                    com.openminis.app.ozel.ApprovalSettings.setVoice(context, next)
+                },
+            )
+            // Tekrar aralığı: serbest metin değil, dört hazır değer. Serbest
+            // sayı girişi 1 saniyeye kadar inip TTS motorunu kekeme yapar.
+            com.openminis.app.ozel.VoiceSettings.REPEAT_CHOICES.forEach { seconds ->
+                SettingsChoiceRow(
+                    title = stringResource(R.string.approval_voice_repeat_every, seconds),
+                    selected = voice.repeatSeconds == seconds,
+                    onSelect = {
+                        val next = voice.copy(repeatSeconds = seconds)
+                        voice = next
+                        com.openminis.app.ozel.ApprovalSettings.setVoice(context, next)
+                    },
+                    showDivider = seconds != com.openminis.app.ozel.VoiceSettings.REPEAT_CHOICES.last(),
+                )
+            }
+            SettingsRow(
+                title = stringResource(R.string.approval_voice_try),
+                subtitle = stringResource(R.string.approval_voice_try_sub),
+                icon = Icons.Outlined.Lock,
+                onClick = { com.openminis.app.ozel.ApprovalVoice.speakSample(context) },
+                showDivider = false,
+            )
+        }
+
         SettingsSection(
             header = stringResource(R.string.permission_grants_all_header),
             footer = stringResource(R.string.permission_grants_footer),

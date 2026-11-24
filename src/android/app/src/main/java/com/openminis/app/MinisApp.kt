@@ -957,6 +957,12 @@ class MinisApp : Application(), ImageLoaderFactory {
         // away is posted as a notification, answerable from it (iOS parity).
         com.openminis.app.notification.UserAskNotifier.install(this)
 
+        // [37116] Sesli onay uyarısı: kart beklerken telefon söyler, titrer ve
+        // bildirim bırakır. Tek kanca — `PolicyGate.pending` dinleniyor, yani
+        // yeni bir onay çağrı yeri eklendiğinde burada değişiklik gerekmez.
+        // Kullanıcının şikâyeti: "onay istiyorsun ben duyamıyorum".
+        com.openminis.app.ozel.ApprovalVoice.start(this)
+
         // Track foreground state via ActivityLifecycleCallbacks. Counting
         // started/stopped balances out around configuration changes (the
         // Activity is briefly destroyed-then-created, so the count would
