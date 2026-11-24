@@ -160,10 +160,14 @@ object GrantCatalog {
                 count = list.size,
                 // En yenisi: kullanıcının son gerekçesi hâlâ geçerli olandır.
                 lastNote = list.maxByOrNull { it.grantedAtMs }?.note.orEmpty(),
-                scope = when (val s = list.first().scope) {
-                    is ApprovalScope.Session -> "oturum"
-                    is ApprovalScope.Project -> "proje"
-                    else -> "cihaz"
+                // [37099l] Kapsam **sabit bir anahtar** olarak döner, yerel
+                // metin değil: burası saf çekirdek, dili bilmez. Önce burada
+                // "oturum"/"proje"/"cihaz" yazıyordu → İngilizce arayüzde
+                // Türkçe kelime çıkıyordu.
+                scope = when (list.first().scope) {
+                    is ApprovalScope.Session -> "session"
+                    is ApprovalScope.Project -> "project"
+                    else -> "device"
                 },
             )
         }

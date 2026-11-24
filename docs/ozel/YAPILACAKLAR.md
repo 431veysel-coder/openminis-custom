@@ -291,6 +291,21 @@ isterse**.
 4. **`.26`–`.28`** görünür özellikler; altyapı sağlamken yapılmalı, yoksa
    hata ayıklama iki kat zorlaşır.
 
+### `.31` denetim turunda bulunanlar (kayıt)
+
+| Ne | Sınıf | Durum |
+|---|---|---|
+| `AgentCallback(budget = …)` — alan `AgentCallback`'ta yoktu (`.27`'den beri) | **derleme hatası** | düzeltildi + kapı 3 yerden güçlendirildi |
+| `needsCapture` / `markCaptured` üretimde **çağrılmıyor** (yakalama hattı yok) | ölü kural | belgelendi "latent"; `olu-kod.py` artık listeliyor |
+| `queueSummaryOf` Türkçe parça, İngilizce cümle içinde | dil karışması | İngilizceye çevrildi (metin modele gidiyor) |
+| `denialRows` kapsam metni Kotlin'de sabit "oturum/proje/cihaz" | i18n | saf çekirdek anahtar (`session`/`project`/`device`), çeviri arayüzde |
+| `.22`–`.30` sürüm notları **hiç oluşmadı** (tek dosya `mv` ile taşındı) | belge kaybı | `SURUM-GECMISI-1.15-ozel.18-31.md` commit geçmişinden yeniden kuruldu |
+| `olu-kod.py` ilk sürümü 300 sn'de kesildi (N ad × N dosya) | araç hatası | tek geçişe indirildi (0.7–1.9 s) |
+
+**Yeni kapı: `olu-kod`** (bilgi, zorunlu değil) — yalnız son commit'te eklenen
+fonksiyonlara bakar. Tüm ağaçta **250 devralınmış** çağrısız fonksiyon var;
+hepsini kırmızı yapmak kapıyı susturur, o yüzden kapsam dar tutuldu.
+
 ### Bu turda (`.22`) gerçekten kapananlar
 
 `.22`'ye `1.1`, `1.2`, `3.4`, `7.2`'nin **çekirdeği** de girdi (derleme yok):

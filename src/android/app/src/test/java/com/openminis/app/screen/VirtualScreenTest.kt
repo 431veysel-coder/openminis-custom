@@ -192,7 +192,7 @@ class VirtualScreenTest {
         // iki durgun bölmeyi 250 ms boyunca aç bırakıyordu.
         var s = VirtualScreen.State()
         val t0 = 1_000L
-        s = VirtualScreen.markCapturedAll(s, t0, VirtualScreen.needsCapture(s, t0))
+        VirtualScreen.needsCapture(s, t0).forEach { s = VirtualScreen.markCaptured(s, t0, it) }
         assertEquals(3, s.lastCaptureByPane.size)
 
         // 100 ms sonra browser'ın süresi dolmadı, hiçbiri istenmez.
@@ -206,7 +206,7 @@ class VirtualScreenTest {
     fun `tek bolme yakalaninca digerleri ac kalmaz`() {
         var s = VirtualScreen.State()
         val t0 = 5_000L
-        s = VirtualScreen.markCapturedAll(s, t0, listOf(VirtualScreen.Pane.BROWSER))
+        s = VirtualScreen.markCaptured(s, t0, VirtualScreen.Pane.BROWSER)
         // Browser yeni yakalandı; terminal ve not henüz hiç yakalanmadı → istenir.
         val wanted = VirtualScreen.needsCapture(s, t0 + 10)
         assertTrue("durgun bölmeler istenmeli", wanted.contains(VirtualScreen.Pane.TERMINAL))

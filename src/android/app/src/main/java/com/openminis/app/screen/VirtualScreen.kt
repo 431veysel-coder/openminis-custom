@@ -162,6 +162,13 @@ object VirtualScreen {
     /**
      * [37099i] Yakalanması gereken bölmeler — bütçe **bölme başına**.
      *
+     * ## Durum: kural hazır, çağıran yok
+     *
+     * Bu fonksiyonun bugün **üretimde çağıranı yok**: sanal ekranın yakalama
+     * hattı (§5.1 tek tuval) henüz yazılmadı. Kural, o hat geldiğinde doğru
+     * davranması için burada ve testleri geçiyor. `scripts/ozel/olu-kod.py`
+     * bunu listeler — "kapı yeşil" demek "bağlı" demek değil.
+     *
      * Global damga korunuyor: `lastCaptureAt == 0` ise hiç yakalama yapılmadı
      * demektir ve ilk turda bütün görünür bölmeler yakalanır (soğuk açılış).
      * Sonrasında her bölme kendi 250 ms bütçesini taşır.
@@ -179,9 +186,6 @@ object VirtualScreen {
         return s.copy(lastCaptureAt = now, lastCaptureByPane = perPane)
     }
 
-    /** [37099i] Birden fazla bölmeyi tek geçişte işaretler. */
-    fun markCapturedAll(s: State, now: Long, panes: List<Pane>): State =
-        panes.fold(s) { acc, p -> markCaptured(acc, now, p) }
 
     // ── A / B eylem ayrımı ─────────────────────────────────────────────────
 

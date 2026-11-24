@@ -20,15 +20,15 @@ class QueueSummaryTest {
 
     @Test
     fun `yalniz sifir olmayan kalemler yazilir`() {
-        assertEquals("2 çalışıyor", AgentJobRegistry.queueSummaryOf(2, 0, 0))
-        assertEquals("3 sırada", AgentJobRegistry.queueSummaryOf(0, 0, 3))
-        assertEquals("1 çalışıyor, 2 sırada", AgentJobRegistry.queueSummaryOf(1, 0, 2))
+        assertEquals("2 running", AgentJobRegistry.queueSummaryOf(2, 0, 0))
+        assertEquals("3 queued", AgentJobRegistry.queueSummaryOf(0, 0, 3))
+        assertEquals("1 running, 2 queued", AgentJobRegistry.queueSummaryOf(1, 0, 2))
     }
 
     @Test
     fun `uc kalem de doluysa sira korunur`() {
         assertEquals(
-            "2 çalışıyor, 1 başlıyor, 3 sırada",
+            "2 running, 1 starting, 3 queued",
             AgentJobRegistry.queueSummaryOf(2, 1, 3),
         )
     }

@@ -1,4 +1,4 @@
-# SÜRÜM NOTU — 1.15-ozel.31 / 37112
+# SÜRÜM NOTU — 1.15-ozel.32 / 37113
 
 > **Derlenmedi.** Kullanıcı talebiyle bu turda APK üretilmedi; kaynak dalda
 > hazır. Derleme yapılmadan önce CI'daki `compile` + `unit test` adımları
@@ -176,7 +176,7 @@ Ekranda anlamsız bir tire, TalkBack'te de anlamsız bir etiket. Dördü de ger�
 metne çevrildi ("Üyeler arasında henüz soru yok", "Her görevin bir sahibi var",
 "Kanıt bekleyen görev yok", "Henüz devir yok") — iki dilde.
 
-**Kapanış özeti (`1.15-ozel.31 / 37112`):** `.22`'den bu yana on iki madde
+**Kapanış özeti (`1.15-ozel.32 / 37113`):** `.22`'den bu yana on iki madde
 kapandı; açık kalanlar `YAPILACAKLAR.md` §10'da gerekçeleriyle duruyor.
 Derleme yapılmadı — yayında `.21`, kaynakta `.30`.
 
@@ -228,3 +228,24 @@ duruyordu, (b) dosya değişmemiş sayılıyordu. Üç düzeltme yapıldı:
 
 **Ders:** kapı "yeşil" derken kapsamı dar olabilir. Kapıyı yazdıktan sonra
 **bilerek hata sokup** yakaladığını görmek zorunlu — bu turda üç kez yapıldı.
+
+## .32 — genel denetim turu
+
+**Bulunan 4 kusur (dördü benim):**
+1. `queueSummaryOf` İngilizce cümlenin ortasına Türkçe parça koyuyordu
+   (`siblingSummary` modele gider). İngilizceye çevrildi.
+2. `denialRows` kapsamı Kotlin'de sabit "oturum/proje/cihaz" yazıyordu →
+   İngilizce arayüzde Türkçe kelime. Saf çekirdek artık anahtar döndürüyor
+   (`session`/`project`/`device`), çeviri dizelerde.
+3. `markCapturedAll` ölü sarmalayıcı — silindi.
+4. `.22`–`.30` sürüm notları hiç oluşmadı (tek dosyayı `mv` ile taşıdım) →
+   `SURUM-GECMISI-1.15-ozel.18-31.md` commit geçmişinden kuruldu.
+
+**Yeni araç: `scripts/ozel/olu-kod.py`** + `kapi.py`'de `olu-kod` kapısı
+(bilgi, zorunlu değil, yalnız son commit). Ölçüm: tüm ağaçta **250**
+devralınmış çağrısız fonksiyon var; bu yüzden kapsam dar tutuldu — hepsini
+kırmızı yapmak kapıyı susturur.
+
+**Dürüst kayıt:** `needsCapture` / `markCaptured` bugün **üretimde
+çağrılmıyor**: sanal ekranın yakalama hattı (§5.1) yok. Kural doğru ve testleri
+geçiyor, ama `.29`'da "düzeltildi" demek fazla iyimserdi — **latent**.

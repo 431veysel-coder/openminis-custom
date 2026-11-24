@@ -909,10 +909,13 @@ object AgentJobRegistry {
      */
     fun queueSummaryOf(running: Int, pending: Int, queued: Int): String? {
         if (running + pending + queued == 0) return null
+        // İngilizce: bu metin **modele** gidiyor (`siblingSummary` bir araç
+        // sonucudur ve istemin geri kalanı İngilizce). Türkçe parça, İngilizce
+        // bir cümlenin ortasında kalıyordu.
         val parts = mutableListOf<String>()
-        if (running > 0) parts += "$running çalışıyor"
-        if (pending > 0) parts += "$pending başlıyor"
-        if (queued > 0) parts += "$queued sırada"
+        if (running > 0) parts += "$running running"
+        if (pending > 0) parts += "$pending starting"
+        if (queued > 0) parts += "$queued queued"
         return parts.joinToString(", ")
     }
 

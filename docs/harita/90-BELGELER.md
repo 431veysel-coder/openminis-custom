@@ -1,6 +1,6 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Belgeler — 71 dosya
+# Belgeler — 72 dosya
 
 | Belge | Başlık | İlk satır |
 |---|---|---|
@@ -20,10 +20,11 @@
 | `docs/ozel/SANAL-EKRAN.md` | SANAL EKRAN — ne mümkün, ne değil | <!-- ELLE YAZILDI: tasarım kararı. Ölçüm bloğu OTO ile tazelenir. --> |
 | `docs/ozel/SIRADAKI-SURUM.md` | SIRADAKİ SÜRÜM — `37098` / `1.15-ozel.17` · iş listesi | seferde yapılacak, iki ayrı bekleyen sürüm tutmak yanıltıcı. |
 | `docs/ozel/SOHBET-SAGLIK-GOSTERGESI.md` | Sohbet sağlık göstergesi — plan (37095) | Sohbet ekranında yanıt beklerken kullanıcının elinde tek bir işaret var: üç nokta. |
+| `docs/ozel/SURUM-GECMISI-1.15-ozel.18-31.md` | SÜRÜM GEÇMİŞİ — 1.15-ozel.18 → .31 | tek bir derlemede doğrulanacak; bu yüzden `compile` adımı hâlâ ilk kez |
 | `docs/ozel/SURUM-NOTU-1.15-ozel.15.md` | SURUM-NOTU-1.15-ozel.15.md | """Sürüm notu üreticisi — 1.15-ozel.15 için. |
 | `docs/ozel/SURUM-NOTU-1.15-ozel.16.md` | SURUM-NOTU-1.15-ozel.16.md | """Sürüm notu üreticisi — 1.15-ozel.16 için. |
 | `docs/ozel/SURUM-NOTU-1.15-ozel.17.md` | SURUM-NOTU-1.15-ozel.17.md | """Sürüm notu üreticisi — 1.15-ozel.17 için. |
-| `docs/ozel/SURUM-NOTU-1.15-ozel.31.md` | SÜRÜM NOTU — 1.15-ozel.31 / 37112 | değil**: üye üye `absentWhy` listeleniyor ve "bu bir sonuç değil, arıza |
+| `docs/ozel/SURUM-NOTU-1.15-ozel.32.md` | SÜRÜM NOTU — 1.15-ozel.32 / 37113 | değil**: üye üye `absentWhy` listeleniyor ve "bu bir sonuç değil, arıza |
 | `docs/ozel/TERMUX-APK-KARARI.md` | KARAR — Termux: katman mı, ayrı APK mı? | Soru (kullanıcı, 2026-11-22): *"Termux araç zincirleri bölümünde olmalı, tek |
 | `docs/ozel/TERMUX-ENTEGRASYONU.md` | TERMUX ENTEGRASYONU — tasarım, güvenlik, ön/arka yüz, etkiler | Bu belge bir niyet beyanı değil. Her bölüm ya **ölçülmüş** bir gerçeğe, ya |
 | `docs/ozel/YAPILACAKLAR.md` | YAPILACAKLAR — geniş kapsamlı, kategori kategori | hâlâ üye başına tek satır**. Sağlayıcı hatası, JSON bozukluğu, kota, model yok |

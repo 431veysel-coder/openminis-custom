@@ -197,7 +197,17 @@ fun PermissionGrantsScreen(onBack: () -> Unit) {
                         subtitle = buildString {
                             append(row.title)
                             append(" (")
-                            append(row.scope)
+                            // Saf çekirdek anahtar döndürür; yerelleştirme
+                            // burada: "session" → "oturum"/"session".
+                            append(
+                                stringResource(
+                                    when (row.scope) {
+                                        "session" -> R.string.permission_grants_scope_session
+                                        "project" -> R.string.permission_grants_scope_project
+                                        else -> R.string.permission_grants_scope_device
+                                    },
+                                ),
+                            )
                             append(")")
                             if (row.lastNote.isNotBlank()) {
                                 append("\n")

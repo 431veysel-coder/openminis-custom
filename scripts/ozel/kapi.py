@@ -54,6 +54,11 @@ GATES: dict[str, tuple[list[str], bool]] = {
     # kullanılmayan import); yanlış-pozitif üreten denetimler bilgi olarak
     # basılır, kapıyı kırmızı yapmaz.
     "kotlin": ([sys.executable, "scripts/ozel/kotlin-hizli.py"], True),
+    # [37099l] Ölü kod: yalnız **bu commit'te eklenen** fonksiyonlara bakar ve
+    # yalnız bilgi verir (zorunlu değil). Tüm ağaçta 250 devralınmış kayıt var;
+    # hepsini kırmızı yapmak kapıyı susturur. Amaç: "yazdım, bağlamadım"
+    # sınıfını (brief(), needsCapture) tur içinde görmek.
+    "olu-kod": ([sys.executable, "scripts/ozel/olu-kod.py", "--sadece-yeni"], False),
 }
 
 

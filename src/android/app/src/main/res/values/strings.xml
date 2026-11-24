@@ -878,6 +878,9 @@
     <string name="permission_grants_agent_level">Agent access: %1$s</string>
     <string name="permission_grants_denied_header">What you refused</string>
     <string name="permission_grants_denied_footer">A refusal is remembered; that is why the same question does not come back forever. Count shows how many times you said no.</string>
+    <string name="permission_grants_scope_session">session</string>
+    <string name="permission_grants_scope_project">project</string>
+    <string name="permission_grants_scope_device">device</string>
     <string name="permission_grants_deny_header">Never allowed (no card)</string>
     <string name="permission_grants_deny_footer">These are refused outright: there is no answer here that would be safe, so showing a card would only suggest there is. Listed so the refusal is never a mystery.</string>
     <string name="permission_grants_title">Permissions</string>

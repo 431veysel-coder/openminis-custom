@@ -166,7 +166,7 @@ class GrantCatalogTest {
         assertEquals(2, rows.first().count)
         // Son gerekçe geçerli olandır, ilk değil.
         assertEquals("hiçbir zaman", rows.first().lastNote)
-        assertEquals("oturum", rows.first { it.ruleId == "pkg:install" }.scope)
+        assertEquals("session", rows.first { it.ruleId == "pkg:install" }.scope)
     }
 
     @Test
