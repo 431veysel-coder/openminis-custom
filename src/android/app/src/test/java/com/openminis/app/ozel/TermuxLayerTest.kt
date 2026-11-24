@@ -298,4 +298,32 @@ class TermuxLayerTest {
             root.deleteRecursively()
         }
     }
+
+    @Test
+    fun `apt dizinleri termux kokunun altinda`() {
+        // [37099n] Ölçülen hata: `apt install` "Archives directory
+        // /data/data/com.termux/cache/apt/archives/partial is missing" ile
+        // düşüyordu. Yolun doğru yerde olduğu burada çivili: cache/,
+        // $PREFIX'in KARDEŞİ (files/ değil).
+        val root = File("/tmp/termux-apt-test")
+        val dirs = TermuxLayer.requiredAptDirs(root)
+        val paths = dirs.map { it.absolutePath }
+        assertTrue(paths.any { it.endsWith("com.termux/cache/apt/archives/partial") })
+        assertTrue(paths.any { it.endsWith("files/usr/var/lib/apt/lists/partial") })
+        assertTrue(paths.any { it.endsWith("files/usr/tmp") })
+        // files/cache YANLIŞ yol olurdu.
+        assertFalse(paths.any { it.contains("files/cache") })
+    }
+
+    @Test
+    fun `ensureAptDirs dizinleri acar ve ikinci cagrida bos doner`() {
+        val root = File("/tmp/termux-apt-test2").also { it.deleteRecursively(); it.mkdirs() }
+        try {
+            TermuxLayer.ensureAptDirs(root)
+            assertTrue(TermuxLayer.requiredAptDirs(root).all { it.isDirectory })
+            assertTrue("ikinci çağrı iş yapmamalı", TermuxLayer.ensureAptDirs(root).isEmpty())
+        } finally {
+            root.deleteRecursively()
+        }
+    }
 }

@@ -246,6 +246,46 @@ object TermuxLayer {
     fun guestHomeDir(rootfsDir: File): File = File(rootfsDir, GUEST_HOME.trimStart('/'))
 
     /**
+     * [37099n] `apt install` için gereken **dizinler** — ölçülen eksik.
+     *
+     * ## Ne bulundu (cihazda, .33 kurulu)
+     *
+     * `apt-get update` çalışıyordu (608 kB indi), `apt-get install jq` ise
+     * şu satırla düştü:
+     *
+     * ```
+     * E: Archives directory /data/data/com.termux/cache/apt/archives/partial is missing.
+     * ```
+     *
+     * Termux'un apt'i `Dir::Cache` olarak `$PREFIX/../cache` kullanıyor; bootstrap
+     * arşivinde bu dizin **yok** (gerçek Termux onu ilk açılışta kendisi kurar,
+     * bizim katmanımızda o adım yoktu). Dizinleri elle açınca kurulum geçti.
+     *
+     * ## Neden burada
+     *
+     * Dizin listesi bir **bilgi**dir (hangi yol), oluşturma ise IO. Liste burada
+     * durur ki kurulum adımı, onarım yolu ve test aynı listeyi kullansın —
+     * dört ayrı yerde PRoot argümanı yazıp birini unutma hatasının kardeşi.
+     */
+    fun requiredAptDirs(rootfsDir: File): List<File> {
+        val prefix = guestPrefixDir(rootfsDir)
+        // cache/, $PREFIX'in KARDEŞİ: /data/data/com.termux/files/cache değil,
+        // /data/data/com.termux/cache. Termux bunu `$PREFIX/../cache` diye kurar.
+        val termuxHome = prefix.parentFile?.parentFile ?: prefix
+        return listOf(
+            File(termuxHome, "cache/apt/archives/partial"),
+            File(prefix, "var/lib/apt/lists/partial"),
+            File(prefix, "tmp"),
+        )
+    }
+
+    /** Dizinleri açar; açılamayanları döner (boş liste = hepsi hazır). */
+    fun ensureAptDirs(rootfsDir: File): List<File> = requiredAptDirs(rootfsDir).filter { dir ->
+        val ready = dir.isDirectory && dir.canWrite()
+        !ready && !dir.mkdirs()
+    }
+
+    /**
      * [37098] Kök dosya sisteminin kurulum dizini adı — **tek kaynak**.
      *
      * Depoda bu ad 8 yerde elle yazılmıştı (`"alpine-rootfs"` string olarak).

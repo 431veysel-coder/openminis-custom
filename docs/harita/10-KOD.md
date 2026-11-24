@@ -1,6 +1,6 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Kod ağacı — 884 dosya, 318810 satır
+# Kod ağacı — 884 dosya, 318869 satır
 
 | Paket | Dosya | Satır |
 |---|---|---|
@@ -31,7 +31,7 @@
 | `quota/` | 6 | 4397 |
 | `remote/` | 1 | 97 |
 | `replay/` | 1 | 129 |
-| `sandbox/` | 61 | 24518 |
+| `sandbox/` | 61 | 24577 |
 | `scheduled/` | 15 | 3557 |
 | `screen/` | 3 | 530 |
 | `service/` | 15 | 6752 |

@@ -3,6 +3,7 @@ package com.openminis.app.sandbox
 import android.content.Context
 import android.system.Os
 import android.util.Log
+import com.openminis.app.logging.AppLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -193,6 +194,14 @@ object TermuxInstaller {
         val home = TermuxLayer.guestHomeDir(root)
         home.mkdirs()
         emit(Progress("home", title("home"), done = true, message = TermuxLayer.GUEST_HOME))
+
+        // 7b) [37099n] apt kendi dizinlerini bizim katmanda kurmuyor.
+        // Cihazda ölçüldü: `apt install` "Archives directory … is missing" ile
+        // düşüyordu; dizinleri açınca geçti.
+        val aptDirsMissing = TermuxLayer.ensureAptDirs(root)
+        if (aptDirsMissing.isNotEmpty()) {
+            AppLogger.info(TAG, "[termux] apt dizinleri açılamadı: ${aptDirsMissing.joinToString()}")
+        }
 
         // 8) sources — resmî mirror'a sabitle
         val sources = File(prefixDir, "etc/apt/sources.list")

@@ -76,8 +76,18 @@ object ExecutionCoordinator {
      * denemek daha ucuz ve hata metni doğru ("apt: not found").
      */
     private fun requiresFreshProcess(command: String): Boolean = runCatching {
-        TermuxLayer.isInstalled(RootfsManager.getInstance(appContext).rootfsDir) &&
-            TermuxLayer.needsNonRootIdentity(command)
+        val rootfs = RootfsManager.getInstance(appContext).rootfsDir
+        if (!TermuxLayer.isInstalled(rootfs) || !TermuxLayer.needsNonRootIdentity(command)) {
+            false
+        } else {
+            // [37099n] Var olan kurulumlarda da onar: katman .33'ten ÖNCE
+            // kurulduysa apt dizinleri yoktur ve `apt install` "Archives
+            // directory … is missing" ile düşer. Altıncı bir "kurulumda aç"
+            // yolu eklemek yerine komut yolunda tamamlıyoruz — mkdirs zaten
+            // varsa hiçbir şey yapmaz, maliyeti bir sistem çağrısı.
+            runCatching { TermuxLayer.ensureAptDirs(rootfs) }
+            true
+        }
     }.getOrDefault(false)
 
     private suspend fun executeFresh(
