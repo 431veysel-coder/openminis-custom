@@ -146,7 +146,7 @@ data class AgentJob(
     /**
      * [37099g · §4.1] Duvar saati bütçesi (dakika). 0 = bilinmiyor.
      *
-     * Neden: çocuk istemde bütçeyi görüyordu, kullanıcı görmüyordu. "7/10 dk"
+     * Neden: çocuk istemde bütçeyi görüyordu, kullanıcı görmüyordu. "7/10 min"
      * satırı olmadan 10. dakikada kesilen bir koşu "takıldı" gibi okunuyor.
      */
     val budgetMinutes: Int = 0,
@@ -644,9 +644,10 @@ object AgentJobRegistry {
         val running = siblings.count { it.state == AgentJobState.RUNNING }
         val pending = siblings.count { it.state == AgentJobState.PENDING }
         val queued = queuedCount(parentSessionId)
+        // [37099k · §4.4] "hâlâ çalışıyor" ile "sırada" ayrılıyor: tıkanmış bir
+        // kuyrukta modelin yapacağı şey farklı (bekleme değil, ölü işi iptal).
         val parts = mutableListOf<String>()
-        if (running + pending > 0) parts.add("${running + pending} still running")
-        if (queued > 0) parts.add("$queued queued")
+        queueSummaryOf(running, pending, queued)?.let { parts.add(it) }
         if (interruptedCount > 0) {
             parts.add(
                 "$interruptedCount interrupted (the app was restarted; " +
@@ -890,6 +891,31 @@ object AgentJobRegistry {
     fun mutedSnapshot(): List<String> = synchronized(mutedParents) { mutedParents.toList() }
 
     /** [stop-diag] Active sub agent jobs of [parentSessionId]. */
+    /**
+     * [37099k · §4.4] "2 çalışıyor, 3 sırada" — kuyruğun görünür özeti.
+     *
+     * Neden: kuyruk derinliği yalnız **ajana** söyleniyordu (`siblingSummary`
+     * araç sonucunda). Kullanıcı ekranında yalnız "Queued" yazıyordu; kaç iş
+     * beklediği ve sıranın ilerleyip ilerlemediği görünmüyordu. Kuyruk
+     * tıkanmışsa (bir iş ölü ama bitmemiş görünüyorsa) bunu ancak bu satır
+     * fark ettirir.
+     */
+    /**
+     * [37099k] Kuyruk özetinin **saf** çekirdeği — `Context`/kayıt yok.
+     *
+     * Test edilebilir olması için ayrıldı: `queueSummary` yalnız üç sayıyı
+     * ölçüp buraya veriyor. Hiç iş yoksa `null` — "0 çalışıyor" yazan bir
+     * şerit bilgi değil, gürültüdür.
+     */
+    fun queueSummaryOf(running: Int, pending: Int, queued: Int): String? {
+        if (running + pending + queued == 0) return null
+        val parts = mutableListOf<String>()
+        if (running > 0) parts += "$running çalışıyor"
+        if (pending > 0) parts += "$pending başlıyor"
+        if (queued > 0) parts += "$queued sırada"
+        return parts.joinToString(", ")
+    }
+
     fun activeChildCount(parentSessionId: String): Int = activeChildren(parentSessionId).size
 
     /** [stop-diag] The first frames above the registry, "Class.method:line" each. */
@@ -1014,16 +1040,16 @@ object AgentJobRegistry {
     )
 
     /**
-     * [37099g] "7/10 dk" — bütçeye göre ilerleme. Bütçe bilinmiyorsa null.
+     * [37099g] "7/10 min" — bütçeye göre ilerleme. Bütçe bilinmiyorsa null.
      *
-     * Kenar durum: bütçe aşılmışsa "12/10 dk" yazar. Bu bir hata değil,
+     * Kenar durum: bütçe aşılmışsa "12/10 min" yazar. Bu bir hata değil,
      * gerçeğin kendisi: çocuk uyarıyı aldıktan sonra da yazmaya devam
      * edebiliyor ve kullanıcı bunu görmeli.
      */
     fun budgetClock(elapsedMs: Long?, budgetMinutes: Int): String? {
         if (budgetMinutes <= 0) return null
         val usedMin = ((elapsedMs ?: 0L) / 60_000L).toInt()
-        return "$usedMin/$budgetMinutes dk"
+        return "$usedMin/$budgetMinutes min"
     }
 
     /** "1m02s" / "45s". */

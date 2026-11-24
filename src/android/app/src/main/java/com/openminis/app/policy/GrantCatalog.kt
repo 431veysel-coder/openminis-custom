@@ -58,6 +58,10 @@ object GrantCatalog {
         Spec("device", "Device (real screen)", "Shizuku, settings, app management"),
         Spec("sql", "Database", "destructive queries"),
         Spec("credential", "Credentials", "reading key files"),
+        // [37099k · §1.3] Uzun koşu önizlemesi: metinle eşleşmeyen, kararı
+        // tahmini süreden çıkan tek kural. Burada yoktu → her ekip/alt ajan
+        // koşusunda kart çıkıyordu ve susturmanın yolu yoktu.
+        Spec("plan", "Run preview", "long council / sub-agent runs"),
     )
 
     /**
@@ -66,7 +70,7 @@ object GrantCatalog {
      * verirdi.
      */
     fun categories(): List<Category> = SPECS.mapNotNull { spec ->
-        val items = RiskRules.ALL
+        val items = (RiskRules.ALL + RiskRules.PSEUDO)
             .filter { it.id.substringBefore(':') == spec.id }
             .map { rule -> item(rule) }
         if (items.isEmpty()) null else Category(spec.id, spec.title, spec.subtitle, items)

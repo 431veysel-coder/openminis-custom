@@ -204,4 +204,26 @@ class GrantCatalogTest {
             )
         }
     }
+
+    @Test
+    fun `uzun kosu onizlemesi ayarlardan susturulabilir`() {
+        // [37099k · §1.3] `plan:long-run` hiçbir listede yoktu: PolicyGate onu
+        // üretiyordu ama onay defteri kuralı tanımıyordu, dolayısıyla her ekip
+        // koşusunda kart çıkıyor ve "bir daha sorma" mümkün olmuyordu.
+        val rule = RiskRules.byId("plan:long-run")
+        assertNotNull("kural kimliğiyle bulunabilmeli", rule)
+
+        val ids = GrantCatalog.categories().flatMap { c -> c.items.map { it.rule.id } }
+        assertTrue("İzinler ekranında görünmeli", ids.contains("plan:long-run"))
+
+        val item = GrantCatalog.categories()
+            .flatMap { it.items }
+            .first { it.rule.id == "plan:long-run" }
+        assertTrue("sandbox + geri alınabilir: verilebilir olmalı", item.grantable)
+
+        // Metin taramasına girmemeli: rastgele bir komut bu kurala düşerse
+        // sınıflandırma bozulur.
+        assertFalse(rule!!.pattern.containsMatchIn("apt install jq"))
+        assertFalse(rule.pattern.containsMatchIn("team_run"))
+    }
 }

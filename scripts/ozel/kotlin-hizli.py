@@ -37,6 +37,7 @@ FOREIGN = [
 ]
 
 problems: list[str] = []
+suspects: list[str] = []
 
 
 def strip_code(text: str) -> str:
@@ -77,6 +78,23 @@ def strip_code(text: str) -> str:
             out.append(c)
             i += 1
     return "".join(out)
+
+
+def check_comments(path: Path, text: str) -> None:
+    """Kapatılmamış blok yorumu — kesin derleme hatası.
+
+    Neden ayrı: `strip_code` kapatılmamış bir `/*` gördüğünde dosyanın sonuna
+    kadar yutuyor, yani parantez sayımı **temiz** çıkıyor. Gerçekte derleyici
+    "unclosed comment" diyor. Bu, yorum eklerken `*/` düşürmenin en sık
+    sonucu ve sessizce geçiyordu.
+    """
+    opens = text.count("/*")
+    closes = text.count("*/")
+    if opens != closes:
+        problems.append(
+            f"{path.relative_to(ROOT)}: blok yorumu dengesiz (/* {opens}, */ {closes}) — "
+            "kapatılmamış yorum altındaki kodu yutar"
+        )
 
 
 def check_balance(path: Path, text: str) -> None:
@@ -161,6 +179,39 @@ def _param_list(text: str, open_idx: int) -> str:
     return ""
 
 
+def collect_function_names() -> set[str]:
+    """Ağaçtaki tüm `fun X(` adları.
+
+    Neden: Compose'ta `Column(modifier = …)` bir **fonksiyon** çağrısıdır, ama
+    `Column` adında bir veri sınıfı da var. Fonksiyon/veri sınıfı adı çakışan
+    bir çağrıda "bu alan yok" demek yanlış pozitiftir; o durumda susulur.
+    """
+    names: set[str] = set()
+    for path in SRC.rglob("*.kt"):
+        for m in re.finditer(r"\bfun\s+(?:<[^>]+>\s*)?(?:[\w.]+\.)?(\w+)\s*\(", path.read_text(errors="ignore")):
+            names.add(m.group(1))
+    return names
+
+
+def collect_type_names() -> dict[str, int]:
+    """Her tip adının ağaçta kaç kez tanımlandığı.
+
+    Adlandırılmış argüman denetimi ancak ad **tek bir tipe** çözülüyorsa
+    kesindir: aynı ad hem arayüz hem veri sınıfı olabiliyor (builder deseni).
+    """
+    counts: dict[str, int] = {}
+    decl = re.compile(
+        r"^\s*(?:@\w+(?:\([^)]*\))?\s*)*"
+        r"(?:data\s+|sealed\s+|abstract\s+|open\s+|private\s+|internal\s+|public\s+)*"
+        r"(?:class|interface|object|enum\s+class)\s+(\w+)",
+        re.M,
+    )
+    for path in SRC.rglob("*.kt"):
+        for m in decl.finditer(path.read_text(errors="ignore")):
+            counts[m.group(1)] = counts.get(m.group(1), 0) + 1
+    return counts
+
+
 def collect_data_classes() -> dict[str, set[str]]:
     fields: dict[str, set[str]] = {}
     for path in SRC.rglob("*.kt"):
@@ -187,42 +238,84 @@ def collect_data_classes() -> dict[str, set[str]]:
     return fields
 
 
-def check_calls_for(fields: dict[str, set[str]], path: Path) -> None:
-    """`Type(a = 1)` içindeki adlandırılmış argümanlar gerçek alan mı?"""
-    known = fields
-    if True:
-        text = path.read_text(errors="ignore")
-        for m in re.finditer(r"\b(\w+)\s*\(([^()]{0,400})\)", text):
-            type_name, args = m.group(1), m.group(2)
-            if type_name not in known:
-                continue
-            named = re.findall(r"(\w+)\s*=(?!=)", args)
-            if not named:
-                continue
-            # Konumsal argüman varsa (ilk parça `x =` değil) karışık olabilir; susulur.
-            if not re.match(r"\s*\w+\s*=(?!=)", args):
-                continue
-            for n in named:
-                if n not in known[type_name]:
-                    problems.append(
-                        f"{path.relative_to(ROOT)}: {type_name}({n} = …) — bu alan yok"
-                    )
+def _top_level_args(args: str) -> list[str]:
+    """Argüman listesini **yalnız üst düzey** virgüllerden böler.
+
+    Neden: `Column(verticalArrangement = …)` gibi iç içe bir çağrı, dış
+    çağrının argüman metninde geçiyor. Düz virgül bölmesi onun alanlarını dış
+    tipin alanları sanıyor ve yanlış "bu alan yok" üretiyordu.
+    """
+    out: list[str] = []
+    depth = 0
+    current: list[str] = []
+    for ch in args:
+        if ch in "([{<":
+            depth += 1
+        elif ch in ")]}>":
+            depth -= 1
+        if ch == "," and depth == 0:
+            out.append("".join(current))
+            current = []
+        else:
+            current.append(ch)
+    if current:
+        out.append("".join(current))
+    return [a.strip() for a in out if a.strip()]
 
 
-def changed_files() -> list[Path]:
-    out = subprocess.run(
-        ["git", "-C", str(ROOT), "diff", "--name-only", "HEAD~1", "HEAD"],
-        capture_output=True, text=True,
-    ).stdout.split()
-    files = [ROOT / f for f in out if f.endswith(".kt")]
-    return [f for f in files if f.exists()]
+def check_calls_for(
+    fields: dict[str, set[str]],
+    path: Path,
+    type_counts: dict[str, int],
+    function_names: set[str],
+) -> None:
+    """`Type(a = 1)` içindeki adlandırılmış argümanlar gerçek alan mı?
+
+    ## Neden dengeli parantez
+
+    Önce `([^()]{0,400})` ile aranıyordu. Gerçek hata tam bu yüzden kaçtı:
+    `AgentCallback(..., budget = budgetClock(job.elapsedMs, …))` çağrısının
+    argümanları **iç içe parantez** taşıyor, düz regex hiç eşleşmedi ve kapı
+    "temiz" dedi; derleme hatası CI'a kaldı.
+    """
+    text = path.read_text(errors="ignore")
+    # Compose widget'ları da veri sınıfı gibi görünüyor (`Card`, `Column`);
+    # dosyada androidx'ten import edilmiş bir ad, bizim veri sınıfımız değildir.
+    compose_imports = {
+        line.rsplit(".", 1)[-1].split(" as ")[0].strip()
+        for line in text.splitlines()
+        if line.startswith("import androidx.compose")
+    }
+    for m in re.finditer(r"\b(\w+)\s*\(", text):
+        type_name = m.group(1)
+        if type_name not in fields or type_name in compose_imports:
+            continue
+        args = _param_list(text, m.end() - 1)
+        if "=" not in args:
+            continue
+        # Konumsal argüman varsa (ilk parça `x =` değil) karışık olabilir; susulur.
+        if not re.match(r"\s*\w+\s*=(?!=)", args):
+            continue
+        named = [
+            m2.group(1)
+            for m2 in (re.match(r"^(\w+)\s*=(?!=)", a) for a in _top_level_args(args))
+            if m2
+        ]
+        for n in named:
+            if n in fields[type_name]:
+                continue
+            where = f"{path.relative_to(ROOT)}: {type_name}({n} = …) — bu alan yok"
+            if type_counts.get(type_name, 0) == 1 and type_name not in function_names:
+                problems.append(where)
+            else:
+                suspects.append(where + f" ({type_counts.get(type_name)} aynı adlı tip)")
 
 
 def added_lines(path: Path) -> set[int]:
     """Bu dosyada git'e göre **eklenen** satır numaraları (1 tabanlı).
 
     Neden: kapı yalnız dokunulan satırı yargılamalı. Bir dosyada tek satır
-    değiştirmek, oradaki on yıllık bir Çince yorumu "yeni hata" gibi
+    değiştirmek, oradaki yıllanmış bir yabancı yorumu "yeni hata" gibi
     göstermemeli — o zaman kapı, sahibi olmadığın borcu ödetir ve kapatılır.
     Dosya git'te yoksa (yeni dosya) tüm satırlar eklenmiş sayılır.
     """
@@ -231,7 +324,7 @@ def added_lines(path: Path) -> set[int]:
             ["git", "-C", str(ROOT), "diff", "-U0", "--unified=0", "--", str(path)],
             capture_output=True, text=True, timeout=30,
         )
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001 - kapı aracı, patlamamalı
         return set()
     if p.returncode != 0 or not p.stdout.strip():
         return set(range(1, len(path.read_text(errors="ignore").splitlines()) + 1))
@@ -268,7 +361,7 @@ def modified_files() -> list[Path]:
 
 def main() -> int:
     args = sys.argv[1:]
-    explicit = [Path(a) for a in args if a.endswith(".kt")]
+    explicit = [(Path(a) if Path(a).is_absolute() else ROOT / a) for a in args if a.endswith(".kt")]
     if explicit:
         files = explicit
     elif "--all" in args:
@@ -292,12 +385,10 @@ def main() -> int:
     # değil, göz. Kırmızı sayılırsa geliştirici kapıyı kapatır — o zaman hiç
     #bir şey yakalamaz.
     fields = collect_data_classes()
-    suspects: list[str] = []
+    type_counts = collect_type_names()
+    function_names = collect_function_names()
     for path in files:
-        before = len(problems)
-        check_calls_for(fields, path)
-        suspects += problems[before:]
-        del problems[before:]
+        check_calls_for(fields, path, type_counts, function_names)
 
     if problems:
         print(f"kotlin-hizli: {len(set(problems))} KESİN sorun ({len(files)} dosya)")

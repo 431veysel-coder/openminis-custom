@@ -222,7 +222,18 @@ internal object ThinkingTranslator {
             val offline = OfflineGlossary.apply(text, pack)
             if (offline.usable && offline.complete) {
                 onProgress(chunks.size, chunks.size)
-                return Out(offline.text, complete = true, done = chunks.size, total = chunks.size)
+                // [37099k · §6.3] ÖLÇÜLEN HATA: burada `degraded` varsayılana
+                // (false) bırakılmıştı. Motor cümle çevirmiyor, terim
+                // değiştiriyor — sözlük sonucu bu yüzden arayüzde **tam
+                // çeviri** gibi görünüyordu. `complete` yalnız "metnin tamamı
+                // tanınan terimlerden oluşuyor" demek.
+                return Out(
+                    offline.text,
+                    complete = true,
+                    done = chunks.size,
+                    total = chunks.size,
+                    degraded = true,
+                )
             }
             val modelsLeft = plan.any {
                 it == TranslationChain.Engine.MODEL_PACK || it == TranslationChain.Engine.MODEL_ONLY

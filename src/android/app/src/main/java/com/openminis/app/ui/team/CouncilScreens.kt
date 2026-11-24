@@ -270,10 +270,17 @@ private fun DecisionTab(
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
-                Text(
-                    answer ?: stringResource(R.string.council_no_report),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                // [37099k · §8.2] Rapor düz metin değil: başlık/madde/atıf
+                // ayrılıyor. Önce tek `Text`'ti; modelin yazdığı `## başlık`
+                // ve `- madde` ekranda ham görünüyordu.
+                if (answer.isNullOrBlank()) {
+                    Text(
+                        stringResource(R.string.council_no_report),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                } else {
+                    ReportBody(answer)
+                }
                 if (dissent.isNotEmpty()) {
                     Text(
                         stringResource(R.string.council_dissent),

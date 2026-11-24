@@ -1,4 +1,4 @@
-# SÜRÜM NOTU — 1.15-ozel.30 / 37111
+# SÜRÜM NOTU — 1.15-ozel.31 / 37112
 
 > **Derlenmedi.** Kullanıcı talebiyle bu turda APK üretilmedi; kaynak dalda
 > hazır. Derleme yapılmadan önce CI'daki `compile` + `unit test` adımları
@@ -176,6 +176,55 @@ Ekranda anlamsız bir tire, TalkBack'te de anlamsız bir etiket. Dördü de ger�
 metne çevrildi ("Üyeler arasında henüz soru yok", "Her görevin bir sahibi var",
 "Kanıt bekleyen görev yok", "Henüz devir yok") — iki dilde.
 
-**Kapanış özeti (`1.15-ozel.30 / 37111`):** `.22`'den bu yana on iki madde
+**Kapanış özeti (`1.15-ozel.31 / 37112`):** `.22`'den bu yana on iki madde
 kapandı; açık kalanlar `YAPILACAKLAR.md` §10'da gerekçeleriyle duruyor.
 Derleme yapılmadı — yayında `.21`, kaynakta `.30`.
+
+## .31 — açık maddeleri kapatma turu
+
+**§1.3 uzun koşu kapısı (kapandı).** `plan:long-run` `PolicyGate` tarafından
+üretiliyordu ama **hiçbir kural listesinde yoktu**: onay defteri kuralı
+tanımıyor, Ayarlar › İzinler'de görünmüyor, "bir daha sorma" mümkün olmuyordu.
+Yeni `RiskRules.PSEUDO` listesi (metinle eşleşmeyen kurallar) + `byId` üç
+listeye bakıyor + katalogda "Run preview" kategorisi. Kalıp `(?!x)x`: hiç
+eşleşmez, yoksa rastgele bir komut bu kurala düşerdi.
+
+**§2.1 Terminal'de apt (kapatıldı — mesajla).** Terminal tek süreçtir, bir kez
+`-0` ile başlar; kimliği komut başına değiştirmek mümkün değil. Kimliği baştan
+düşürmek Alpine tarafını bozar (`apk` kök ister). İki taraf aynı anda
+kazanmıyor → doğru cevap **sessiz kalmamak**: açılışta uyarı satırı, nedenini ve
+çalışan yolu söylüyor.
+
+**§6.3 sözlük dürüstlüğü (GERÇEK HATA bulundu).** `ThinkingTranslator` sözlük
+sonucunu döndürürken `degraded` bayrağını **düşürüyordu** (`complete=true`
+dalında varsayılan false). Motor cümle çevirmiyor, terim değiştiriyor — ama
+arayüz sonucu **tam çeviri** gibi gösteriyordu. Bayrak artık taşınıyor.
+
+**§8.2 rapor render (kapandı).** `ui/team/ReportText.kt`: başlık (`#`), madde
+(`-`, `*`), numaralı (`1.`), alıntı, ayırıcı ve `[E1]`/`[C3]` atıf vurgusu.
+Tam Markdown değil: desteklemediğim sözdizimi gizlenmiyor, olduğu gibi kalıyor.
+
+**§4.4 kuyruk görünürlüğü (kapandı).** `queueSummaryOf(running, pending, queued)`
+saf çekirdek; `siblingSummary` artık "hâlâ çalışıyor / sırada" ayrımını taşıyor.
+Tıkanmış kuyrukta modelin yapacağı şey farklı: beklemek değil, ölü işi iptal
+etmek.
+
+**§4.1 bütçe satırı karta bağlandı.** `HelperPhase.Running.budget` +
+`HelperUi` `budget_minutes` okuması → kartta "7/10 min".
+
+### Bu turda bulunan DERLEME HATASI (kapı yakaladı)
+
+`.27`'de `AgentCallback(budget = …)` eklemiştim ama `AgentCallback`'a alanı
+**eklememiştim**. Derleme hatası `.30`'a kadar fark edilmedi: `kapi.py`'deki
+`kotlin` kapısı bunu göremezdi çünkü (a) argüman regex'i iç içe parantezde
+duruyordu, (b) dosya değişmemiş sayılıyordu. Üç düzeltme yapıldı:
+
+1. Dengeli parantez taraması (`_param_list`), düz regex yerine.
+2. Adlandırılmış argüman denetimi **kesin** hata: ad ağaçta tek bir tipe
+   çözülüyorsa ve o ad bir fonksiyon değilse.
+3. `check_comments`: kapatılmamış `/*` — kesin hata. `strip_code` böyle bir
+   yorumu dosya sonuna kadar yuttuğu için parantez sayımı temiz çıkıyordu.
+   Nitekim bu turda kendi elimle bir KDoc'un `*/`'ını düşürdüm ve kapı yakaladı.
+
+**Ders:** kapı "yeşil" derken kapsamı dar olabilir. Kapıyı yazdıktan sonra
+**bilerek hata sokup** yakaladığını görmek zorunlu — bu turda üç kez yapıldı.

@@ -1,11 +1,11 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Kod ağacı — 883 dosya, 318504 satır
+# Kod ağacı — 884 dosya, 318782 satır
 
 | Paket | Dosya | Satır |
 |---|---|---|
 | `accessibility/` | 4 | 897 |
-| `agent/` | 53 | 14492 |
+| `agent/` | 53 | 14527 |
 | `auth/` | 17 | 4718 |
 | `backup/` | 27 | 8567 |
 | `browser/` | 13 | 6164 |
@@ -24,14 +24,14 @@
 | `offload/` | 13 | 2461 |
 | `ozel/` | 12 | 2009 |
 | `plan/` | 1 | 106 |
-| `policy/` | 9 | 1769 |
+| `policy/` | 9 | 1803 |
 | `power/` | 1 | 193 |
 | `provider/` | 46 | 16624 |
 | `providers/` | 1 | 224 |
 | `quota/` | 6 | 4397 |
 | `remote/` | 1 | 97 |
 | `replay/` | 1 | 129 |
-| `sandbox/` | 61 | 24489 |
+| `sandbox/` | 61 | 24518 |
 | `scheduled/` | 15 | 3557 |
 | `screen/` | 3 | 526 |
 | `service/` | 15 | 6752 |
@@ -40,7 +40,7 @@
 | `speech/` | 42 | 11096 |
 | `terminal/` | 2 | 126 |
 | `tools/` | 15 | 3077 |
-| `ui/` | 308 | 149914 |
+| `ui/` | 309 | 150094 |
 | `usage/` | 6 | 805 |
 | `util/` | 2 | 266 |
 | `webapp/` | 5 | 1316 |

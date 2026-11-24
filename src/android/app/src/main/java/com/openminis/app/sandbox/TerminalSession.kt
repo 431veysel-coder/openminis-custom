@@ -214,7 +214,7 @@ class TerminalSession(private val context: Context) {
                 // `clear` above so it is not wiped.
                 scope.launch {
                     kotlinx.coroutines.delay(if (sessionId != null) 600 else 300)
-                    _outputBytes.emit(banner(sessionId).toByteArray())
+                    _outputBytes.emit((banner(sessionId) + termuxNotice()).toByteArray())
                 }
 
                 readerJob = scope.launch { readLoop() }
@@ -430,6 +430,35 @@ class TerminalSession(private val context: Context) {
      * belongs to no chat, and saying so up front prevents "I saved it in the
      * terminal and the agent can't see it".
      */
+    /**
+     * [37099k · §2.1] Termux katmanı kuruluyken **kök kimliği uyarısı**.
+     *
+     * ## Neden metin, neden kimlik değişikliği değil
+     *
+     * Bu sekme tek bir etkileşimli kabuktur ve bir kez `-0` (sahte kök) ile
+     * başlar. Termux'un `apt`/`apt-get`'i kök olarak çalışmayı kalıcı olarak
+     * reddediyor; komut başına kimlik değiştirmek mümkün değil. Kimliği
+     * baştan `10000:10000` yapmak ise Alpine tarafını bozar: `apk` kök ister.
+     *
+     * Yani iki taraf da aynı anda kazanmıyor. Doğru cevap sessiz kalmamak:
+     * kullanıcı `apt install` yazıp "Ability to run this command as root has
+     * been disabled" görürse, bunu bir arıza sanır. Uyarı satırı hem nedenini
+     * hem çalışan yolu söylüyor.
+     */
+    private fun termuxNotice(): String = runCatching {
+        if (!com.openminis.app.sandbox.TermuxLayer.isInstalled(
+                RootfsManager.getInstance(context).rootfsDir,
+            )
+        ) {
+            ""
+        } else {
+            "\u001b[2m[Minis] Termux katmanı kurulu. Bu sekme kök kimliğiyle çalışır: " +
+                "apt/apt-get burada 'root has been disabled' der. Paket kurmak için ajanın " +
+                "shell_execute yolunu kullan (apt install …) — orası kök olmayan kimlikte koşar. " +
+                "Alpine tarafı (apk add) bu sekmede çalışır.\u001b[0m\r\n"
+        }
+    }.getOrDefault("")
+
     private fun banner(sessionId: String?): String =
         if (sessionId != null) {
             "\u001b[2m[Minis] /var/minis/{workspace,attachments,offloads,browser} are this chat's " +

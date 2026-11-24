@@ -27,6 +27,11 @@ data class AgentCallback(
     val status: String,
     val tier: String? = null,
     val elapsed: String? = null,
+    /**
+     * [37099g · §4.1] "7/10 min" — duvar saati bütçesine göre ilerleme.
+     * Bütçe bilinmiyorsa null (satır çizilmez).
+     */
+    val budget: String? = null,
     val tool: String? = null,
     val activity: String? = null,
     val turn: Int? = null,
@@ -60,6 +65,9 @@ data class AgentCallback(
             // [T-sub-agents-v1] Position matches iOS: model, agent, elapsed…
             if (!agentName.isNullOrEmpty()) attrs += "agent" to agentName
             if (!elapsed.isNullOrEmpty()) attrs += "elapsed" to elapsed
+            // [37099g] Bütçe ilerlemesi ayrı bir öznitelik: `elapsed` geçen
+            // süredir, `budget` ise "bütçenin neresindeyiz" sorusunun cevabı.
+            if (!budget.isNullOrEmpty()) attrs += "budget" to budget
             if (!tool.isNullOrEmpty()) attrs += "tool" to tool
             if (!activity.isNullOrEmpty()) attrs += "activity" to activity
             if (turn != null && turn > 0) attrs += "turn" to turn.toString()
@@ -122,6 +130,7 @@ data class AgentCallback(
                 status = attrs["status"] ?: (if (kind == Kind.FINISHED) "done" else "running"),
                 tier = attrs["model"],
                 elapsed = attrs["elapsed"],
+                budget = attrs["budget"],
                 tool = attrs["tool"],
                 activity = attrs["activity"],
                 turn = attrs["turn"]?.toIntOrNull(),

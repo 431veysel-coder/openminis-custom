@@ -129,7 +129,17 @@ internal sealed class HelperPhase {
     /** [T-sub-agents-queue] Was queued when the app stopped; it can never start now. */
     object NeverStarted : HelperPhase()
     /** [tool] is the child's own tool currently executing. */
-    data class Running(val tool: String?, val activity: String, val clock: String) : HelperPhase()
+    data class Running(
+        val tool: String?,
+        val activity: String,
+        val clock: String,
+        /**
+         * [37099k · §4.1] "7/10 min" — bütçenin neresindeyiz. Null ise satır
+         * çizilmez: bütçe bilinmiyorken uydurulmuş bir sayı yanlış "kaldı"
+         * hissi verir.
+         */
+        val budget: String? = null,
+    ) : HelperPhase()
     data class Finished(
         val status: String, val tier: String?, val model: String?, val elapsedSeconds: Int?,
         val summary: String, val escalation: Boolean, val background: Boolean, val childSessionId: String?,
@@ -303,8 +313,18 @@ internal fun parseHelperBlock(block: AssistantBlock): HelperBlockInfo {
             val activity = o.optString("activity", "").ifEmpty { o.optString("tool_status", "") }
             val elapsed = o.optLong("elapsed_s", -1L)
             val clock = if (elapsed >= 0 && o.has("elapsed_s")) HelperRunner.formatClock(elapsed * 1000) else ""
+            // [37099k] Bütçe ilerlemesi: `budget_minutes` çocuğa verilen üst
+            // sınırdır. 0/eksik ise satır yok — tahmin yürütmüyoruz.
+            val budgetMinutes = o.optInt("budget_minutes", 0)
+            val budget = if (budgetMinutes > 0 && elapsed >= 0) {
+                "${elapsed / 60}/$budgetMinutes min"
+            } else null
             val last = o.optString("last_message", "").ifEmpty { null }
-            return HelperBlockInfo(title, HelperPhase.Running(tool, activity, clock), childId, last, summaryLine)
+            return HelperBlockInfo(
+                title,
+                HelperPhase.Running(tool, activity, clock, budget),
+                childId, last, summaryLine,
+            )
         }
         status = "interrupted"
     }
@@ -725,6 +745,12 @@ private fun HelperSecondLine(info: HelperBlockInfo) {
                 maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false),
             )
             if (p.clock.isNotEmpty()) Text(p.clock, fontSize = 11.sp, lineHeight = 12.sp, fontFamily = FontFamily.Monospace, color = ChatColors.tertiaryText, maxLines = 1)
+            // [37099k · §4.1] Bütçe: "geçen süre" ile "bütçenin neresi" ayrı
+            // sorular. İkincisi olmadan 10. dakikada kesilen koşu "takıldı"
+            // gibi okunuyor.
+            p.budget?.let {
+                Text(it, fontSize = 11.sp, lineHeight = 12.sp, fontFamily = FontFamily.Monospace, color = ChatColors.tertiaryText, maxLines = 1)
+            }
         }
         is HelperPhase.Finished -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(helperStatusLabel(p), fontSize = 11.sp, lineHeight = 12.sp, fontWeight = FontWeight.SemiBold, color = helperStatusColor(p.status), maxLines = 1)

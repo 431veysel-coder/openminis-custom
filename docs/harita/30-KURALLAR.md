@@ -1,6 +1,6 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Risk kuralları — 42
+# Risk kuralları — 43
 
 | Kural | Seviye | Kapsam | Geri |
 |---|---|---|---|
@@ -41,6 +41,7 @@
 | `termux:sshd` | HIGH | NETWORK | PERMANENT |
 | `pkg:install` | LOW | SANDBOX | UNDOABLE |
 | `pkg:uninstall` | MEDIUM | SANDBOX | RECOVERABLE |
+| `plan:long-run` | MEDIUM | SANDBOX | UNDOABLE |
 
 ### DENY — kart bile açılmaz
 

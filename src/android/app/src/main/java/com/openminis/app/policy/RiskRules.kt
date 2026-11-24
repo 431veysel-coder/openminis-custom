@@ -381,8 +381,38 @@ object RiskRules {
         Rule("pkg:uninstall", PKG_UNINSTALL, RiskLevel.MEDIUM, Reach.SANDBOX, Recovery.RECOVERABLE, "kurulu paketi kaldırır; ona bağlı araçlar bozulabilir"),
     )
 
+    /**
+     * [37099k · §1.3] **Metinle eşleşmeyen** kurallar.
+     *
+     * `ALL` listesi bir komut metnini tarayan kalıplardan oluşur; buradakiler
+     * öyle değil. `plan:long-run` kararını `PolicyGate.planVerdict` üretiyor
+     * (tahmini süre/tur sayısından), yani metinde aranacak bir kalıp yok.
+     *
+     * Neden yine de bir `Rule`: onay defteri kayıtları `ruleId` ile tutulur ve
+     * "bunu bir daha sorma" ancak kuralın bir kimliği varsa çalışır. Öncesinde
+     * `plan:long-run` hiçbir listede yoktu → Ayarlar › İzinler'de görünmüyor,
+     * dolayısıyla toplu izinle susturulamıyordu ve kullanıcı her uzun koşuda
+     * kart görüyordu.
+     *
+     * Kalıp **hiç eşleşmez** (`(?!x)x`): bu kural metin taramasına girmemeli,
+     * yoksa rastgele bir komut `plan:long-run` diye sınıflandırılırdı.
+     */
+    val PSEUDO: List<Rule> = listOf(
+        Rule(
+            id = "plan:long-run",
+            pattern = Regex("""(?!x)x"""),
+            level = RiskLevel.MEDIUM,
+            reach = Reach.SANDBOX,
+            recovery = Recovery.UNDOABLE,
+            note = "uzun süren koşu önizlemesi (ekip/alt ajan); kart istemeden başlaması için bunu aç",
+        ),
+    )
+
     /** Kural kimliğinden kuralı bulur (onay defteri çözümlemesi için). */
-    fun byId(id: String): Rule? = ALL.firstOrNull { it.id == id }
+    fun byId(id: String): Rule? =
+        ALL.firstOrNull { it.id == id }
+            ?: PSEUDO.firstOrNull { it.id == id }
+            ?: DENY.firstOrNull { it.id == id }
 
     /**
      * Hiç sorulmadan reddedilen kalıplar.

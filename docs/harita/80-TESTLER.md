@@ -1,22 +1,22 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Testler — 6619 birim testi
+# Testler — 6629 birim testi
 
 | | |
 |---|---|
-| Birim test dosyası | 768 |
-| Birim `@Test` | 6619 |
+| Birim test dosyası | 770 |
+| Birim `@Test` | 6629 |
 | Cihaz testi dosyası | 12 |
 | Cihaz `@Test` | 124 |
 
 | Paket | Test dosyası |
 |---|---|
-| `ui` | 235 |
+| `ui` | 236 |
 | `provider` | 84 |
 | `data` | 77 |
 | `backup` | 53 |
+| `agent` | 42 |
 | `sandbox` | 42 |
-| `agent` | 41 |
 | `speech` | 31 |
 | `service` | 23 |
 | `ozel` | 21 |
