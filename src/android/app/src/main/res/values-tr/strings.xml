@@ -2549,4 +2549,6 @@
     <string name="virtual_screen_capture_now_sub">Tuvali çizer ve her görünür bölme için yakalama zamanı düşer.</string>
     <string name="virtual_screen_capture_done">%1$d bölme yakalandı.</string>
     <string name="virtual_screen_capture_failed">Kare üretilemedi.</string>
+    <string name="council_compare_claim_col">İddia</string>
+    <string name="council_compare_scroll_hint">Sütunları yana kaydır — iddia sütunu yerinde kalır.</string>
 </resources>

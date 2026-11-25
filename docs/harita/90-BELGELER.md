@@ -1,6 +1,6 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Belgeler — 80 dosya
+# Belgeler — 81 dosya
 
 | Belge | Başlık | İlk satır |
 |---|---|---|
@@ -33,6 +33,7 @@
 | `docs/ozel/SURUM-NOTU-1.15-ozel.38.md` | SÜRÜM NOTU — 1.15-ozel.38 / 37119 | Bu tur planın **en riskli** turuydu ve sınırını baştan söylüyorum: tek tuval |
 | `docs/ozel/SURUM-NOTU-1.15-ozel.39.md` | SÜRÜM NOTU — 1.15-ozel.39 / 37120 | Plan `.39`'u Terminal/Termux'a ayırmıştı. Ölçüm iki şeyi değiştirdi: |
 | `docs/ozel/SURUM-NOTU-1.15-ozel.40.md` | SÜRÜM NOTU — 1.15-ozel.40 / 37121 | Kullanıcı "kararı bende olanları önerilerin neyse onları uygula" dedi. Bu turda |
+| `docs/ozel/SURUM-NOTU-1.15-ozel.41.md` | SÜRÜM NOTU — 1.15-ozel.41 / 37122 | Önce: satır başına bir metin bloğu (`Ayşe ✓  Mehmet ✗`). 5 üye × 8 iddia'da |
 | `docs/ozel/TERMUX-APK-KARARI.md` | KARAR — Termux: katman mı, ayrı APK mı? | Soru (kullanıcı, 2026-11-22): *"Termux araç zincirleri bölümünde olmalı, tek |
 | `docs/ozel/TERMUX-ENTEGRASYONU.md` | TERMUX ENTEGRASYONU — tasarım, güvenlik, ön/arka yüz, etkiler | Bu belge bir niyet beyanı değil. Her bölüm ya **ölçülmüş** bir gerçeğe, ya |
 | `docs/ozel/YAPILACAKLAR.md` | YAPILACAKLAR — geniş kapsamlı, kategori kategori | hâlâ üye başına tek satır**. Sağlayıcı hatası, JSON bozukluğu, kota, model yok |

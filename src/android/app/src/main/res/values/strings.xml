@@ -3319,4 +3319,6 @@
     <string name="virtual_screen_capture_now_sub">Draws the canvas and stamps a capture time for every visible pane.</string>
     <string name="virtual_screen_capture_done">%1$d pane(s) captured.</string>
     <string name="virtual_screen_capture_failed">No frame could be produced.</string>
+    <string name="council_compare_claim_col">Claim</string>
+    <string name="council_compare_scroll_hint">Swipe the columns sideways — the claim column stays put.</string>
 </resources>
