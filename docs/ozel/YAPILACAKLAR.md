@@ -1,6 +1,6 @@
 # YAPILACAKLAR — geniş kapsamlı, kategori kategori
 
-> **Durum:** 2026-11-25 · sürüm `1.15-ozel.35` / 37116 (derlenmedi, yalnız kaynak)
+> **Durum:** 2026-11-25 · sürüm `1.15-ozel.36` / 37117 (derlenmedi, yalnız kaynak)
 > Tur planı: [`PLAN-35-45.md`](PLAN-35-45.md)
 > Bu dosya **plan**dır, ölçüm değil. Ölçüm için `HARITA.md` ve `harita/`.
 > Her madde: ne · neden · nerede · nasıl anlaşılır (kabul ölçütü).
@@ -29,6 +29,9 @@
 | K14 | İzin kullanım sayacı ("7 kez kullanıldı") | `GrantCatalog.usageCounts` |
 | K15 | Onay modu: sohbet bazlı kart yerine uygulama geneli izin (`SETTINGS_ONLY` varsayılan) | `policy/ApprovalMode.kt` + `ApprovalModeTest` (7) |
 | K16 | Sesli onay uyarısı (TTS + titreşim + bildirim + tekrar) | `ozel/ApprovalVoice*.kt` + `ApprovalVoiceTextTest` (10) |
+| K17 | Görünürlük kapısı (11. kapı): açık anahtar `ui/` tüketicisi ister | `scripts/ozel/gorunurluk.py` + `--kendini-sina` 4/4 |
+| K18 | `CHAT_HEALTH` ölçümle kapatıldı (0 çağrı) | `OzelFeatures.kt` KDoc + kapı çıktısı |
+| K19 | `olu-kod` yanlış pozitifi: `::ref`, trailing lambda, yorum | 250 → 313 (dürüst sayı) |
 
 ---
 

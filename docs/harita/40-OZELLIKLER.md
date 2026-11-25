@@ -29,7 +29,7 @@
 | `WRITE_INTENT` | `write_intent` | açık |
 | `REPLAY` | `replay` | kapalı |
 | `REMOTE_CONSOLE` | `remote_console` | kapalı |
-| `CHAT_HEALTH` | `chat_health` | açık |
+| `CHAT_HEALTH` | `chat_health` | kapalı |
 | `VIRTUAL_SCREEN` | `virtual_screen` | açık |
 
 Kural: **açık** bir anahtarın üretim kodunda okuyucusu olmak zorunda.

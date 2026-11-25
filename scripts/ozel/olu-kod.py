@@ -53,6 +53,16 @@ FUN_RE = re.compile(
 PRIVATE_RE = re.compile(r"^[ \t]*private\s", re.M)
 
 
+def strip_comments(text: str) -> str:
+    """Yorumları siler.
+
+    Neden: `// previewOrphanCleanup eski hâli` gibi bir yorum, çağrısı olmayan
+    fonksiyonu "kullanılıyor" gösteriyordu. Kullanım yorum değildir.
+    """
+    text = re.sub(r"/\*.*?\*/", " ", text, flags=re.S)
+    return re.sub(r"//[^\n]*", " ", text)
+
+
 def production_files() -> list[Path]:
     return [p for p in MAIN.rglob("*.kt")]
 
@@ -71,8 +81,11 @@ def scan(files: list[Path]) -> list[tuple[str, str, int]]:
         for m in FUN_RE.finditer(text):
             name = m.group(1)
             line_no = text[: m.start()].count("\n") + 1
+            # @Composable/@Preview bir ÖNCEKİ satırda olabilir; yalnız tanım
+            # satırına bakmak onları "ölü" sayıyordu.
+            window = "\n".join(lines[max(0, line_no - 4): line_no])
             line = lines[line_no - 1] if line_no - 1 < len(lines) else ""
-            if name in EXEMPT or "@Composable" in line or name.startswith("component"):
+            if name in EXEMPT or "@Composable" in window or name.startswith("component"):
                 continue
             # `override` arayüzü uygular; çağrı oradan gelir.
             if re.search(r"\boverride\b", line):
@@ -82,11 +95,20 @@ def scan(files: list[Path]) -> list[tuple[str, str, int]]:
     # Çağrı sayımı: tüm metinde `ad(` — tanım satırları dahil; bir tanım
     # kendini saydırırsa sayı 1 olur ve "çağrılıyor" görünür. Bunu önlemek
     # için tanım satırlarını önce maskele.
+    # Çağrı sayımı üç biçimi de tanır:
+    #   ad(...)            — normal çağrı
+    #   ::ad               — metod referansı (`vm::saveExportTo`)
+    #   ad { ... }         — trailing lambda (`vm.previewOrphanCleanup { }`)
+    # İlk sürüm yalnız birincisini sayıyordu; ikisi "ölü" görünüyordu ve
+    # taban 250'ye şişti. Şişkin bir sayı, sayının kendisini işe yaramaz yapar.
     counts: dict[str, int] = {}
     for p, text in texts.items():
-        masked = FUN_RE.sub(lambda m: m.group(0).replace("fun ", "fun _def_", 1), text)
-        for m in re.finditer(r"\b(\w+)\s*\(", masked):
-            name = m.group(1)
+        cleaned = strip_comments(text)
+        masked = FUN_RE.sub(lambda m: m.group(0).replace("fun ", "fun _def_", 1), cleaned)
+        for m in re.finditer(r"(\b(\w+)\s*\()|(::(\w+)\b)|(\b(\w+)\s*\{)", masked):
+            name = m.group(2) or m.group(4) or m.group(6)
+            if not name:
+                continue
             counts[name] = counts.get(name, 0) + 1
 
     hits: dict[str, int] = {}
@@ -122,6 +144,7 @@ def main() -> int:
         print(f"olu-kod: {len(files)} dosyada çağrısız fonksiyon yok")
         return 0
     print(f"olu-kod: {len(rows)} fonksiyonun üretimde çağrısı yok (bilgi, kapı değil)")
+    print("  not: metod referansı (::ad), trailing lambda (ad { }) ve @Composable sayılır")
     for path, name, line in rows:
         print(f"  · {path}:{line}  {name}()")
     return 0

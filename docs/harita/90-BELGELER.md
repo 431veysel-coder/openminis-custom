@@ -1,6 +1,6 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Belgeler — 75 dosya
+# Belgeler — 76 dosya
 
 | Belge | Başlık | İlk satır |
 |---|---|---|
@@ -12,7 +12,7 @@
 | `docs/ozel/DENETIM-37099.md` | DENETİM — `37099` / düzeltme turu | `.17` paketi satır satır yeniden okundu. **Sekiz gerçek hata** bulundu; |
 | `docs/ozel/DENETIM-BASLIKLARI.md` | DENETİM BAŞLIKLARI — 13 eksen | Kullanıcının verdiği başlıklar: görev paylaşımı · kodlama · yazılım · güvenlik · |
 | `docs/ozel/DILIM-KAPISI.md` | DİLİM KAPISI — her dilim ayrı derlenir, ayrı rapor verir | Tek büyük derlemede 11 dilimin hatası tek log'a düşer ve birbirini maskeler. |
-| `docs/ozel/ENTEGRASYON-DURUMU.md` | MINIS X — entegrasyon durumu ve kullanıcı yüzeyi | Bu belge "hangi özellik gerçekten çalışıyor" sorusunun tek cevabı. Ölçüm elle |
+| `docs/ozel/ENTEGRASYON-DURUMU.md` | MINIS X — entegrasyon durumu ve kullanıcı yüzeyi | `scripts/integration_audit.py` yalnız **bir** soruyu cevaplar: *üretim kodu bu |
 | `docs/ozel/HARITA.md` | HARİTA — Minis X | Bu dosya "ne, kim için, nasıl" sorusunun tek cevabı. Sayılar **ölçülmüş**; |
 | `docs/ozel/IS-LISTESI-2026-11-20.md` | İŞ LİSTESİ — 20 Kasım 2026 | `versionCode` yalnız **yayın anında** yakılır. 37095–37098 aynı sürümde (37092) |
 | `docs/ozel/KONSEY-DILIMLERI.md` | Konsey hattı — dilim haritası (37037–37069) | Dal: `toplama-11.4` · taban `db2566e` · **derleme yok** (bu dal `apk.yml` |
@@ -28,6 +28,7 @@
 | `docs/ozel/SURUM-NOTU-1.15-ozel.32.md` | SÜRÜM NOTU — 1.15-ozel.32 / 37113 | değil**: üye üye `absentWhy` listeleniyor ve "bu bir sonuç değil, arıza |
 | `docs/ozel/SURUM-NOTU-1.15-ozel.34.md` | SÜRÜM NOTU — 1.15-ozel.34 / 37115 | `.22`–`.33` arası **on iki sürümlük birikim** tek derlemede doğrulandı: |
 | `docs/ozel/SURUM-NOTU-1.15-ozel.35.md` | SÜRÜM NOTU — 1.15-ozel.35 / 37116 | Kullanıcının iki cümlesi bu sürümün tamamı: |
+| `docs/ozel/SURUM-NOTU-1.15-ozel.36.md` | SÜRÜM NOTU — 1.15-ozel.36 / 37117 | Bu turun tek işi var: **"kapandı" iddiasını denetlenebilir yapmak.** Yeni |
 | `docs/ozel/TERMUX-APK-KARARI.md` | KARAR — Termux: katman mı, ayrı APK mı? | Soru (kullanıcı, 2026-11-22): *"Termux araç zincirleri bölümünde olmalı, tek |
 | `docs/ozel/TERMUX-ENTEGRASYONU.md` | TERMUX ENTEGRASYONU — tasarım, güvenlik, ön/arka yüz, etkiler | Bu belge bir niyet beyanı değil. Her bölüm ya **ölçülmüş** bir gerçeğe, ya |
 | `docs/ozel/YAPILACAKLAR.md` | YAPILACAKLAR — geniş kapsamlı, kategori kategori | hâlâ üye başına tek satır**. Sağlayıcı hatası, JSON bozukluğu, kota, model yok |

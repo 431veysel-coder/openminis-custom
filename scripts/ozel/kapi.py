@@ -59,6 +59,12 @@ GATES: dict[str, tuple[list[str], bool]] = {
     # hepsini kırmızı yapmak kapıyı susturur. Amaç: "yazdım, bağlamadım"
     # sınıfını (brief(), needsCapture) tur içinde görmek.
     "olu-kod": ([sys.executable, "scripts/ozel/olu-kod.py", "--sadece-yeni"], False),
+    # [37117] Görünürlük: "anahtar açık" ile "kullanıcı görüyor" aynı şey mi?
+    # Aynı sınıf dört kez tekrar etti (STATION, sağlık, sanal ekran, sağlık
+    # yeniden). `integration_audit` "BAĞLI" derken doğruyu söylüyordu; eksik
+    # olan ikinci soruydu. ZORUNLU: açık ama arayüzde tüketicisi olmayan
+    # anahtar kırmızıdır (taban daralır, genişlemez).
+    "gorunurluk": ([sys.executable, "scripts/ozel/gorunurluk.py"], True),
 }
 
 

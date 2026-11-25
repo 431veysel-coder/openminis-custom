@@ -256,12 +256,22 @@ object OzelFeatures {
          * [37095] Sohbet üst çubuğundaki sağlık göstergesi (TTFB, tekrar
          * deneme, hata kodu).
          *
-         * ON: yalnız **okur** — hiçbir isteği, hiçbir modeli, hiçbir akışı
-         * değiştirmez. Ölçüm zaten yapılıyordu (`streamStartMs`,
-         * `firstChunkSeen`, `_autoRetryAttempt`), tek eksiği ekranda
-         * görünmemesiydi. Kapalıyken chip çizilmez ve sayacı da durur.
+         * [37117] ÖLÇÜMLE KAPATILDI — `.16`'da "bağlandı" yazıyordu, bağlı
+         * değil: `ChatHealthWiring` bu dosyanın dışında **hiçbir yerden**
+         * çağrılmıyor (`requestStarted`/`firstChunk`/`finished` — 0 çağrı,
+         * yalnız kendi tanımı), yani hiçbir sohbet sağlık kaydı üretmiyordu
+         * ve Canlı Görevler'de çizilecek çip yoktu. Anahtar açık olduğu için
+         * kullanıcı "açık ama hiçbir şey yok" durumunu görüyordu.
+         *
+         * Aynı sınıf dördüncü kez: `.14` STATION, `.15` sağlık iddiası,
+         * `.34` sanal ekran yakalama, bu. Ders `gorunurluk.py` kapısına
+         * dönüştü: AÇIK+GÖRÜNMEZ anahtar artık kırmızı.
+         *
+         * Yeniden AÇILMA ŞARTI: `ChatViewModel` tur döngüsü
+         * `requestStarted`/`firstChunk`/`finished` çağırmalı ve
+         * `LiveTasksScreen` çipi çizmeli. İkisi de yoksa anahtar kapalı kalır.
          */
-        CHAT_HEALTH("chat_health", true),
+        CHAT_HEALTH("chat_health", false),
 
         /**
          * [37099] Sanal ekran — ajanın uygulama **içinde** kendi yüzeyi

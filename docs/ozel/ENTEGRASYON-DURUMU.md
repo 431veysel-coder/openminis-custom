@@ -1,7 +1,33 @@
 # MINIS X — entegrasyon durumu ve kullanıcı yüzeyi
 
-**Sürüm:** `1.15-ozel.16` · versionCode **37097** · `com.minis.x` · arm64-v8a
-**Önceki yayın:** `1.15-ozel.15` / 37092 (2026-11-20)
+> **Damga:** `1.15-ozel.36` / 37117 · **son ölçüm:** 2026-11-25
+> **Bu belgenin eskisi `.16 / 37097` damgalıydı** — 20 sürüm boyunca kimse
+> güncellemedi ve "hangi özellik çalışıyor" sorusuna yanlış cevap verdi.
+
+## ÖNCE OKU: "BAĞLI" ≠ "GÖRÜNÜR"
+
+`scripts/integration_audit.py` yalnız **bir** soruyu cevaplar: *üretim kodu bu
+sınıfı çağırıyor mu?* "BAĞLI" dediğinde doğruyu söyler. Yanlış olan, bunu
+"kullanıcı bu özelliği görüyor" diye okumaktır.
+
+Aynı sınıf hata **dört kez** tekrar etti:
+
+| Sürüm | Anahtar | Gerçek |
+|---|---|---|
+| `.14` | `STATION` | AÇIK, `ui/station/` hiç yazılmadı, 0 çağrı |
+| `.15` | sağlık göstergesi | çekirdek var, çağrı yok; anahtar açık, ekranda piksel yok |
+| `.34` | `VIRTUAL_SCREEN` | ayar ekranı var; yakalama hattı ve `Op` API'si **0 çağrı** |
+| `.36` | `CHAT_HEALTH` | `.16` "bağlandı" diyordu; `ChatHealthWiring` **hiçbir yerden** çağrılmıyor |
+
+`.36`'da bu boşluk kapıya dönüştü: `scripts/ozel/gorunurluk.py` (11. kapı,
+zorunlu). Her anahtar için üç soru: üretimde çağrılıyor mu · `ui/` altında
+tüketicisi var mı · kapalıysa gerekçesi yazılı mı.
+
+**Bugünkü ölçüm (araç çıktısı):** 27 anahtar · **18 açık+görünür** ·
+**0 açık+görünmez** · **9 kapalı**, hepsi gerekçeli.
+
+## Ölçülen durum: 10/11 dilim bağlı, 18/27 anahtar görünür
+
 **Release: YAPILMADI.** 37097 hazırlık dalında; push/yayın kararı senin.
 
 Bu belge "hangi özellik gerçekten çalışıyor" sorusunun tek cevabı. Ölçüm elle
@@ -30,7 +56,7 @@ Testlerin ve sınıfın kendi paketinin çağrı sayılmadığı bir tarama.
 | 37088 | Yazma niyeti | ✅ **BAĞLI** | Görünmez; çakışma günlüğe yazılır |
 | 37089 | Yeniden oynatma | ✅ **BAĞLI** | Ayarlar › Geçmiş koşuyu yeniden oynat |
 | 37090 | Uzaktan konsol | ⛔ **yalnız model** | Ürün kararı bekliyor, uygulama yok |
-| 37095 | Sağlık göstergesi | ✅ **BAĞLI (.16)** | Canlı Görevler kartında `820ms · 3.2s · 429` |
+| 37095 | Sağlık göstergesi | ⛔ **BAĞLI DEĞİL (.36 ölçümü)** | Görünmez: `ChatHealthWiring` 0 çağrı. Anahtar `.36`'da kapatıldı |
 
 **Neden 10 da 11 değil:** her dilim bir sınıf + test + anahtar olarak hazır, ama
 "çalışıyor" için üretim kodundan çağrı gerekiyor. Kalan tek dilim (37090 uzaktan
@@ -174,3 +200,22 @@ Her biri kendi başına 1-2 saatlik iş; hiçbiri diğerine bağlı değil.
    beklentisi düzeltildi, davranış değiştirilmedi).
 4. Ekran görüntüsü alınamadı: PRoot'ta JVM yok, emülatör yok. Doğrulama
    `aapt2` (paket/isim/sürüm), dex dize taraması ve `resources.arsc` ile yapıldı.
+
+## Ölçüm yanlışlarım (kayıt)
+
+`.34` denetiminde iki sayıyı yanlış okudum; düzeltiyorum:
+
+| İddia | Gerçek |
+|---|---|
+| "belge 27 izin diyor, manifest 29" | **Belge haklıydı:** `27 + 2` = 29 (27 `android.permission.*` + 2 özel). Üretici `harita.py` doğru sayıyor; hata bendeydi. |
+| "250 ölü fonksiyon" | Rakam **şişkindi**: araç yorumları ve `::ref` / `ad { }` çağrılarını saymıyordu. `.36`'da düzeltildi → **313** (yorumlar artık kullanım sayılmıyor, yani daha dürüst). |
+
+## Test sayısı nasıl okunur
+
+| Sayı | Ne |
+|---|---|
+| **6 753** | Ağaçtaki `@Test` metodu (upstream dahil, çoğu CI'da koşmuyor) |
+| **262** | CI'da **zorunlu** olan: fork'un kendi testleri (`com.openminis.app.ozel.*` ve dilim testleri) |
+| **721** | Upstream test **dosyası** — advisory; kırmızısı yayını durdurmuyor |
+
+"Doğrulandı: 6 753 test geçti" cümlesi bu depoda hiçbir zaman doğru olmadı.
