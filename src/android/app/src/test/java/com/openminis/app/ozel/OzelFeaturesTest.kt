@@ -72,20 +72,23 @@ class OzelFeaturesTest {
         //    ("the user liked it"), so it is right only where it is wanted;
         //  - REPLAY is a developer measurement tool with no place in a normal
         //    conversation;
-        //  - REMOTE_CONSOLE has no implementation yet (permission model only),
-        //    and a switch for a surface that is not built would be a lie;
-        //  - STATION is in the same position since 37091: the switch existed,
-        //    defaulted ON, and no production code read it (measured: 0 call
-        //    sites). OFF until the panels ship in 37093.
+        //  - CHAT_HEALTH measured 0 call sites (.36) — closed by measurement,
+        //    not by preference; its KDoc lists what would reopen it.
+        // [37121] KARAR TURU: liste küçüldü. STATION ve REMOTE_CONSOLE artık
+        // **yok** (silindi, kapatılmadı — kapalı bir anahtar var olmayan bir
+        // özelliği hâlâ reklam eder). AUTO_BACKUP/EVIDENCE_GATE/REPLAY açıldı:
+        // AUTO_BACKUP'ta "anahtar açık ≠ yedek al" (politika varsayılanı
+        // kapalı), EVIDENCE_GATE turu durdurmuyor yalnız hatırlatıyor,
+        // REPLAY'in yüzeyi bağlı.
+        //
+        // Kapalı kalan üçünün gerekçesi tek tek ölçülebilir: DEV_SERVER ağa
+        // port açar, VAULT_AGENT_READ sırrı sağlayıcıya gönderir, TOOL_ROUTER
+        // ölçüm bekliyor, CHAT_HEALTH 0 çağrı (ölçüldü, .36).
         val deliberateOff = setOf(
             OzelFeatures.Feature.DEV_SERVER,
             OzelFeatures.Feature.VAULT_AGENT_READ,
-            OzelFeatures.Feature.STATION,
-            OzelFeatures.Feature.AUTO_BACKUP,
             OzelFeatures.Feature.TOOL_ROUTER,
-            OzelFeatures.Feature.EVIDENCE_GATE,
-            OzelFeatures.Feature.REPLAY,
-            OzelFeatures.Feature.REMOTE_CONSOLE,
+            OzelFeatures.Feature.CHAT_HEALTH,
         )
         val userFacing = OzelFeatures.Feature.entries - deliberateOff
         userFacing.forEach { f ->
