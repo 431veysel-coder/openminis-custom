@@ -2543,4 +2543,10 @@
     <string name="approval_voice_notif_title">Onayın bekleniyor</string>
     <string name="approval_voice_channel_name">Onay istekleri</string>
     <string name="approval_voice_channel_desc">Bir araç çağrısı kararını bekliyor.</string>
+    <string name="virtual_screen_section_canvas">Tuval</string>
+    <string name="virtual_screen_canvas_footer">Bölmeler burada tek yüzeyi paylaşır. Gördüğün şey her bölmenin DURUMU (adres, kaydırma, taslak, son yakalama) — canlı sayfa ve terminal içeriği henüz çizilmiyor; ajanın ekran görüntüleri de bunu söylüyor.</string>
+    <string name="virtual_screen_capture_now">Şimdi yakala</string>
+    <string name="virtual_screen_capture_now_sub">Tuvali çizer ve her görünür bölme için yakalama zamanı düşer.</string>
+    <string name="virtual_screen_capture_done">%1$d bölme yakalandı.</string>
+    <string name="virtual_screen_capture_failed">Kare üretilemedi.</string>
 </resources>

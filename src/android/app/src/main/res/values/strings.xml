@@ -3313,4 +3313,10 @@
     <string name="approval_voice_notif_title">Waiting for your approval</string>
     <string name="approval_voice_channel_name">Approval requests</string>
     <string name="approval_voice_channel_desc">A tool call is waiting for your decision.</string>
+    <string name="virtual_screen_section_canvas">Canvas</string>
+    <string name="virtual_screen_canvas_footer">The panes share one surface here. What you see is each pane\'s STATE (address, scroll, draft, last capture) — live page and terminal content is not rendered yet, and the agent\'s screenshots say so too.</string>
+    <string name="virtual_screen_capture_now">Capture now</string>
+    <string name="virtual_screen_capture_now_sub">Draws the canvas and stamps a capture time for every visible pane.</string>
+    <string name="virtual_screen_capture_done">%1$d pane(s) captured.</string>
+    <string name="virtual_screen_capture_failed">No frame could be produced.</string>
 </resources>

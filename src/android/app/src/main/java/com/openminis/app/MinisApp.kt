@@ -255,6 +255,11 @@ class MinisApp : Application(), ImageLoaderFactory {
         )
     }
 
+    /** [37119] `screen` aracının kare üreticisi (bkz. onCreate'teki kanca). */
+    private val canvasFrameRenderer by lazy {
+        com.openminis.app.screen.CanvasFrameRenderer(this)
+    }
+
     @OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
     override fun onCreate() {
         super.onCreate()
@@ -962,6 +967,19 @@ class MinisApp : Application(), ImageLoaderFactory {
         // yeni bir onay çağrı yeri eklendiğinde burada değişiklik gerekmez.
         // Kullanıcının şikâyeti: "onay istiyorsun ben duyamıyorum".
         com.openminis.app.ozel.ApprovalVoice.start(this)
+
+        // [37119] Sanal ekranın kare üreticisi. `screen` aracının `capture`
+        // eylemi buraya bağlı: kare üretemezse "gördüm" demiyor, susuyor.
+        // Tek kanca — araç yürütücüsü (ChatViewModel) çizim katmanına sahip
+        // değil ve olması mimariyi tersine çevirirdi.
+        //
+        // Sınır (karede de yazılı): üretilen kare **durum karesi**, canlı
+        // sayfa görüntüsü değil. Bölme içeriği canlı yüzeye bağlanınca
+        // (SANAL-EKRAN.md §4 P1) bu satır o kaynağa çevrilecek.
+        com.openminis.app.tools.ScreenTool.frameSource =
+            com.openminis.app.tools.ScreenTool.FrameSource { pane ->
+                canvasFrameRenderer.frame(pane)
+            }
 
         // Track foreground state via ActivityLifecycleCallbacks. Counting
         // started/stopped balances out around configuration changes (the

@@ -2,11 +2,14 @@ package com.openminis.app.ui.settings
 
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Article
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Terminal
 import androidx.compose.material.icons.outlined.Web
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.openminis.app.R
 import com.openminis.app.data.OzelFeatures
 import com.openminis.app.screen.VirtualScreen
+import com.openminis.app.screen.VirtualScreenHost
 import com.openminis.app.screen.VirtualScreenStore
 
 /**
@@ -48,6 +52,8 @@ import com.openminis.app.screen.VirtualScreenStore
 fun VirtualScreenSettingsScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     var state by remember { mutableStateOf(VirtualScreenStore.load(context)) }
+    // [37119] Yakalama sonucu — sessiz kalmak "düğme çalışmıyor" dedirtir.
+    var captureMsg by remember { mutableStateOf<String?>(null) }
     var featureOn by remember {
         mutableStateOf(OzelFeatures.isEnabled(context, OzelFeatures.Feature.VIRTUAL_SCREEN))
     }
@@ -78,6 +84,20 @@ fun VirtualScreenSettingsScreen(onBack: () -> Unit) {
             )
         }
 
+        // [37119] Tek tuval: bölmeler aynı yüzeyde, gerçek yerleşimle.
+        // Canlı içerik yok (durum görünümü) — alt yazı bunu söylüyor.
+        if (featureOn) {
+            SettingsSection(
+                header = stringResource(R.string.virtual_screen_section_canvas),
+                footer = stringResource(R.string.virtual_screen_canvas_footer),
+            ) {
+                VirtualCanvasSection(
+                    state = state,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+        }
+
         SettingsSection(
             header = stringResource(R.string.virtual_screen_section_panes),
             footer = stringResource(R.string.virtual_screen_panes_footer),
@@ -105,6 +125,51 @@ fun VirtualScreenSettingsScreen(onBack: () -> Unit) {
         }
 
         SettingsSection(header = stringResource(R.string.virtual_screen_section_state)) {
+            // [37119] Kanıt düğmesi. `screen` aracının `capture` eylemiyle
+            // aynı yolu kullanır (`ScreenTool.frameSource` → canvas karesi):
+            // ekranda gördüğün kare ile ajanın aldığı kare ayrışmasın.
+            SettingsRow(
+                title = stringResource(R.string.virtual_screen_capture_now),
+                subtitle = stringResource(R.string.virtual_screen_capture_now_sub),
+                icon = Icons.Outlined.Refresh,
+                onClick = if (featureOn) {
+                    {
+                        val panes = state.visiblePanes().map { it.pane }
+                        val source = com.openminis.app.tools.ScreenTool.frameSource
+                        val captured = panes.filter { pane ->
+                            source?.frame(pane) != null
+                        }
+                        if (captured.isNotEmpty()) {
+                            // Damga düşülsün: kare üretildi demek, ekranda
+                            // "yakalama: just now" görünmesi demek.
+                            VirtualScreenHost.markCaptured(context, captured)
+                        }
+                        // Durum diskten yeniden okunur: ekranda görünen tek
+                        // gerçek kaynak disk, bellekte ikinci kopya yok.
+                        state = VirtualScreenStore.load(context)
+                        captureMsg = if (captured.isEmpty()) {
+                            context.getString(R.string.virtual_screen_capture_failed)
+                        } else {
+                            context.getString(R.string.virtual_screen_capture_done, captured.size)
+                        }
+                    }
+                } else {
+                    null
+                },
+                showDivider = true,
+            )
+
+            // Sonuç satırı: düğmeye basıp hiçbir şey görmemek, "çalışmıyor"
+            // dedirtir (bu depoda ölçülmüş sınıf: sessiz düğme).
+            captureMsg?.let { msg ->
+                Text(
+                    text = msg,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             SettingsRow(
                 title = stringResource(R.string.virtual_screen_reset),
                 subtitle = stringResource(R.string.virtual_screen_reset_subtitle),

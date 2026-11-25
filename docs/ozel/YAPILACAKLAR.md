@@ -1,6 +1,6 @@
 # YAPILACAKLAR — geniş kapsamlı, kategori kategori
 
-> **Durum:** 2026-11-25 · sürüm `1.15-ozel.37` / 37118 (derlenmedi, yalnız kaynak)
+> **Durum:** 2026-11-25 · sürüm `1.15-ozel.38` / 37119 (derlenmedi, yalnız kaynak)
 > Tur planı: [`PLAN-35-45.md`](PLAN-35-45.md)
 > Bu dosya **plan**dır, ölçüm değil. Ölçüm için `HARITA.md` ve `harita/`.
 > Her madde: ne · neden · nerede · nasıl anlaşılır (kabul ölçütü).
@@ -34,7 +34,9 @@
 | K19 | `olu-kod` yanlış pozitifi: `::ref`, trailing lambda, yorum | 250 → 313 (dürüst sayı) |
 | K20 | `screen` aracı: sanal ekranı süren tek çağıran (`Op` artık ölü değil) | `tools/ScreenTool.kt` + `ScreenRequestTest` (12) |
 | K21 | Onay tamamen kalktı: `ALLOW_ALL` varsayılan, `deny:` kilidi korunur | `ApprovalModeTest` (9) |
-| K22 | Kart kalktı, haber kalkmadı: `ApprovalVoice.notice` | `POLICYGATE` notifyOnly dalı |
+| K22 | Kart kalktı, haber kalkmadı: `ApprovalVoice.notice` | `PolicyGate` notifyOnly dalı |
+| K23 | Tek tuval yerleşimi (saf, taşma yok, isabet testi) | `screen/VirtualCanvas.kt` + `VirtualCanvasTest` (13) |
+| K24 | `capture` gerçek PNG üretiyor (durum karesi, etiketli) | `screen/CanvasFrameRenderer.kt` + MinisApp kancası |
 
 ---
 
@@ -184,7 +186,7 @@
 
 ## 5 · Sanal ekran (P2)
 
-### 5.1 Tek yüzey çizimi
+### 5.1 ~~Tek yüzey çizimi (yerleşim)~~ ◐ .38 — canlı içerik AÇIK
 - **Ne:** `brief()` artık bağlı (K4) ama bölmeler tek tuvalde çizilmiyor.
 - **Neden:** Kullanıcı "sanal ekran" derken görsel bir yüzey bekliyor.
 - **Kabul:** `HeadlessRenderHost` + bölme durumu aynı yüzeyde; ajan yakalama
