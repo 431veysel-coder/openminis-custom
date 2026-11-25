@@ -1,11 +1,13 @@
 package com.openminis.app.ui.team
 
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -15,7 +17,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,7 +26,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.openminis.app.R
@@ -206,6 +206,204 @@ private fun FloorTab(
         }
         return
     }
+    LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 640.dp)) {
+        items(live.members.values.toList()) { member ->
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (member.absent) MaterialTheme.colorScheme.surfaceVariant
+                    else MaterialTheme.colorScheme.surface,
+                ),
+                onClick = { if (member.sessionId != null) onOpenMember(member.name) },
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(member.name, style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            member.tool ?: if (member.absent) "yok" else "",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (member.role.isNotBlank()) {
+                        Text(
+                            member.role,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (member.claim.isNotBlank()) {
+                        Text(
+                            member.claim,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(top = 6.dp),
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (member.absent) {
+                        Text(
+                            stringResource(R.string.council_member_absent),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DecisionTab(
+    answer: String?,
+    dissent: List<String>,
+    recorded: TeamRunStore.Header?,
+) {
+    LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 640.dp)) {
+        item {
+            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                if (recorded != null && !recorded.verified) {
+                    Text(
+                        stringResource(R.string.council_unverified),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                // [37099k · §8.2] Rapor düz metin değil: başlık/madde/atıf
+                // ayrılıyor. Önce tek `Text`'ti; modelin yazdığı `## başlık`
+                // ve `- madde` ekranda ham görünüyordu.
+                if (answer.isNullOrBlank()) {
+                    Text(
+                        stringResource(R.string.council_no_report),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                } else {
+                    ReportBody(answer)
+                }
+                if (dissent.isNotEmpty()) {
+                    Text(
+                        stringResource(R.string.council_dissent),
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
+                    dissent.forEach {
+                        Text(
+                            "• $it",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * [MINIS-OZEL 11.5 · 37064] Every council run the user can open.
+ *
+ * Running runs first (they are what the user is waiting on), then the recorded
+ * ones newest first. A run that is in the registry is NOT read from disk — the
+ * disk copy does not exist until the run finishes, so showing it would mean
+ * showing yesterday's file for today's run id.
+ */
+@Composable
+fun CouncilRunsScreen(
+    onBack: () -> Unit,
+    onOpenRun: (String) -> Unit,
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val live by CouncilLiveRegistry.runs.collectAsState()
+    val recorded = remember(live.size) {
+        runCatching { TeamRunStore.list(context) }.getOrDefault(emptyList())
+    }
+    val liveRuns = live.values.sortedByDescending { it.startedAtMs }
+    val liveIds = liveRuns.map { it.runId }.toSet()
+
+    SettingsScaffold(
+        title = stringResource(R.string.council_title),
+        onBack = onBack,
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            if (liveRuns.isNotEmpty()) {
+                SettingsSection(header = stringResource(R.string.council_section_running)) {
+                    liveRuns.forEachIndexed { i, run ->
+                        SettingsRow(
+                            title = run.teamName,
+                            subtitle = "${phaseLabel(run.phase)} · tur ${run.round}/${run.roundsPlanned}",
+                            showDivider = i < liveRuns.lastIndex,
+                            onClick = { onOpenRun(run.runId) },
+                        )
+                    }
+                }
+            }
+            val past = recorded.filter { it.runId !in liveIds }
+            SettingsSection(
+                header = stringResource(R.string.council_section_past),
+                footer = if (past.isEmpty()) stringResource(R.string.council_empty_hint) else null,
+            ) {
+                if (past.isEmpty()) {
+                    SettingsRow(
+                        title = stringResource(R.string.council_empty_title),
+                        subtitle = null,
+                        showDivider = false,
+                    )
+                } else {
+                    past.forEachIndexed { i, run ->
+                        SettingsRow(
+                            title = run.teamName,
+                            subtitle = run.statusLine(),
+                            showDivider = i < past.lastIndex,
+                            onClick = { onOpenRun(run.runId) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * [37099c] **Karşılaştırma odası** — satırlar maddeler, sütunlar üyeler.
+ *
+ * ## Neden ayrı oda
+ *
+ * "Gündem" oyu topluyordu (`3✓ 2✗`), yani "kaç kişi" sorusunu cevaplıyordu.
+ * Kullanıcının asıl sorusu "kim" ve "hangi maddede": 3'e 2 bölünmüş bir
+ * konseyde kimin ne dediğini görmeden kararı okumak, raporun neden öyle
+ * çıktığını açıklamıyor.
+ *
+ * ## Neden uydurma yok
+ *
+ * Duruşlar `Claim.stances` içinden geliyor; kayıtta olmayan üye sütunu
+ * **çizilmez**. Oy veren üye listesi kayıtta yoksa tablo çizilmez, boş
+ * durum yazılır — "herkes katıldı" varsayımı bir yalandır.
+ */
+@Composable
+private fun ComparisonRoom(live: CouncilLiveRegistry.LiveRun?) {
+    val claims = live?.claims.orEmpty()
+    // Sütunlar: yalnız oy vermiş üyeler, kayıttaki sırayla.
+    val members = remember(claims) {
+        val order = live?.members?.keys?.toList().orEmpty()
+        val voted = claims.flatMap { it.stances.keys }.distinct()
+        order.filter { it in voted } .ifEmpty { voted }
+    }
+    if (claims.isEmpty() || members.isEmpty()) {
+        SettingsSection {
+            SettingsRow(
+                title = stringResource(R.string.council_compare_empty),
+                showDivider = false,
+            )
+        }
+        return
+    }
     // [37122 · §1.5] Gerçek matris: satır = iddia, sütun = **oy vermiş** üye.
     //
     // Neden yatay kaydırma: 5 üye × 96 dp = 480 dp, 320 dp'lik ekrana sığmaz.
@@ -232,17 +430,13 @@ private fun FloorTab(
                     modifier = Modifier.padding(start = 12.dp, bottom = 4.dp),
                 )
             }
-            // Başlık: iddia sütunu sabit, üye sütunları kayar.
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
                 Text(
                     stringResource(R.string.council_compare_claim_col),
                     modifier = Modifier.width(layout.claimWidthDp.dp),
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                 )
-                Row(
-                    modifier = Modifier.horizontalScroll(scroll),
-                    horizontalArrangement = Arrangement.spacedBy(0.dp),
-                ) {
+                Row(modifier = Modifier.horizontalScroll(scroll)) {
                     layout.columns.forEach { c ->
                         Text(
                             c.member,
@@ -295,63 +489,9 @@ private fun FloorTab(
                             }
                         }
                     }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                }
-            }
-        }
-    }
-}
-
-/**
- * [37099k · §8.2] **Karar odası** — rapor düz metin değil.
- *
- * `ReportBody` başlık/madde/atıf ayırıyor; önce tek `Text`'ti ve modelin
- * yazdığı `## başlık` ile `- madde` ekranda ham görünüyordu.
- *
- * [37124] GERÇEK HATA: bu fonksiyon `.41`'de (matris yaması) yanlışlıkla
- * silindi; çağrısı kaldı (sekme 2) ve hiçbir kapı yakalamadı, çünkü
- * `Slice Gate`'in yol listesinde bu dizin **yoktu** — yani bu dosya CI'da
- * hiç derlenmiyordu. (Glob'u buraya yazmıyorum: KDoc içinde `yıldız yıldız
- * bölü` dizisi yeni bir yorum **açar**, dosya derlenmez. Gerçek hata bu:
- * `.44`'ün ilk derlemesi tam olarak bu yüzden düştü.)
- */
-@Composable
-private fun DecisionTab(
-    answer: String?,
-    dissent: List<String>,
-    recorded: TeamRunStore.Header?,
-) {
-    LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 640.dp)) {
-        item {
-            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                if (recorded != null && !recorded.verified) {
-                    Text(
-                        stringResource(R.string.council_unverified),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.error,
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                     )
-                }
-                if (answer.isNullOrBlank()) {
-                    Text(
-                        stringResource(R.string.council_no_report),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                } else {
-                    ReportBody(answer)
-                }
-                if (dissent.isNotEmpty()) {
-                    Text(
-                        stringResource(R.string.council_dissent),
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.padding(top = 12.dp),
-                    )
-                    dissent.forEach {
-                        Text(
-                            "• $it",
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(top = 4.dp),
-                        )
-                    }
                 }
             }
         }
@@ -391,10 +531,9 @@ private fun CommsRoom(live: CouncilLiveRegistry.LiveRun?) {
                         if (q.answer.isNotBlank()) {
                             // [37099d] Cevap, hedefin sonraki tur pozisyonundan
                             // eşlenir — kesin bir alıntı değil.
-                            // [37122 · §1.6] Yaklaşıklık artık **işaretle**
-                            // yazılıyor: "≈" olmadan kullanıcı bunu resmî cevap
-                            // sanıyor ve yanlış üyeye atfedilmiş bir cevap,
-                            // cevapsızlıktan daha zararlı.
+                            // [37122 · §1.6] Yaklaşıklık artık işaretle yazılıyor:
+                            // yanlış üyeye atfedilmiş bir cevap, cevapsızlıktan
+                            // daha zararlı.
                             append("\n↳ ")
                             append(
                                 ClaimMatrixLayout.answerMark(

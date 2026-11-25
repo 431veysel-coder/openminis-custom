@@ -57,6 +57,17 @@ object VirtualScreen {
         TYPE("type"),
         READ("read"),
         CAPTURE("capture"),
+        /**
+         * [37124] Bölmeyi öne al. `VirtualScreenHost.focus()` `.34`'ten beri
+         * vardı ama eylemi yoktu — yani ajan bölme açabiliyor, öne alamıyordu.
+         * Derleme hatası olarak ortaya çıktı (ilk gerçek derleme turu).
+         */
+        FOCUS("focus"),
+        /**
+         * [37124] Bölmeyi gizle. `VirtualScreenHost.hide()` de vardı, eylemi
+         * yoktu. Durum korunur: gizlemek silmek değil.
+         */
+        HIDE("hide"),
         ;
 
         companion object {
@@ -217,6 +228,8 @@ object VirtualScreen {
             Action.READ, Action.CAPTURE, Action.SCROLL, Action.NAVIGATE, Action.OPEN -> Cost.SILENT
             // Kendi sekme durumumuzu değiştirmek geri alınabilir: kart yok.
             Action.CLICK, Action.TYPE -> Cost.SILENT
+            // [37124] Odak/gizle: bölme düzeni, veri değil. Sessiz.
+            Action.FOCUS, Action.HIDE -> Cost.SILENT
         }
         Target.DEVICE -> when (action) {
             Action.READ, Action.CAPTURE -> Cost.SILENT      // okumak ekranı değiştirmez
@@ -224,6 +237,9 @@ object VirtualScreen {
             Action.OPEN, Action.NAVIGATE -> Cost.ASK         // kullanıcının yerini değiştirir
             Action.CLICK -> Cost.CONFIRM                     // geri alınamaz işlem başlatabilir
             Action.TYPE -> Cost.CONFIRM                      // gönderme/silme olabilir
+            // [37124] Gerçek ekranda odak/gizle yok — bu araç B'yi sürmez.
+            // Yine de tablo tam olmalı: eksik dal, sessizce "geçti" demek olurdu.
+            Action.FOCUS, Action.HIDE -> Cost.ASK
         }
     }
 
