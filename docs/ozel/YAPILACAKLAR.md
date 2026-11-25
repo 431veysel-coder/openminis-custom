@@ -1,6 +1,6 @@
 # YAPILACAKLAR — geniş kapsamlı, kategori kategori
 
-> **Durum:** 2026-11-25 · sürüm `1.15-ozel.41` / 37122 (derlenmedi, yalnız kaynak)
+> **Durum:** 2026-11-25 · sürüm `1.15-ozel.42` / 37123 (derlenmedi, yalnız kaynak)
 > Tur planı: [`PLAN-35-45.md`](PLAN-35-45.md)
 > Bu dosya **plan**dır, ölçüm değil. Ölçüm için `HARITA.md` ve `harita/`.
 > Her madde: ne · neden · nerede · nasıl anlaşılır (kabul ölçütü).
@@ -40,6 +40,7 @@
 | K25 | Konuk kökü DNS kalıcılığı (işaretli blok, 3 mod, idempotent) | `sandbox/DnsBootstrap.kt` + `DnsBootstrapTest` (11) |
 | K26 | 8 kapalı anahtarın kararı: 3 açıldı, 2 silindi, 3 gerekçeli kapalı | `gorunurluk`: 0 açık+görünmez |
 | K27 | Karşılaştırma matrisi + ≈ cevap eşleme işareti | `ClaimMatrixLayout` + `ClaimMatrixLayoutTest` (8) |
+| K28 | Konsey katılım satırı + kuyruk görünürlüğü (saf `split`) | `AttendanceLine` + `AttendanceLineTest` (9) |
 
 ---
 

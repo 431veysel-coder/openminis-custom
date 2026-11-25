@@ -1,11 +1,11 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Testler — 6693 birim testi
+# Testler — 6702 birim testi
 
 | | |
 |---|---|
-| Birim test dosyası | 776 |
-| Birim `@Test` | 6693 |
+| Birim test dosyası | 777 |
+| Birim `@Test` | 6702 |
 | Cihaz testi dosyası | 12 |
 | Cihaz `@Test` | 124 |
 
@@ -15,8 +15,8 @@
 | `provider` | 84 |
 | `data` | 77 |
 | `backup` | 53 |
+| `agent` | 43 |
 | `sandbox` | 43 |
-| `agent` | 42 |
 | `speech` | 31 |
 | `service` | 23 |
 | `ozel` | 22 |

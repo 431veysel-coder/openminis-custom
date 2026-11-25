@@ -172,6 +172,43 @@ fun LiveTasksScreen(
             }
         }
 
+        // [37123 · §4.4] Kuyruk görünürlüğü. `queueSummaryOf` zaten vardı ama
+        // yalnız **ajana** söyleniyordu (İngilizce araç sonucu); kullanıcı
+        // "2 çalışıyor, 3 sırada" satırını hiçbir yerde göremiyordu. Aynı
+        // sayılar, iki kitle, iki cümle (`AttendanceLine.queue`).
+        //
+        // Neden burada, sayfa başlığında: kullanıcı listeyi okumaya
+        // başlamadan önce "kaç iş var" bilgisini görsün; satırların arasına
+        // gömülen özet, uzun listede kaybolur.
+        // Sayılar **durumdan**: `AgentJobState`'te QUEUED yok, sınırı aşan
+        // işler PENDING kalıyor. Üçlüye ayırma saf çekirdekte (`split`) —
+        // her çağrı yerinde `pending - limit` yazmak negatif sayı üretir.
+        val counts = com.openminis.app.agent.team.AttendanceLine.split(
+            running = activeJobs.count { it.state == AgentJobState.RUNNING },
+            pending = activeJobs.count { it.state == AgentJobState.PENDING },
+            limit = AgentJobRegistry.maxConcurrentChildJobsPerParent,
+        )
+        com.openminis.app.agent.team.AttendanceLine
+            .queue(counts.running, counts.starting, counts.waiting)
+            ?.let { line ->
+                Text(
+                    text = line,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                )
+                com.openminis.app.agent.team.AttendanceLine
+                    .queueDetail(counts.waiting, AgentJobRegistry.maxConcurrentChildJobsPerParent)
+                    ?.let { detail ->
+                        Text(
+                            text = detail,
+                            modifier = Modifier.padding(start = 16.dp, bottom = 4.dp),
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                        )
+                    }
+            }
+
         // ── Delegated runs ────────────────────────────────────────────────
         SettingsSection(
             header = stringResource(R.string.live_tasks_section_jobs, activeJobs.size),

@@ -1,11 +1,11 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Kod ağacı — 895 dosya, 320898 satır
+# Kod ağacı — 896 dosya, 321050 satır
 
 | Paket | Dosya | Satır |
 |---|---|---|
 | `accessibility/` | 4 | 897 |
-| `agent/` | 53 | 14541 |
+| `agent/` | 54 | 14656 |
 | `auth/` | 17 | 4718 |
 | `backup/` | 27 | 8567 |
 | `browser/` | 13 | 6164 |
@@ -40,7 +40,7 @@
 | `speech/` | 42 | 11096 |
 | `terminal/` | 2 | 126 |
 | `tools/` | 16 | 3352 |
-| `ui/` | 311 | 150457 |
+| `ui/` | 311 | 150494 |
 | `usage/` | 6 | 805 |
 | `util/` | 2 | 266 |
 | `webapp/` | 5 | 1316 |

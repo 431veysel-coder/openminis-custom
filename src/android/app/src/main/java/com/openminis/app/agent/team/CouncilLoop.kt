@@ -246,7 +246,10 @@ class CouncilLoop(
         // ── Synthesis ──────────────────────────────────────────────────────
         // Runs even for a stopped run: a council that spent tokens and produced
         // no report is the worst possible outcome for the user.
-        var report = synthesize(brief, consensus, evidence, dissent, language, lastRoundPositions)
+        var report = synthesize(
+            brief, consensus, evidence, dissent, language, lastRoundPositions,
+            plannedMembers = memberList.size,
+        )
         emit(CouncilEvent.Synthesized(report.length))
 
         var audit = CitationAudit.audit(report, evidence, auditRoot)
@@ -401,6 +404,13 @@ class CouncilLoop(
         dissent: List<String>,
         language: String?,
         lastPositions: List<Position>,
+        /**
+         * [37123] Koşuya **planlanan** üye sayısı. `lastPositions.size`'tan
+         * farklı olabilir: bir üye hiç çağrılmadan elenmiş olabilir (preflight,
+         * dalga sınırı). "5/5 katıldı" ile "5/2 katıldı" arasındaki farkı
+         * yazabilmek için ayrı parametre.
+         */
+        plannedMembers: Int = 0,
     ): String {
         if (consensus.verdicts.isEmpty()) {
             // No chair output at all: fall back to the members' own claims so
@@ -440,7 +450,19 @@ class CouncilLoop(
         val text = runCatching {
             model.ask(prompt, json = false, maxTokens = SYNTHESIS_MAX_TOKENS)
         }.getOrNull()
-        if (!text.isNullOrBlank()) return text.trim()
+        if (!text.isNullOrBlank()) {
+            // [37123] Katılım satırı raporun **başına** yazılıyor, sonuna
+            // değil: sonradan eklenen bir not, uzun bir raporu okumaya
+            // başlamış kullanıcıya ulaşmaz. Hepsi katıldıysa satır yok —
+            // `AttendanceLine` bunu kendisi karar veriyor.
+            val attendance = AttendanceLine.line(
+                total = if (plannedMembers > 0) plannedMembers else lastPositions.size,
+                answered = lastPositions.count { !it.absent },
+                absent = lastPositions.filter { it.absent }
+                    .map { it.member to it.absentWhy.ifBlank { "" } },
+            )
+            return if (attendance == null) text.trim() else attendance + "\n\n" + text.trim()
+        }
         // The synthesiser failed; a deterministic report beats nothing, and it
         // must not pretend to be better than it is.
         return buildString {
