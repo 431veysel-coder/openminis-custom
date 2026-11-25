@@ -37,7 +37,7 @@ class ApprovalModeTest {
 
     @Test
     fun ask_each_hicbir_kurali_sessizlestirmez() {
-        listOf("shell:rm", "pkg:apk", "net:ssh", "plan:long-run").forEach { id ->
+        listOf("shell:rm", "git:reset-hard", "net:ssh", "plan:long-run").forEach { id ->
             val rule = RiskRules.byId(id)
             assertTrue("kural bulunamadı: $id", rule != null)
             assertFalse(id, ApprovalMode.ASK_EACH.autoGrants(rule!!))
@@ -46,12 +46,19 @@ class ApprovalModeTest {
 
     @Test
     fun settings_only_yalniz_verilebilir_kurallari_sessizlestirir() {
-        val grantable = RiskRules.byId("shell:rm")
+        // MEDIUM + sandbox içi + kurtarılabilir: katalog da "verilebilir" der.
+        val grantable = RiskRules.byId("git:reset-hard")
         assertTrue(grantable != null)
         assertTrue(
-            "sandbox içi + geri alınabilir silme uygulama geneli izin almalı",
+            "sandbox içi + kurtarılabilir iş uygulama geneli izin almalı",
             ApprovalMode.SETTINGS_ONLY.autoGrants(grantable!!),
         )
+        assertTrue(GrantCatalog.item(grantable).grantable)
+
+        // Silme geri alınamaz olduğu için SETTINGS_ONLY'de kart çıkar.
+        val rm = RiskRules.byId("shell:rm")
+        assertTrue(rm != null)
+        assertFalse("geri alınamaz silme kartla sorulmalı", ApprovalMode.SETTINGS_ONLY.autoGrants(rm!!))
 
         // Sandbox dışına taşan bir kural: katalog da bunu "verilemez" sayar.
         val device = RiskRules.byId("device:sudo")
@@ -66,7 +73,7 @@ class ApprovalModeTest {
     @Test
     fun allow_all_geri_alinamaz_kurallari_da_sessizlestirir() {
         // Geri alınamaz silme: SETTINGS_ONLY'de kart, ALLOW_ALL'de sessiz.
-        val permanent = RiskRules.byId("shell:rm-recursive")
+        val permanent = RiskRules.byId("shell:rm")
         assertTrue(permanent != null)
         assertFalse(ApprovalMode.SETTINGS_ONLY.autoGrants(permanent!!))
         assertTrue(ApprovalMode.ALLOW_ALL.autoGrants(permanent))
