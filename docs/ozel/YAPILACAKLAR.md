@@ -1,6 +1,6 @@
 # YAPILACAKLAR — geniş kapsamlı, kategori kategori
 
-> **Durum:** 2026-11-25 · sürüm `1.15-ozel.38` / 37119 (derlenmedi, yalnız kaynak)
+> **Durum:** 2026-11-25 · sürüm `1.15-ozel.39` / 37120 (derlenmedi, yalnız kaynak)
 > Tur planı: [`PLAN-35-45.md`](PLAN-35-45.md)
 > Bu dosya **plan**dır, ölçüm değil. Ölçüm için `HARITA.md` ve `harita/`.
 > Her madde: ne · neden · nerede · nasıl anlaşılır (kabul ölçütü).
@@ -37,6 +37,7 @@
 | K22 | Kart kalktı, haber kalkmadı: `ApprovalVoice.notice` | `PolicyGate` notifyOnly dalı |
 | K23 | Tek tuval yerleşimi (saf, taşma yok, isabet testi) | `screen/VirtualCanvas.kt` + `VirtualCanvasTest` (13) |
 | K24 | `capture` gerçek PNG üretiyor (durum karesi, etiketli) | `screen/CanvasFrameRenderer.kt` + MinisApp kancası |
+| K25 | Konuk kökü DNS kalıcılığı (işaretli blok, 3 mod, idempotent) | `sandbox/DnsBootstrap.kt` + `DnsBootstrapTest` (11) |
 
 ---
 
@@ -222,7 +223,7 @@
 
 ## 7 · Altyapı ve dayanıklılık (P1)
 
-### 7.1 DNS
+### 7.1 ~~DNS~~ ✅ .39 (konuk kökü)
 - **Ne:** Sandbox `getent`/python `getaddrinfo` github.com'u çözemiyor; curl
   çözüyor. Şu an `/etc/hosts` yamasıyla çalışıyor — **oturumluk**.
 - **Neden:** Her yeni oturumda push/indirme kırılır; kullanıcı "yine bozuldu"

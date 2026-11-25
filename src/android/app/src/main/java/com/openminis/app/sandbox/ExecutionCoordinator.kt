@@ -86,6 +86,12 @@ object ExecutionCoordinator {
             // yolu eklemek yerine komut yolunda tamamlıyoruz — mkdirs zaten
             // varsa hiçbir şey yapmaz, maliyeti bir sistem çağrısı.
             runCatching { TermuxLayer.ensureAptDirs(rootfs) }
+            // [37120] DNS: konuk kökünde `nameserver` yoksa yaz. `AUTO` modda
+            // kullanıcının kendi resolver'ı varsa hiçbir şey yapılmaz.
+            // Neden burada: aynı sebep (var olan kurulumlar onarılsın), tek
+            // çağrı yeri olsun. Dört PRoot kurucusunun her birine eklemek,
+            // birini unutmak demek — bu depoda üç kez yaşandı.
+            runCatching { DnsBootstrap.ensure(rootfs) }
             true
         }
     }.getOrDefault(false)

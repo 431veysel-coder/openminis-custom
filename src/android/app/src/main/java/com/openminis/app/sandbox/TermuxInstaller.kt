@@ -199,9 +199,14 @@ object TermuxInstaller {
         // Cihazda ölçüldü: `apt install` "Archives directory … is missing" ile
         // düşüyordu; dizinleri açınca geçti.
         val aptDirsMissing = TermuxLayer.ensureAptDirs(root)
+        // [37120] Aynı kurulumda resolver: konuk kökünde DNS yoksa yaz.
+        val dnsPlan = runCatching { DnsBootstrap.ensure(root) }.getOrNull()
         if (aptDirsMissing.isNotEmpty()) {
             AppLogger.info(TAG, "[termux] apt dizinleri açılamadı: ${aptDirsMissing.joinToString()}")
         }
+        // DNS planı günlüğe yazılır: "yazdım mı, dokunmadım mı" ayrımı sonradan
+        // teşhis edilemezse, kullanıcı "yine çözemiyor" dediğinde kör kalınır.
+        dnsPlan?.let { AppLogger.info(TAG, "[termux] dns: changed=${it.changed} — ${it.reason}") }
 
         // 8) sources — resmî mirror'a sabitle
         val sources = File(prefixDir, "etc/apt/sources.list")
