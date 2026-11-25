@@ -203,20 +203,14 @@ fun OzelFeaturesScreen(
 
         // ── Station / edit mode [MINIS-OZEL 11.1] ────────────────────────
         //
-        // [37096] Both rows are gone, and this time for the reason .14 already
-        // wrote down: a switch that can be flipped is a promise that something
-        // happens when you flip it.
+        // [37121] Bu iki satır **artık yok ve olmayacak**: anahtarların kendisi
+        // silindi (`OzelFeatures`), çünkü kapalı bir anahtar var olmayan bir
+        // özelliği hâlâ reklam eder. `ui/station/` yazılırsa anahtar panellerle
+        // birlikte geri gelir — o gün bu yorum da güncellenir.
         //
-        //  · STATION — `ui/station/` was never written, so `Feature.STATION`
-        //    has no reader in production code. It was default-ON in .14 and
-        //    closed; closed but still rendered, it stayed a promise. The flag
-        //    stays in `OzelFeatures` (panels are 37093 work), the ROW does not:
-        //    when `ui/station/` lands, the row comes back with the panels.
-        //  · EDIT_MODE — deleted with the flag: the pen was never built.
-        //
-        // The same rule caught `CHAT_HEALTH` in .15: default ON, no consumer,
-        // no row. It is now wired (ChatHealthBridge -> Live Tasks), so it
-        // appears where it does something instead of as a switch here.
+        // `CHAT_HEALTH` aynı sınıfın dördüncü örneğiydi: `.15`'te "bağlandı"
+        // denildi, ölçüm 0 çağrı gösterdi; `.36`'da anahtar **ölçümle**
+        // kapatıldı ve `gorunurluk.py` bu sınıfı artık kapıda yakalıyor.
 
         // ── Teams / council [11.5] ───────────────────────────────────────
         // The switch existed since 37060 but had NO row, so the only way to turn

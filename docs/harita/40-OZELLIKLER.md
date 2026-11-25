@@ -1,6 +1,6 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Özellik anahtarları — 27
+# Özellik anahtarları — 25
 
 | Anahtar | Ayar adı | Varsayılan |
 |---|---|---|
@@ -14,21 +14,19 @@
 | `NOTES` | `notes` | açık |
 | `VAULT` | `vault` | açık |
 | `VAULT_AGENT_READ` | `vault_agent_read` | kapalı |
-| `STATION` | `station` | kapalı |
 | `JOURNAL` | `journal` | açık |
 | `ACCEPTANCE_CRITERIA` | `acceptance_criteria` | açık |
 | `COUNCIL` | `council` | açık |
 | `APPROVAL_GATE` | `approval_gate` | açık |
 | `BUDGET_CAP` | `budget_cap` | açık |
-| `AUTO_BACKUP` | `auto_backup` | kapalı |
+| `AUTO_BACKUP` | `auto_backup` | açık |
 | `PLAN_PREVIEW` | `plan_preview` | açık |
 | `TURN_DIFF` | `turn_diff` | açık |
 | `TOOL_ROUTER` | `tool_router` | kapalı |
 | `LESSON_BOOK` | `lesson_book` | açık |
-| `EVIDENCE_GATE` | `evidence_gate` | kapalı |
+| `EVIDENCE_GATE` | `evidence_gate` | açık |
 | `WRITE_INTENT` | `write_intent` | açık |
-| `REPLAY` | `replay` | kapalı |
-| `REMOTE_CONSOLE` | `remote_console` | kapalı |
+| `REPLAY` | `replay` | açık |
 | `CHAT_HEALTH` | `chat_health` | kapalı |
 | `VIRTUAL_SCREEN` | `virtual_screen` | açık |
 

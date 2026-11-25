@@ -103,18 +103,12 @@ object OzelFeatures {
          */
         VAULT_AGENT_READ("vault_agent_read", false),
 
-        /**
-         * [MINIS-OZEL 11.1] The Station: several providers/models working the
-         * same task side by side, each with its own terminal and browser tabs.
-         *
-         * [37091] OFF, and it was ON with a subtitle promising "two to four
-         * agents on one task". The module (`ui/station/`) was never written and
-         * nothing in production code reads this flag — measured: 0 call sites.
-         * A switch that does nothing is not a placeholder, it is a broken
-         * promise: the user turns it on and concludes the app is buggy. It goes
-         * back to ON when the panels exist (planned 37093).
-         */
-        STATION("station", false),
+        // [37121] `STATION` **silindi**, kapatılmadı. Gerekçe: `ui/station/`
+        // hiç yazılmadı, anahtarın üretimde 0 çağrısı vardı ve iki sürüm
+        // boyunca "kapalı" durması kullanıcıya "kapatılmış bir özellik var"
+        // izlenimi verdi. Kapalı bir anahtar var olmayan bir özelliği hâlâ
+        // reklam eder; silmek dürüst olan. Paneller yazılırsa anahtar da
+        // panellerle birlikte geri gelir (plan: `.45+`).
 
         // [37091] `EDIT_MODE` removed, not disabled. Its row promised "a pen in
         // the middle of every screen: tap it, mark what should change, and the
@@ -188,9 +182,13 @@ object OzelFeatures {
         /**
          * [37082] Kendiliğinden yedek.
          *
-         * OFF: depolama ve pil harcayan bir iş, kullanıcı istemeden başlamaz.
+         * [37121] AÇIK — satır görünsün. Ayrım önemli: **anahtar açık** demek
+         * "yedek al" demek değil; `AutoBackupPolicy` varsayılanı kapalı
+         * (`enabled=false`), yani gerçek yedek yine kullanıcı istemeden
+         * başlamaz. `.36`'daki `gorunurluk` kapısı bu ayrımı yazamadığı için
+         * anahtarı görünmez sayıyordu; burada ayrım KDoc'a yazıldı.
          */
-        AUTO_BACKUP("auto_backup", false),
+        AUTO_BACKUP("auto_backup", true),
 
         /**
          * [37083] Pahalı işten önce plan kartı.
@@ -225,10 +223,12 @@ object OzelFeatures {
         /**
          * [37087] "Bitti" beyanı için kanıt.
          *
-         * OFF: doğrulanamayan işlerde (ör. "kullanıcı beğendi mi") turu
-         * gereksiz uzatır. Açıksa iki turdan sonra uyarıyla geçilir.
+         * [37121] AÇIK — ve sınırı KDoc'a yazıldı: kanıtsız "bitti" beyanı
+         * turu **durdurmaz**, ikinci turdan sonra hatırlatıcı ekler. Geri
+         * dönüşü olan bir uyarı; kapalı tutmanın tek etkisi "bitti dedi ama
+         * bitmemişti" sınıfını geri getirmek olurdu.
          */
-        EVIDENCE_GATE("evidence_gate", false),
+        EVIDENCE_GATE("evidence_gate", true),
 
         /**
          * [37088] Çok adımlı iş boyunca yazma niyeti + çakışma sicili.
@@ -240,17 +240,16 @@ object OzelFeatures {
         /**
          * [37089] Kayıtlı yeniden oynatma (model karşılaştırması).
          *
-         * OFF: geliştirici ölçüm aleti, normal kullanıcı akışında yeri yok.
+         * [37121] AÇIK — `ReplayStore` bağlı (`integration_audit`: BAĞLI) ve
+         * Ayarlar › Geçmiş koşuyu yeniden oynat satırı var. Kapalı tutmak,
+         * bağlı bir yüzeyi kullanıcıdan saklamak demekti.
          */
-        REPLAY("replay", false),
+        REPLAY("replay", true),
 
-        /**
-         * [37090] Uzaktan konsol.
-         *
-         * OFF ve **uygulaması yok**: yalnız jeton/yetki modeli yazıldı. Ürün
-         * kararı verilmeden kullanıcıya açılmaz.
-         */
-        REMOTE_CONSOLE("remote_console", false),
+        // [37121] `REMOTE_CONSOLE` **silindi**. `remote/RemotePolicy.kt` jeton
+        // modeli olarak duruyor (ürün kararı: sunucu yok, yarım güvenlik kodu
+        // kullanıcıya açılmaz) ama anahtarın kendisi bir vaat taşıyordu ve
+        // hiçbir yüzeyi yoktu. Karar: **kod kalsın, vaat kalksın.**
 
         /**
          * [37095] Sohbet üst çubuğundaki sağlık göstergesi (TTFB, tekrar
