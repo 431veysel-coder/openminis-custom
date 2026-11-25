@@ -54,6 +54,50 @@ fonksiyon onu da götürmüştü.
 | CI dal filtresi | ✅ `ozel/**` eklendi — **kök neden** |
 | §8.4 TalkBack / §8.1 boş durum / §8.3 dil | açık → `.45` |
 
+
+## İlk derleme düştü — ve düşmesi iyiydi
+
+`ozel/**` eklenince Gradle ilk kez koştu ve **derleme hatası verdi**:
+
+```
+e: CouncilScreens.kt:487:1 Unclosed comment
+```
+
+Sebep: `DecisionTab` geri koyarken KDoc'una glob yazdım — yorum içindeki
+`/` + `*` + `*` dizisi **yeni bir yorum açar**, dosya derlenmez. Kendi
+eklediğim dokümantasyon kendi kodumu kırdı. Bu, "test yoksa doğrulanmamıştır"
+kuralının derleme sürümü.
+
+### Yerel kapı da bu sınıfı görmüyordu — iki sebeple
+
+1. `check_comments` fonksiyonu **hiç çağrılmıyordu**. Kapının kendi içinde
+   "yazdım, bağlamadım" örneği. `olu-kod.py` bilgi olarak listeliyordu ama
+   kapı `--sadece-yeni` ile koştuğu için görünmedi.
+2. Naif sayım da yanlış olurdu: `text.count("/*") != text.count("*/")`
+   yorumlarda apostrof yüzünden (Türkçe: "kullanıcı'nın") onlarca yanlış
+   pozitif üretti. Ölçtüm: tam ağaçta **8+ dosya** sahte "dengesiz".
+
+Düzeltme: gerçek durum makinesi (`code` / `line` / `block` / `"` / üçlü
+tırnak / char literal). Üç vakayla sınandı:
+
+| Vaka | Beklenen | Sonuç |
+|---|---|---|
+| KDoc içinde glob | kırmızı | ✅ yakalandı |
+| Yorumda apostrof + string içinde `/*` | temiz | ✅ sessiz |
+| Sıradan KDoc | temiz | ✅ sessiz |
+
+Tam ağaç taraması: **0 yanlış pozitif**.
+
+**Ders:** kapıyı yazmak yetmiyor; (a) çağrıldığını, (b) yanlış pozitif
+üretmediğini, (c) bilerek sokulan hatayı yakaladığını ayrı ayrı sınamak
+gerekiyor. Üçünü de bu turda yaptım — ve üçü de ilk denemede kırıktı.
+
+## Kapılar (son)
+
+```
+11/11 geçti · 0 uyarı · 61.6s
+```
+
 ## Sırada
 
 `.45` ürün kapanışı (TalkBack etiketleri, boş durum eylemleri, dil tutarlılığı)

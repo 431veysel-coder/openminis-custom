@@ -83,17 +83,129 @@ def strip_code(text: str) -> str:
 def check_comments(path: Path, text: str) -> None:
     """Kapatılmamış blok yorumu — kesin derleme hatası.
 
-    Neden ayrı: `strip_code` kapatılmamış bir `/*` gördüğünde dosyanın sonuna
-    kadar yutuyor, yani parantez sayımı **temiz** çıkıyor. Gerçekte derleyici
-    "unclosed comment" diyor. Bu, yorum eklerken `*/` düşürmenin en sık
-    sonucu ve sessizce geçiyordu.
+    ## Neden gerekli
+    `strip_code` kapatılmamış bir `/*` gördüğünde dosyanın sonuna kadar
+    yutuyor, yani parantez sayımı **temiz** çıkıyor. Gerçekte derleyici
+    "unclosed comment" diyor ve dosya hiç derlenmiyor.
+
+    ## [37124] Gerçek arıza (bu kuralın varlık sebebi)
+    `.44`'ün ilk gerçek Gradle derlemesi şununla düştü:
+
+        e: CouncilScreens.kt:487:1 Unclosed comment
+
+    Sebep benim KDoc'umdu: içine glob yazmıştım — `/` + `*` + `*` dizisi
+    yorum içinde **yeni bir yorum açar**. Kaçış dizisi yok; tek çözüm glob'u
+    yorumda yazmamak.
+
+    ## [37124] İkinci arıza: kural bağlı değildi
+    Bu fonksiyon yazılmış, `main()` içinde **çağrılmamıştı** — "yazdım,
+    bağlamadım" sınıfının kapının kendi içindeki örneği. Aynı turda bağlandı.
+    (`olu-kod.py` yalnız `--sadece-yeni` ile koştuğu için göstermedi.)
+
+    ## Neden basit `count` yetmez, neden gerçek durum makinesi gerekir
+    Üç naif yaklaşım da yanlış ve üçü de ölçüldü:
+
+      1. `text.count("/*") != text.count("*/")` — string literali içindeki
+         `"/*"` sayılır (yanlış pozitif).
+      2. String'leri kaçışla atlamak — **apostrof**. Bu depoda yorumlar
+         Türkçe: "kullanıcı'nın", "ajan'ın". Tek tırnak string sanılırsa
+         yorum metninin kalanı yutulur ve dosya yanlışlıkla "dengesiz"
+         görünür. Tam ağaç taramasında **onlarca** yanlış pozitif üretti.
+      3. Yalnız değişen satırlara bakmak — kapatılmamış yorum **dosya
+         bütünü** özelliğidir; bir tur önce açılan `/*` bir sonraki turda
+         kapanır ve satır bazlı eşleşme tutmaz.
+
+    Doğrusu: Kotlin'in üç yorum/string bağlamını ayıran bir tarayıcı
+    (`code` / `line` / `block`, artı çift tırnak / üçlü tırnak / char literal). Char
+    literal yalnız `'x'` biçimindeyse string sayılır; aksi hâlde apostroftur.
     """
-    opens = text.count("/*")
-    closes = text.count("*/")
-    if opens != closes:
+    CODE, LINE, BLOCK, STR, RAW, CHAR = range(6)
+    state = CODE
+    depth = 0
+    i = 0
+    n = len(text)
+    while i < n:
+        ch = text[i]
+        nxt = text[i + 1] if i + 1 < n else ""
+
+        if state == CODE:
+            if ch == "/" and nxt == "/":
+                state = LINE
+                i += 2
+                continue
+            if ch == "/" and nxt == "*":
+                depth += 1
+                state = BLOCK
+                i += 2
+                continue
+            if ch == '"' and text[i:i + 3] == '"""':
+                state = RAW
+                i += 3
+                continue
+            if ch == '"':
+                state = STR
+                i += 1
+                continue
+            # Char literal: `'x'` ya da `'\n'`. Aksi hâlde apostrof (serbest).
+            if ch == "'":
+                close = text.find("'", i + 1, i + 4)
+                if close > i:
+                    i = close + 1
+                else:
+                    i += 1
+                continue
+            i += 1
+            continue
+
+        if state == LINE:
+            if ch == "\n":
+                state = CODE
+            i += 1
+            continue
+
+        if state == BLOCK:
+            if ch == "*" and nxt == "/":
+                depth -= 1
+                state = CODE if depth == 0 else BLOCK
+                i += 2
+                continue
+            if ch == "/" and nxt == "*":
+                # İç içe yorum Kotlin'de GEÇERLİDİR ve kapatılmalıdır.
+                depth += 1
+                i += 2
+                continue
+            i += 1
+            continue
+
+        if state == RAW:
+            if text[i:i + 3] == '"""':
+                state = CODE
+                i += 3
+                continue
+            i += 1
+            continue
+
+        if state == STR:
+            if ch == "\\":
+                i += 2
+                continue
+            if ch == "\n":
+                # Kapanmamış string: yorum taraması için kodu geri ver.
+                state = CODE
+                i += 1
+                continue
+            if ch == '"':
+                state = CODE
+            i += 1
+            continue
+
+        i += 1
+
+    if state == BLOCK or depth != 0:
         problems.append(
-            f"{path.relative_to(ROOT)}: blok yorumu dengesiz (/* {opens}, */ {closes}) — "
-            "kapatılmamış yorum altındaki kodu yutar"
+            f"{path.relative_to(ROOT)}: blok yorumu kapatılmamış (derinlik {depth:+d}) — "
+            "dosya derlenmez. KDoc içine glob yazmak bunun en sık sebebi: "
+            "`/` + `*` + `*` yeni bir yorum açar"
         )
 
 
@@ -553,6 +665,9 @@ def main() -> int:
         only = added_lines(path)
         check_foreign(path, text, only)
         check_unused_imports(path, text, only)
+        # [37124] Kapatılmamış yorum: dosya bütünü özelliği, "yalnız değişen
+        # satır" daraltması burada yanlış olur (bkz. check_comments).
+        check_comments(path, text)
 
     # ŞÜPHELİ: yalnız bilgi. Veri sınıfı alan denetimi üst kaynakta (builder
     # arayüzleri, iç içe sınıflar) yanlış-pozitif üretiyor; bu yüzden kapı

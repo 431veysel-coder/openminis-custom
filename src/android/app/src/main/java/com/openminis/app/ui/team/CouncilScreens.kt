@@ -310,8 +310,10 @@ private fun FloorTab(
  *
  * [37124] GERÇEK HATA: bu fonksiyon `.41`'de (matris yaması) yanlışlıkla
  * silindi; çağrısı kaldı (sekme 2) ve hiçbir kapı yakalamadı, çünkü
- * `Slice Gate`'in yol listesinde `ui/team/**` **yoktu** — yani bu dosya CI'da
- * hiç derlenmiyordu. Aynı turda yol listesine eklendi.
+ * `Slice Gate`'in yol listesinde bu dizin **yoktu** — yani bu dosya CI'da
+ * hiç derlenmiyordu. (Glob'u buraya yazmıyorum: KDoc içinde `yıldız yıldız
+ * bölü` dizisi yeni bir yorum **açar**, dosya derlenmez. Gerçek hata bu:
+ * `.44`'ün ilk derlemesi tam olarak bu yüzden düştü.)
  */
 @Composable
 private fun DecisionTab(
