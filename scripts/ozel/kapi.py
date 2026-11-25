@@ -68,15 +68,23 @@ GATES: dict[str, tuple[list[str], bool]] = {
 }
 
 
+# [37118] Ölçüldü: bu cihazda kapılar dalgalı hızda koşuyor. `denetim` tek
+# başına 50 sn, ama yedi kapı paralelken 300 sn'yi aşabiliyor (yük).
+# Sabit 300 sn, yavaş bir turda **yanlış kırmızı** üretiyordu; yanlış kırmızı
+# ise "kapıyı kapat" refleksini besler (.23 dersi). 600 sn: gerçek bir asılma
+# hâlâ yakalanır, yavaşlık kırmızı sayılmaz.
+GATE_TIMEOUT_S = 600
+
+
 def run_one(name: str) -> tuple[str, int, float, str]:
     cmd, _required = GATES[name]
     started = time.time()
     try:
-        p = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=300)
+        p = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=GATE_TIMEOUT_S)
         out = (p.stdout or "") + (p.stderr or "")
         return name, p.returncode, time.time() - started, out
     except subprocess.TimeoutExpired:
-        return name, 124, time.time() - started, "zaman aşımı (300 sn)"
+        return name, 124, time.time() - started, f"zaman aşımı ({GATE_TIMEOUT_S} sn)"
     except FileNotFoundError as e:
         return name, 127, time.time() - started, f"betik yok: {e}"
 

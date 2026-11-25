@@ -113,6 +113,24 @@ object ApprovalVoiceText {
         return parts.joinToString(" ")
     }
 
+    /**
+     * [37118] **Bilgi** cümlesi — kart yokken söylenen.
+     *
+     * Fark tek kelimede: "Onay bekliyorum" değil "Şunu yapıyorum". Bekleyen bir
+     * soru olmadığı için "karta dokun" da yok; yerine ne olduğu ve geri dönüşü
+     * söylenir. Aynı cümleyi kullanmak, kullanıcıyı cevaplanacak bir kart
+     * aramaya gönderirdi (ve 5 dakika sonra "neden bir şey olmadı" sorusu).
+     */
+    fun noticeLine(request: ApprovalRequest, speakOperation: Boolean = true): String {
+        val parts = mutableListOf("Şunu yapıyorum.")
+        parts += "${request.title}."
+        if (speakOperation) operation(request)?.let { parts += "$it." }
+        recoveryPhrase(request)?.let { parts += "$it." }
+        reachPhrase(request)?.let { parts += "$it." }
+        parts += "Ayarlar'dan onay isteğini geri açabilirsin."
+        return parts.joinToString(" ")
+    }
+
     /** Bildirim gövdesi — ses cümlesinin yazı hâli, tek satır. */
     fun notificationBody(request: ApprovalRequest, pending: Int = 1): String =
         line(request, pending = pending, repeat = false, speakOperation = true)

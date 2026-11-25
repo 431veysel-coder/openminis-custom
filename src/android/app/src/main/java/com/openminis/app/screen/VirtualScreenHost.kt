@@ -124,6 +124,20 @@ object VirtualScreenHost {
     fun flush(ctx: Context, state: VirtualScreen.State) = VirtualScreenStore.save(ctx, state)
 
     /**
+     * [37118] Yakalama damgasını düş — bölme başına.
+     *
+     * Neden gerekli: [VirtualScreen.needsCapture] son damgaya bakıyor, ama
+     * damgayı yazan kimse yoktu (`markCaptured` 0 çağrı). Yakalama hattı
+     * kapandığında bu da kapandı: kare üretildi → damga düşer → aynı bölme
+     * 250 ms içinde yeniden istenmez.
+     */
+    fun markCaptured(ctx: Context, panes: List<VirtualScreen.Pane>, now: Long = System.currentTimeMillis()): VirtualScreen.State {
+        var s = VirtualScreenStore.load(ctx)
+        panes.forEach { s = VirtualScreen.markCaptured(s, now, it) }
+        return commit(ctx, s)
+    }
+
+    /**
      * Ajanın "şu an nerede çalışıyorum" sorusuna cevap.
      *
      * Neden gerekli: model `android-a11y-cli tap` çağırdığında **kullanıcının**

@@ -1,6 +1,6 @@
 # YAPILACAKLAR — geniş kapsamlı, kategori kategori
 
-> **Durum:** 2026-11-25 · sürüm `1.15-ozel.36` / 37117 (derlenmedi, yalnız kaynak)
+> **Durum:** 2026-11-25 · sürüm `1.15-ozel.37` / 37118 (derlenmedi, yalnız kaynak)
 > Tur planı: [`PLAN-35-45.md`](PLAN-35-45.md)
 > Bu dosya **plan**dır, ölçüm değil. Ölçüm için `HARITA.md` ve `harita/`.
 > Her madde: ne · neden · nerede · nasıl anlaşılır (kabul ölçütü).
@@ -32,6 +32,9 @@
 | K17 | Görünürlük kapısı (11. kapı): açık anahtar `ui/` tüketicisi ister | `scripts/ozel/gorunurluk.py` + `--kendini-sina` 4/4 |
 | K18 | `CHAT_HEALTH` ölçümle kapatıldı (0 çağrı) | `OzelFeatures.kt` KDoc + kapı çıktısı |
 | K19 | `olu-kod` yanlış pozitifi: `::ref`, trailing lambda, yorum | 250 → 313 (dürüst sayı) |
+| K20 | `screen` aracı: sanal ekranı süren tek çağıran (`Op` artık ölü değil) | `tools/ScreenTool.kt` + `ScreenRequestTest` (12) |
+| K21 | Onay tamamen kalktı: `ALLOW_ALL` varsayılan, `deny:` kilidi korunur | `ApprovalModeTest` (9) |
+| K22 | Kart kalktı, haber kalkmadı: `ApprovalVoice.notice` | `POLICYGATE` notifyOnly dalı |
 
 ---
 
@@ -187,12 +190,12 @@
 - **Kabul:** `HeadlessRenderHost` + bölme durumu aynı yüzeyde; ajan yakalama
   yapabiliyor.
 
-### 5.2 Bölme içi eylem (tıklama)
+### 5.2 ~~Bölme içi eylem (tıklama)~~ ✅ .37
 - **Ne:** `VirtualScreenHost.Op` var, hiçbir araçtan çağrılmıyor.
 - **Kabul:** `screen` aracı: `open/click/type/scroll` — A modunda kartsız,
   B modunda kartlı (cost tablosu hazır).
 
-### 5.3 Bölme başına yakalama bütçesi
+### 5.3 ~~Bölme başına yakalama bütçesi~~ ✅ .37
 - **Ne:** Yalnız global 250 ms var; belge "bölme başına" diyor.
 - **Kabul:** Belge ile kod aynı şeyi söyler (belgeyi düzeltmek de kabul).
 

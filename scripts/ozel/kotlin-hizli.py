@@ -160,6 +160,44 @@ def check_named_args(path: Path, text: str) -> None:
     return
 
 
+def _split_top_level(text: str) -> list[str]:
+    """Virgülden **yalnız üst düzeyde** böler.
+
+    [37118] GERÇEK HATA: eski iki ayrı bölücü (biri `re.split`, biri kendi
+    döngüsü) `<`/`>` sayarken `->` oku **kapanış** sanıyordu. Bir veri
+    sınıfının alanı fonksiyon tipi olduğunda (`cachedWarmUpDrop: (String) -> Int?`)
+    derinlik negatife düşüyor, sonraki virgüller hiç bölünmüyor ve alan listesi
+    ilk alanda kesiliyordu. Sonuç: `Compaction(marker = …)` için yanlış
+    "bu alan yok" — yani kapı, sahibi olmadığı bir borcu ödetiyordu.
+
+    Kural: `->` bir ok, `>` değil. Aynı kural `{ id -> … }` lambda'ları için de
+    gerekli.
+    """
+    out: list[str] = []
+    depth = 0
+    current: list[str] = []
+    for i, ch in enumerate(text):
+        if ch in "([{":
+            depth += 1
+        elif ch in ")]}":
+            depth = max(0, depth - 1)
+        elif ch == "<":
+            depth += 1
+        elif ch == ">":
+            if i > 0 and text[i - 1] == "-":
+                pass  # ok: derinlik değişmez
+            else:
+                depth = max(0, depth - 1)
+        if ch == "," and depth == 0:
+            out.append("".join(current))
+            current = []
+        else:
+            current.append(ch)
+    if current:
+        out.append("".join(current))
+    return out
+
+
 def _param_list(text: str, open_idx: int) -> str:
     """`(` konumundan başlayıp dengeli parantezle kapatır.
 
@@ -227,7 +265,143 @@ def collect_data_classes() -> dict[str, set[str]]:
             # Ölçüldü: bu yüzden `TaskEvidence.value` ve `.by` kayboldu.
             cleaned_body = re.sub(r"/\*.*?\*/", " ", body, flags=re.S)
             cleaned_body = re.sub(r"//[^\n]*", " ", cleaned_body)
-            for part in re.split(r",(?![^<]*>)", cleaned_body):
+            for part in _split_top_level(cleaned_body):
+                mm = re.match(r"\s*(?:@\w+(?:\([^)]*\))?\s*)*(?:val|var)\s+(\w+)", part)
+                if mm:
+                    names.add(mm.group(1))
+            if names:
+                # Ada çakışması: aynı adlı iki `data class` olabilir.
+                # Alanları birleştir; üzerine yazmak yanlış pozitif üretir.
+                fields.setdefault(name, set()).update(names)
+    return fields
+
+
+def _top_level_args(args: str) -> list[str]:
+    """Argüman listesini üst düzey virgüllerden böler.
+
+    Neden ortak yardımcı: aynı bölme kuralı iki yerde farklı yazıldığında biri
+    `->` yüzünden bozuluyordu (bkz. [_split_top_level]). Tek kaynak, tek hata.
+    """
+    return _split_top_level(args)
+
+
+def check_named_args(path: Path, text: str) -> None:
+    """`Foo.Bar(alan = …)` çağrısında alan gerçekten var mı?
+
+    Yalnız data class'lar için ve yalnız `Foo(` tek satırlık biçimde
+    aranıyorsa bakılır; kalıtım/interface olabilir diye emin olmadığımız
+    durumda susulur.
+    """
+    # Tüm ağaçtaki data class alanlarını topla (tek geçiş, çağıran taraf).
+    return
+
+
+def _split_top_level(text: str) -> list[str]:
+    """Virgülden **yalnız üst düzeyde** böler.
+
+    [37118] GERÇEK HATA: eski iki ayrı bölücü (biri `re.split`, biri kendi
+    döngüsü) `<`/`>` sayarken `->` oku **kapanış** sanıyordu. Bir veri
+    sınıfının alanı fonksiyon tipi olduğunda (`cachedWarmUpDrop: (String) -> Int?`)
+    derinlik negatife düşüyor, sonraki virgüller hiç bölünmüyor ve alan listesi
+    ilk alanda kesiliyordu. Sonuç: `Compaction(marker = …)` için yanlış
+    "bu alan yok" — yani kapı, sahibi olmadığı bir borcu ödetiyordu.
+
+    Kural: `->` bir ok, `>` değil. Aynı kural `{ id -> … }` lambda'ları için de
+    gerekli.
+    """
+    out: list[str] = []
+    depth = 0
+    current: list[str] = []
+    for i, ch in enumerate(text):
+        if ch in "([{":
+            depth += 1
+        elif ch in ")]}":
+            depth = max(0, depth - 1)
+        elif ch == "<":
+            depth += 1
+        elif ch == ">":
+            if i > 0 and text[i - 1] == "-":
+                pass  # ok: derinlik değişmez
+            else:
+                depth = max(0, depth - 1)
+        if ch == "," and depth == 0:
+            out.append("".join(current))
+            current = []
+        else:
+            current.append(ch)
+    if current:
+        out.append("".join(current))
+    return out
+
+
+def _param_list(text: str, open_idx: int) -> str:
+    """`(` konumundan başlayıp dengeli parantezle kapatır.
+
+    Neden regex değil: varsayılan değerler `System.currentTimeMillis()` gibi
+    parantez içerir; non-greedy bir regex ilk `)`'de durur ve kalan alanları
+    kaybeder. Bu, `TaskEvidence(by = …)` için yanlış "bu alan yok" üretti.
+    """
+    depth = 0
+    for i in range(open_idx, len(text)):
+        c = text[i]
+        if c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+            if depth == 0:
+                return text[open_idx + 1:i]
+    return ""
+
+
+def collect_function_names() -> set[str]:
+    """Ağaçtaki tüm `fun X(` adları.
+
+    Neden: Compose'ta `Column(modifier = …)` bir **fonksiyon** çağrısıdır, ama
+    `Column` adında bir veri sınıfı da var. Fonksiyon/veri sınıfı adı çakışan
+    bir çağrıda "bu alan yok" demek yanlış pozitiftir; o durumda susulur.
+    """
+    names: set[str] = set()
+    for path in SRC.rglob("*.kt"):
+        for m in re.finditer(r"\bfun\s+(?:<[^>]+>\s*)?(?:[\w.]+\.)?(\w+)\s*\(", path.read_text(errors="ignore")):
+            names.add(m.group(1))
+    return names
+
+
+def collect_type_names() -> dict[str, int]:
+    """Her tip adının ağaçta kaç kez tanımlandığı.
+
+    Adlandırılmış argüman denetimi ancak ad **tek bir tipe** çözülüyorsa
+    kesindir: aynı ad hem arayüz hem veri sınıfı olabiliyor (builder deseni).
+    """
+    counts: dict[str, int] = {}
+    decl = re.compile(
+        r"^\s*(?:@\w+(?:\([^)]*\))?\s*)*"
+        r"(?:data\s+|sealed\s+|abstract\s+|open\s+|private\s+|internal\s+|public\s+)*"
+        r"(?:class|interface|object|enum\s+class)\s+(\w+)",
+        re.M,
+    )
+    for path in SRC.rglob("*.kt"):
+        for m in decl.finditer(path.read_text(errors="ignore")):
+            counts[m.group(1)] = counts.get(m.group(1), 0) + 1
+    return counts
+
+
+def collect_data_classes() -> dict[str, set[str]]:
+    fields: dict[str, set[str]] = {}
+    for path in SRC.rglob("*.kt"):
+        text = path.read_text(errors="ignore")
+        for m in re.finditer(r"data\s+class\s+(\w+)\s*\(", text):
+            name = m.group(1)
+            body = _param_list(text, m.end() - 1)
+            if not body.strip():
+                continue
+            names: set[str] = set()
+            # Yorumlar ÖNCE silinir: içlerinde virgül var ("The path, URL or
+            # the output text.") ve virgülden bölmek alanı ikiye ayırıyordu.
+            # Ölçüldü: bu yüzden `TaskEvidence.value` ve `.by` kayboldu.
+            cleaned_body = re.sub(r"/\*.*?\*/", " ", body, flags=re.S)
+            cleaned_body = re.sub(r"//[^\n]*", " ", cleaned_body)
+            for part in _split_top_level(cleaned_body):
                 mm = re.match(r"\s*(?:@\w+(?:\([^)]*\))?\s*)*(?:val|var)\s+(\w+)", part)
                 if mm:
                     names.add(mm.group(1))

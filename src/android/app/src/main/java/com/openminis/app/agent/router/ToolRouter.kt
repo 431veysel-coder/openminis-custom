@@ -56,6 +56,10 @@ object ToolRouter {
         ToolHint("verify", listOf("dogrula", "verify", "kontrol", "test", "kanit", "check")),
         ToolHint("journal", listOf("geri al", "undo", "journal", "ne degisti", "degisiklik")),
         ToolHint("user_ask", listOf("sor", "ask", "onay", "karar", "secim", "belirsiz")),
+        // [37118] Sanal ekran: "kendi odamda" işleri. `android-a11y-cli`'nin
+        // ("kullanıcının ekranı") ipuçlarıyla bilerek AYRIK: ikisini aynı
+        // kelimeye bağlamak, A/B ayrımını yönlendiricinin eline verirdi.
+        ToolHint("screen", listOf("sanal ekran", "virtual screen", "bolme", "pane", "kendi tarayicim", "kendi terminalim", "calisma alani", "workspace")),
         ToolHint("android-speech", listOf("ses", "konus", "dikte", "transkript", "speech")),
         ToolHint("android-speak", listOf("oku", "sesli", "tts", "speak")),
         ToolHint("android-location", listOf("konum", "location", "gps", "harita", "map", "adres")),

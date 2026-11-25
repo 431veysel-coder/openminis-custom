@@ -2780,6 +2780,11 @@ class ChatViewModel(
                 context,
                 com.openminis.app.data.OzelFeatures.Feature.ACCEPTANCE_CRITERIA,
             ),
+            // [37118] Sanal ekran aracı — anahtar kapalıysa şemada yok.
+            screenEnabled = com.openminis.app.data.OzelFeatures.isEnabled(
+                context,
+                com.openminis.app.data.OzelFeatures.Feature.VIRTUAL_SCREEN,
+            ),
             // [MINIS-OZEL 11.4 S2] Only a team with enough members is runnable;
             // advertising an unrunnable team would spend a turn on a refusal.
             // Read from disk each build: the roster is a handful of small JSON
@@ -14779,6 +14784,19 @@ class ChatViewModel(
                     ToolExecutionResult(output = r.output, success = r.success)
                 } else {
                     toolDisabledResult("journal")
+                }
+            // [37118] Sanal ekran. Sevk kapısı da var: eski bir konuşmadan
+            // gelen tekrar oynatılmış `screen` çağrısı, kullanıcının kapattığı
+            // bir yüzeye ulaşmamalı (journal/verify ile aynı gerekçe).
+            com.openminis.app.tools.ScreenTool.NAME ->
+                if (com.openminis.app.tools.ScreenTool.enabled(context)) {
+                    val r = com.openminis.app.tools.ScreenTool.execute(
+                        argsJson = argsJson,
+                        context = context,
+                    )
+                    ToolExecutionResult(output = r.output, success = r.success)
+                } else {
+                    toolDisabledResult("screen")
                 }
             // [MINIS-OZEL 11.3.1] Acceptance criteria. Same dispatcher gate as
             // the journal, for the same replay reason.

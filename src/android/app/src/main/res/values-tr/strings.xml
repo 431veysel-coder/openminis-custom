@@ -2518,13 +2518,13 @@
     <string name="perm_section_approval_rules">Onay kuralları (toplu)</string>
     <string name="perm_section_approval_rules_sub">Her işlemde kart yerine kategorileri bir kez aç</string>
     <string name="approval_mode_header">Ne zaman sorulsun</string>
-    <string name="approval_mode_footer">Buradaki tek karar bütün sohbetler için geçerli. Geri alınamaz işler ve sandbox dışına taşanlar her zaman sorar — bu bir tercih değil, sandbox sınırı.</string>
+    <string name="approval_mode_footer">Buradaki tek karar bütün sohbetler için geçerli. Sabit engeller (sistemi silmek, disk biçimlendirmek) hiçbir modda açılmaz — bu bir tercih değil, sandbox sınırı.</string>
     <string name="approval_mode_settings_only">Yalnız önceden izin verilemeyenler için sor</string>
-    <string name="approval_mode_settings_only_sub">Varsayılan. Güvenli olan her şey uygulama geneli izinli; kart yalnız geri alınamaz ya da cihaz dışı işlerde çıkar.</string>
+    <string name="approval_mode_settings_only_sub">Yalnız geri alınamaz ya da cihaz dışı işler kartla sorar; gerisi sessiz geçer.</string>
     <string name="approval_mode_allow_all">Sabit engeller dışında her şeye izin ver</string>
     <string name="approval_mode_ask_each">Her sohbette sor</string>
     <string name="approval_mode_ask_each_sub">Eski davranış: izin verilene kadar her riskli çağrıda kart açılır.</string>
-    <string name="approval_mode_allow_all_sub">Sabit engeller (sistemi silmek, disk biçimlendirmek) dışında kart yok. Kullanım tavanları yine de çalışır.</string>
+    <string name="approval_mode_allow_all_sub">Varsayılan. Kart çıkmaz: geri alınamaz ve cihaz dışı işler yine sesle/bildirimle duyurulur ama beklenmez.</string>
     <string name="approval_voice_header">Sesli onay uyarısı</string>
     <string name="approval_voice_footer">Kart beklerken telefon söyler, titrer ve bildirim bırakır. Kart cevaplanınca, süresi dolunca ya da iptal edilince susar.</string>
     <string name="approval_voice_enabled">Kartı sesle oku</string>

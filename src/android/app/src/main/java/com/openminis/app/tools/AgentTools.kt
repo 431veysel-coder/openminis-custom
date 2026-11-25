@@ -82,6 +82,12 @@ object AgentTools {
         memberTools: List<String> = emptyList(),
         /** [37065] The other members' names, for `ask_teammate`'s enum. */
         memberPeers: List<String> = emptyList(),
+        /**
+         * [37118] Sanal ekran açık mı? Kapatıldığında `screen` aracı şemadan
+         * tamamen düşer — "görünür ama çalışmaz" araç bir tur yakar ve hiçbir
+         * şey öğretmez (bkz. `team_run`'ın aynı gerekçesi).
+         */
+        screenEnabled: Boolean = false,
     ): List<AgentToolDefinition> {
         val all = buildList {
             add(shellExecuteDefinition())
@@ -112,6 +118,9 @@ object AgentTools {
             // that cannot see what the main run already changed is the one most
             // likely to undo it by accident.
             if (journalEnabled) add(com.openminis.app.tools.JournalTool.definition())
+            // [37118] Sanal ekran: ajanın kendi bölmeleri. Yardımcı ajanlara da
+            // verilir — bölme açmak bir yetki değil, kendi odasında yer açmak.
+            if (screenEnabled) add(com.openminis.app.tools.ScreenTool.definition())
             // [MINIS-OZEL 11.3.1] Available to helpers as well: a sub agent that
             // cannot state what finished looks like is the one that returns "done"
             // with nothing done.

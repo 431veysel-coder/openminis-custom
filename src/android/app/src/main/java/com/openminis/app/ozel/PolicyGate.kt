@@ -157,6 +157,17 @@ object PolicyGate {
             book.put(grant)
             book.consume(grant, now)
             persist(ctx, book)
+
+            // [37118] Kart kalktı, **haber** kalkmadı.
+            //
+            // Geri alınamaz ya da sandbox dışı bir iş artık beklenmiyor ama
+            // söyleniyor: telefon tek cümle söyler, titrer, bildirim bırakır
+            // ve iş devam eder. Kullanıcının şikâyeti "onay veremiyorum"du;
+            // "ne olduğunu bilmiyorum" değil. Bu satır olmadan `ALLOW_ALL`,
+            // sessiz bir silme makinesi olurdu.
+            if (mode.notifyOnly(rule)) {
+                runCatching { ApprovalVoice.notice(ctx, request) }
+            }
             return GateDecision.Silent(verdict, grant)
         }
         val answer = ask(request)

@@ -20,12 +20,13 @@ import org.junit.Test
 class ApprovalModeTest {
 
     @Test
-    fun bilinmeyen_deger_varsayilana_duser_ve_varsayilan_settings_only() {
-        // Bozuk tercih kullanıcıyı kart yağmuruna döndürmemeli.
-        assertEquals(ApprovalMode.SETTINGS_ONLY, ApprovalMode.parse(null))
-        assertEquals(ApprovalMode.SETTINGS_ONLY, ApprovalMode.parse(""))
-        assertEquals(ApprovalMode.SETTINGS_ONLY, ApprovalMode.parse("  "))
-        assertEquals(ApprovalMode.SETTINGS_ONLY, ApprovalMode.parse("bozuk"))
+    fun bilinmeyen_deger_varsayilana_duser_ve_varsayilan_allow_all() {
+        // Kullanıcı "tüm izinler sende" dedi: bozuk bir tercih onu yeniden
+        // kart yağmuruna döndürmemeli. Varsayılan ALLOW_ALL.
+        assertEquals(ApprovalMode.ALLOW_ALL, ApprovalMode.parse(null))
+        assertEquals(ApprovalMode.ALLOW_ALL, ApprovalMode.parse(""))
+        assertEquals(ApprovalMode.ALLOW_ALL, ApprovalMode.parse("  "))
+        assertEquals(ApprovalMode.ALLOW_ALL, ApprovalMode.parse("bozuk"))
     }
 
     @Test
@@ -94,8 +95,39 @@ class ApprovalModeTest {
 
     @Test
     fun gosterim_sirasi_en_az_kesintiden_baslar() {
-        assertEquals(ApprovalMode.SETTINGS_ONLY, ApprovalMode.displayOrder.first())
+        assertEquals(ApprovalMode.ALLOW_ALL, ApprovalMode.displayOrder.first())
         assertEquals(ApprovalMode.ASK_EACH, ApprovalMode.displayOrder.last())
         assertEquals(ApprovalMode.entries.size, ApprovalMode.displayOrder.size)
+    }
+
+    @Test
+    fun allow_all_deny_disarinda_her_seyi_sessizlestirir_ama_duyurur() {
+        // Sessiz geçen her kural, "duyurulacak" sınıflarda olmalı: kart kalktı
+        // diye haber de kalkmamalı (geri gelmez + cihaz/ağ/hesap).
+        val permanent = RiskRules.byId("shell:rm-recursive")
+        assertTrue(permanent != null)
+        assertTrue(ApprovalMode.ALLOW_ALL.autoGrants(permanent!!))
+        assertTrue(
+            "geri alınamaz silme duyurulmali (kart degil)",
+            ApprovalMode.ALLOW_ALL.notifyOnly(permanent),
+        )
+
+        val device = RiskRules.byId("device:sudo")
+        assertTrue(device != null)
+        assertTrue(ApprovalMode.ALLOW_ALL.notifyOnly(device!!))
+
+        // Sandbox içi + geri alınabilir iş sessiz geçmeli: her `apk add` için
+        // konuşmak, sesi gürültüye çevirir ve gerçek uyarıyı duyulmaz yapar.
+        val quiet = RiskRules.byId("pkg:install")
+        assertTrue(quiet != null)
+        assertFalse(ApprovalMode.ALLOW_ALL.notifyOnly(quiet!!))
+    }
+
+    @Test
+    fun deny_sinifi_duyurulmaz_cunku_calismaz() {
+        // Reddedilen bir iş için "yapıyorum" demek yalan olurdu; `Deny` yolu
+        // zaten `notifyOnly`a hiç gelmiyor.
+        val deny = RiskRules.DENY.first()
+        assertFalse(ApprovalMode.ALLOW_ALL.autoGrants(deny))
     }
 }
