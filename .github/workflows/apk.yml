@@ -13,13 +13,22 @@ on:
   push:
     branches:
       - main
+      # [37124] GERCEK BOSLUK: bu filtre yalniz `ozel-*` (tire) desenini
+      # tasiyordu, ama calisma dali `ozel/16-duzeltmeler` (SLASH). Yani
+      # `.35`-`.43` arasindaki DOKUZ surumun hicbiri CI'da **derlenmedi**:
+      # `Slice Gate` yalniz dilim dosyalarini `kotlinc` ile derliyor ve
+      # `ui/**` orada yok. Sonuc: `.41`'de silinen bir `private fun`
+      # (`DecisionTab`) dokuz surum boyunca fark edilmedi; cagrisi duruyordu.
+      # Derleme artik bu dalda da kosuyor; yayin karari degismiyor (surum
+      # kapisi ayni versionCode'u iki kez yayinlatmiyor).
+      - 'ozel/**'
+      - 'ozel-*'
       # [MINIS-OZEL 11.4] A push to a feature branch publishes too. The user
       # asked for it in one sentence — "every APK that is ready becomes a
       # release" — and the version gate below is what keeps that safe: a build
       # whose versionCode was already published fails in ~15 s instead of
       # replacing a release nobody has installed yet. Debug builds never
       # publish, so a dispatch run stays a throwaway verification build.
-      - 'ozel-*'
     # [MINIS-OZEL] `tags: 'v*'` used to be here too, and every publish made it
     # fire again: action-gh-release creates the tag, the tag push starts a
     # second run for the same commit, and both try to write the same release.

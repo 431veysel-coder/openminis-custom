@@ -1,6 +1,6 @@
 # YAPILACAKLAR — geniş kapsamlı, kategori kategori
 
-> **Durum:** 2026-11-25 · sürüm `1.15-ozel.43` / 37124 (derlenmedi, yalnız kaynak)
+> **Durum:** 2026-11-25 · sürüm `1.15-ozel.44` / 37124 (CI derlemesi artık bu dalda)
 > Tur planı: [`PLAN-35-45.md`](PLAN-35-45.md)
 > Bu dosya **plan**dır, ölçüm değil. Ölçüm için `HARITA.md` ve `harita/`.
 > Her madde: ne · neden · nerede · nasıl anlaşılır (kabul ölçütü).
@@ -43,6 +43,8 @@
 | K28 | Konsey katılım satırı + kuyruk görünürlüğü (saf `split`) | `AttendanceLine` + `AttendanceLineTest` (9) |
 | K29 | Çeviri tabanı eritme aracı + ilk batch (521→481) | `scripts/ozel/ceviri-erit.py` + `.ozel/ceviri/batch/01.json` |
 | K30 | Sözlük dürüstlüğü testle çivilendi | `OfflineGlossaryHonestyTest` (7) |
+| K31 | **CI derleme boşluğu**: `ozel/` (slash) dalı Gradle derlemesi tetiklemiyordu | `apk.yml` branches + `ozel/**` |
+| K32 | `DecisionTab` kaybı (10 sürüm görünmedi) geri kondu | `CouncilScreens.kt` |
 
 ---
 
