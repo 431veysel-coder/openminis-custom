@@ -1,6 +1,6 @@
 # YAPILACAKLAR — geniş kapsamlı, kategori kategori
 
-> **Durum:** 2026-11-25 · sürüm `1.15-ozel.42` / 37123 (derlenmedi, yalnız kaynak)
+> **Durum:** 2026-11-25 · sürüm `1.15-ozel.43` / 37124 (derlenmedi, yalnız kaynak)
 > Tur planı: [`PLAN-35-45.md`](PLAN-35-45.md)
 > Bu dosya **plan**dır, ölçüm değil. Ölçüm için `HARITA.md` ve `harita/`.
 > Her madde: ne · neden · nerede · nasıl anlaşılır (kabul ölçütü).
@@ -41,6 +41,8 @@
 | K26 | 8 kapalı anahtarın kararı: 3 açıldı, 2 silindi, 3 gerekçeli kapalı | `gorunurluk`: 0 açık+görünmez |
 | K27 | Karşılaştırma matrisi + ≈ cevap eşleme işareti | `ClaimMatrixLayout` + `ClaimMatrixLayoutTest` (8) |
 | K28 | Konsey katılım satırı + kuyruk görünürlüğü (saf `split`) | `AttendanceLine` + `AttendanceLineTest` (9) |
+| K29 | Çeviri tabanı eritme aracı + ilk batch (521→481) | `scripts/ozel/ceviri-erit.py` + `.ozel/ceviri/batch/01.json` |
+| K30 | Sözlük dürüstlüğü testle çivilendi | `OfflineGlossaryHonestyTest` (7) |
 
 ---
 

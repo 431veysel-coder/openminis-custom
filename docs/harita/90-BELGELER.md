@@ -1,6 +1,6 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Belgeler — 82 dosya
+# Belgeler — 83 dosya
 
 | Belge | Başlık | İlk satır |
 |---|---|---|
@@ -35,6 +35,7 @@
 | `docs/ozel/SURUM-NOTU-1.15-ozel.40.md` | SÜRÜM NOTU — 1.15-ozel.40 / 37121 | Kullanıcı "kararı bende olanları önerilerin neyse onları uygula" dedi. Bu turda |
 | `docs/ozel/SURUM-NOTU-1.15-ozel.41.md` | SÜRÜM NOTU — 1.15-ozel.41 / 37122 | Önce: satır başına bir metin bloğu (`Ayşe ✓  Mehmet ✗`). 5 üye × 8 iddia'da |
 | `docs/ozel/SURUM-NOTU-1.15-ozel.42.md` | SÜRÜM NOTU — 1.15-ozel.42 / 37123 | `CouncilLoop` tur içinde `answered` sayısını **biliyordu** (`StanceMath.evaluate` |
+| `docs/ozel/SURUM-NOTU-1.15-ozel.43.md` | SÜRÜM NOTU — 1.15-ozel.43 / 37124 | Yeni araç `scripts/ozel/ceviri-erit.py` — batch başına 40 anahtar. |
 | `docs/ozel/TERMUX-APK-KARARI.md` | KARAR — Termux: katman mı, ayrı APK mı? | Soru (kullanıcı, 2026-11-22): *"Termux araç zincirleri bölümünde olmalı, tek |
 | `docs/ozel/TERMUX-ENTEGRASYONU.md` | TERMUX ENTEGRASYONU — tasarım, güvenlik, ön/arka yüz, etkiler | Bu belge bir niyet beyanı değil. Her bölüm ya **ölçülmüş** bir gerçeğe, ya |
 | `docs/ozel/YAPILACAKLAR.md` | YAPILACAKLAR — geniş kapsamlı, kategori kategori | hâlâ üye başına tek satır**. Sağlayıcı hatası, JSON bozukluğu, kota, model yok |
