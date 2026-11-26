@@ -630,6 +630,37 @@ def check_calls_for(
                 suspects.append(where + f" ({type_counts.get(type_name)} aynı adlı tip)")
 
 
+def check_duplicate_members(path: Path, problems: list[str]) -> None:
+    """[37133] `object`/`class` içinde aynı üye adı iki kez.
+
+    Bu kural neden var: `ApprovalVoice` nesnesine `private val announced`
+    ekledim ve nesnede zaten bir `announced` haritası vardı. CI on iki satır
+    "Conflicting declarations" verdi — yedi dakikalık bir tur, tek bir isim
+    çakışması için yandı. Yerel kapılar Kotlin ayrıştırmıyor ama **aynı dosyada
+    aynı adla iki `private val`/`fun`** ayrıştırma gerektirmeyen bir sinyal:
+    Kotlin'de bu her zaman hatadır (yeniden tanımlama).
+
+    Kapsam bilerek dar: yalnız `private val` ve `private fun` (bir sınıfın
+    gövdesinde iki kez geçen özel üye). Public çakışmalar zaten derleyici
+    tarafından ve genelde aşırı yükleme olarak meşru; onları kırmızı yapmak
+    yanlış pozitif üretirdi.
+    """
+    text = strip_code(path.read_text(errors="ignore"))
+    seen: dict[str, int] = {}
+    for i, line in enumerate(text.splitlines(), start=1):
+        m = re.match(r"\s+(?:private|internal)\s+(?:val|var|fun|suspend fun)\s+(\w+)", line)
+        if not m:
+            continue
+        name = m.group(1)
+        if name in seen:
+            problems.append(
+                f"{path.relative_to(ROOT)}:{i}: `{name}` bu dosyada zaten tanimli "
+                f"(satir {seen[name]}) — yeniden tanimlama derleme hatasi"
+            )
+        else:
+            seen[name] = i
+
+
 def check_double_comma(path: Path, problems: list[str]) -> None:
     """[37126] `a = 1,,` — Kotlin'de her zaman sözdizimi hatası.
 
@@ -723,6 +754,8 @@ def main() -> int:
         check_double_comma(path, problems)
         # [37127] İç içe dikey kaydırma: TaskHallScreen çökmesinin sınıfı.
         _nested_scroll.check_file(path, problems, ROOT)
+        # [37133] Aynı dosyada aynı özel üye adı iki kez = derleme hatası.
+        check_duplicate_members(path, problems)
 
     # ŞÜPHELİ: yalnız bilgi. Veri sınıfı alan denetimi üst kaynakta (builder
     # arayüzleri, iç içe sınıflar) yanlış-pozitif üretiyor; bu yüzden kapı

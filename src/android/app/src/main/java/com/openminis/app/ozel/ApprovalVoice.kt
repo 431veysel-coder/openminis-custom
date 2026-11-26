@@ -86,17 +86,21 @@ object ApprovalVoice {
      * Küme, kural kimlikleriyle sınırlı (`RiskRules` kataloğu onlarca satır) ve
      * süreçle birlikte ölür — bir sızıntı değil.
      */
-    private val announced = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+    // Ad `announced` DEĞİL: bu nesnede zaten bir `announced` haritası var
+    // (tekrar sayacı için, aşağıda). Aynı adı ikinci kez tanımlamak CI'da
+    // "Conflicting declarations" verdi — yerel kapılar bunu göremez, çünkü
+    // Kotlin ayrıştırmıyorlar.
+    private val toldOnce = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
 
     /** true exactly once per rule id in this process. */
     fun firstTime(ruleId: String): Boolean {
         if (ruleId.isBlank()) return false
-        return announced.add(ruleId)
+        return toldOnce.add(ruleId)
     }
 
     /** Test/reset hook. */
     internal fun resetAnnounced() {
-        announced.clear()
+        toldOnce.clear()
     }
 
 
