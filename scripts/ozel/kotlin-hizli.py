@@ -605,6 +605,24 @@ def check_calls_for(
                 suspects.append(where + f" ({type_counts.get(type_name)} aynı adlı tip)")
 
 
+def check_double_comma(path: Path, problems: list[str]) -> None:
+    """[37126] `a = 1,,` — Kotlin'de her zaman sözdizimi hatası.
+
+    Bu kural neden var: `RecordedMatrix` yazarken tek satır düzenlemesi çift
+    virgül bıraktı ve **yedi dakikalık CI turu** yalnız bunun için yandı.
+    Kapı Kotlin ayrıştırmıyor; ama `,,` ayrıştırma gerektirmeyen, yanlış
+    pozitifi olmayan tek sınıf. Test etmek de bedava: bir dosyada iki virgül
+    yan yana ise hata.
+
+    String ve yorum içindeki `,,` sayılmaz — `strip_code` zaten ikisini de
+    siliyor, o yüzden temizlenmiş metin üzerinde çalışılıyor.
+    """
+    text = strip_code(path.read_text(errors="ignore"))
+    for i, line in enumerate(text.splitlines(), start=1):
+        if ",," in line.replace(" ", ""):
+            problems.append(f"{path.relative_to(ROOT)}:{i}: çift virgül (,,) — sözdizimi hatası")
+
+
 def added_lines(path: Path) -> set[int]:
     """Bu dosyada git'e göre **eklenen** satır numaraları (1 tabanlı).
 
@@ -676,6 +694,8 @@ def main() -> int:
         # [37124] Kapatılmamış yorum: dosya bütünü özelliği, "yalnız değişen
         # satır" daraltması burada yanlış olur (bkz. check_comments).
         check_comments(path, text)
+        # [37126] Ayrıştırma gerektirmeyen tek sözdizimi sınıfı: çift virgül.
+        check_double_comma(path, problems)
 
     # ŞÜPHELİ: yalnız bilgi. Veri sınıfı alan denetimi üst kaynakta (builder
     # arayüzleri, iç içe sınıflar) yanlış-pozitif üretiyor; bu yüzden kapı

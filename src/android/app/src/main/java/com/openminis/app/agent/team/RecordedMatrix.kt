@@ -27,7 +27,7 @@ object RecordedMatrix {
             CouncilLiveRegistry.ClaimLine(
                 id = c.id,
                 text = c.text,
-                support = c.support,,
+                support = c.support,
                 oppose = c.oppose,
                 uncertain = c.uncertain,
                 verdict = "",
