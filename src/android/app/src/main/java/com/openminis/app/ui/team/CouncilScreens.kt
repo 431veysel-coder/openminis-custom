@@ -479,7 +479,9 @@ private fun ComparisonRoom(
                     stringResource(R.string.council_compare_from_record),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 12.dp, top = 6.dp),
+                    // `padding(horizontal=, top=)` diye bir imza YOK (derleyici
+                    // yakaladı): ya (horizontal, vertical) ya da dört kenar.
+                    modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 6.dp),
                 )
             }
             Text(
