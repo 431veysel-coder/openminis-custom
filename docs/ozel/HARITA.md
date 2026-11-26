@@ -8,13 +8,13 @@ Sürüm `1.15-ozel.17` / 37098 · commit ve sayılar aşağıdaki ölçüm bloğ
 <!-- OTO:BASLA -->
 | Ölçüm | Değer |
 |---|---|
-| Kotlin dosyası (main) | 899 · 321 908 satır |
+| Kotlin dosyası (main) | 900 · 321 948 satır |
 | Ekran | 76 · UI paketi 19 |
 | Dilim | 13 (bağımlılığı olan: 1) |
 | Risk kuralı | 43 — DENY 5 · karta düşen 38 |
 | Özellik anahtarı | 25 — açık 21 · kapalı 4 |
 | İzin | 27 Android + 2 özel |
-| Test | 6 730 birim (782 dosya) + 124 cihaz |
+| Test | 6 732 birim (782 dosya) + 124 cihaz |
 | Çeviri | en 3037 · tr 2596 · eksik 441 (yeni 0) |
 | Sözleşme | 13 · kayıt 72 |
 

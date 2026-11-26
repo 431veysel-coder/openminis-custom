@@ -80,4 +80,25 @@ class ClaimMatrixCodecTest {
         assertEquals(1, m.claims.size)
         assertEquals("C9", m.claims[0].id)
     }
+
+    @Test
+    fun kayittan_ekran_satirlari_sayaclari_dogru_tasir() {
+        val lines = RecordedMatrix.claimLines(matrix())
+        assertEquals(2, lines.size)
+        assertEquals("C1", lines[0].id)
+        // Sayaclar Claim'den turetilir: 1 destek, 1 karsi, 1 kararsiz.
+        assertEquals(1, lines[0].support)
+        assertEquals(1, lines[0].oppose)
+        assertEquals(1, lines[0].uncertain)
+        // Duruşlar tel biciminde ("support"), enum degil — ekran boyle okuyor.
+        assertEquals("support", lines[0].stances["Ayşe"])
+        assertEquals("oppose", lines[0].stances["Mehmet"])
+    }
+
+    @Test
+    fun kayit_yoksa_satir_yok_ve_verdict_uydurulmaz() {
+        assertEquals(0, RecordedMatrix.claimLines(null).size)
+        // Karar sutunu kayitta yok; bos birakilir, uydurulmaz.
+        assertEquals("", RecordedMatrix.claimLines(matrix())[0].verdict)
+    }
 }

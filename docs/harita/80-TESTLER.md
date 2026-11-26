@@ -1,11 +1,11 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Testler — 6730 birim testi
+# Testler — 6732 birim testi
 
 | | |
 |---|---|
 | Birim test dosyası | 782 |
-| Birim `@Test` | 6730 |
+| Birim `@Test` | 6732 |
 | Cihaz testi dosyası | 12 |
 | Cihaz `@Test` | 124 |
 

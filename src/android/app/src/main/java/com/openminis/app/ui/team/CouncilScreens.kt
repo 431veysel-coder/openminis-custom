@@ -1,5 +1,6 @@
 package com.openminis.app.ui.team
 
+import com.openminis.app.agent.team.RecordedMatrix
 import com.openminis.app.agent.team.ClaimMatrix
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
@@ -437,7 +438,9 @@ private fun ComparisonRoom(
      */
     recorded: ClaimMatrix? = null,
 ) {
-    val claims = live?.claims ?: recorded?.claims.orEmpty()
+    // [37126] İki farklı liste tipi: canlı tarafta `ClaimLine` (UI modeli),
+    // diskte `Claim` (çekirdek modeli). Dönüşüm `RecordedMatrix`'te, saf.
+    val claims = live?.claims ?: RecordedMatrix.claimLines(recorded)
     // Sütunlar: yalnız oy vermiş üyeler, kayıttaki sırayla.
     val members = remember(claims) {
         val order = live?.members?.keys?.toList().orEmpty()
