@@ -1,6 +1,16 @@
-# SÜRÜM NOTU — 1.15-ozel.44 / 37124
+# SÜRÜM NOTU — 1.15-ozel.44
 
-> **Yayındaki sürüm:** 1.15-ozel.34 / 37115. **Kapılar:** 11/11 · 50.9 s.
+> ## ✅ YAYINLANDI — `v1.15-ozel.43` / build **37124**
+>
+> .43 ve .44 **aynı sürüm numarasını** taşıyor: .44'ün düzeltmeleri, .43
+> yayınlanmadan önce aynı `versionCode`'a katlandı. Yayın kapısı aynı kodu iki
+> kez yayınlatmadığı için bu mümkündü ve doğruydu — ayrı bir kod harcamak,
+> kullanıcıya hiçbir şey eklemeyen bir sürüm numarası üretirdi.
+>
+> **CI 6/6 yeşil:** Native deps · Preflight · Version gate · **Compile** ·
+> **262 test** · **APK 43.5 MB**. `.35`'ten beri ilk kez gerçekten derlendi.
+>
+> **Kapılar:** 11/11 · 50.9 s.
 
 ## 🔴 Bu turun asıl bulgusu: dokuz sürüm hiç derlenmedi
 
