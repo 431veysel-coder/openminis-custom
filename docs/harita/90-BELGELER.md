@@ -1,6 +1,6 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Belgeler — 87 dosya
+# Belgeler — 88 dosya
 
 | Belge | Başlık | İlk satır |
 |---|---|---|
@@ -18,6 +18,7 @@
 | `docs/ozel/KONSEY-DILIMLERI.md` | Konsey hattı — dilim haritası (37037–37069) | Dal: `toplama-11.4` · taban `db2566e` · **derleme yok** (bu dal `apk.yml` |
 | `docs/ozel/OZELLIK-PAKETI.md` | ÖZELLİK PAKETİ — 37080–37090 (11 dilim) | Bu dosya, planlanan işlerin (konsey 37037–37069, proje hafızası 37070–37079, |
 | `docs/ozel/PLAN-35-45.md` | PLAN .35 → .46 — tur tur, kategori kategori, madde madde | Tek cümle: **çekirdek sağlam, kabuk yarım; belgeler bir sürüm geride.** |
+| `docs/ozel/PLAN-48-53.md` | YOL HARİTASI — .48 → .53 (37128 → 37133) | Yol haritasını yazarken kodu okurken çıktılar; planı **değiştiriyorlar**. |
 | `docs/ozel/SANAL-EKRAN.md` | SANAL EKRAN — ne mümkün, ne değil | <!-- ELLE YAZILDI: tasarım kararı. Ölçüm bloğu OTO ile tazelenir. --> |
 | `docs/ozel/SIRADAKI-SURUM.md` | SIRADAKİ SÜRÜM — `37098` / `1.15-ozel.17` · iş listesi | seferde yapılacak, iki ayrı bekleyen sürüm tutmak yanıltıcı. |
 | `docs/ozel/SOHBET-SAGLIK-GOSTERGESI.md` | Sohbet sağlık göstergesi — plan (37095) | Sohbet ekranında yanıt beklerken kullanıcının elinde tek bir işaret var: üç nokta. |
