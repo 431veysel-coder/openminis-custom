@@ -982,6 +982,13 @@ fun ChatSplitScaffoldRoute(
                 onOpenTerminal = {
                     navController.safeNavigate(Routes.terminal(sessionId = sessionId))
                 },
+                // [37130 · A1] Sohbetin konsey simgesi koşuyorsa canlı koşu
+                // ekranını açar. Terminal gibi full-screen push: koşu ekranı
+                // list/detail çiftinin yerini almamalı, üstüne açılmalı —
+                // kullanıcı geri döndüğünde sohbeti aynı yerde bulur.
+                onOpenCouncilRun = { runId ->
+                    navController.safeNavigate(Routes.teamRun(runId))
+                },
                 onOpenTerminalWithCommand = { command ->
                     navController.safeNavigate(
                         Routes.terminal(initCommand = command, sessionId = sessionId),

@@ -545,6 +545,16 @@ fun ChatScreen(
      *  navigates to a fresh draft chat (same funnel as the session list's
      *  new-chat button), replacing this chat on the back stack. */
     onNewChat: () -> Unit = {},
+    /**
+     * [37130 · A1] Open a council run started from this chat.
+     *
+     * Varsayılan **hiçbir şey yapmıyor**: çağrı yeri bağlamadıysa simge
+     * yine çizilir (konseyi seçebilirsin) ama koşu varsa tıklamak sessiz kalır.
+     * Hedefsiz bir gezinme vaat etmek, bu depoda kınanan sınıf; bu yüzden
+     * bağlanmadığında simge `RUNNING` durumunda **çizilmez** — aşağıdaki
+     * `showCouncil` kararı.
+     */
+    onOpenCouncilRun: (String) -> Unit = {},
     onOpenTerminal: () -> Unit = {},
     /** Open the in-app terminal with [command] pre-filled at the prompt
      *  (no trailing newline — the user reviews and presses Enter manually).
@@ -3394,6 +3404,14 @@ fun ChatScreen(
                     }
                 },
                 actions = {
+                    // [37130 · A1] Sohbetin konseyi. "..." menüsünün SOLUNDA:
+                    // menü her zaman orada, konsey durumu ise değişken — sabit
+                    // bir konum, değişen bir şeyi aramayı kolaylaştırır.
+                    com.openminis.app.ui.team.ChatCouncilButton(
+                        sessionId = sessionId,
+                        chatRepository = chatRepository,
+                        onOpenRun = onOpenCouncilRun,
+                    )
                     // iOS: "..." circle button → dropdown menu
                     Box {
                         IconButton(onClick = { showChatMenu = true }) {

@@ -188,6 +188,16 @@ class ChatRepository(internal val dao: ChatDao) {
         return com.openminis.app.data.team.SessionCouncil.resolve(own, project)
     }
 
+    /**
+     * [37129] Yalnız bu sohbetin **kendi** bağı (proje varsayılanı hariç).
+     *
+     * "Kaldır" düğmesinin görünürlüğü buna bağlı: proje varsayılanını bir
+     * sohbetin menüsünden silmek, projedeki tüm sohbetleri etkiler ve o düğme
+     * bunu vaat etmiyor.
+     */
+    suspend fun councilOwnTeam(sessionId: String): String? =
+        com.openminis.app.data.team.SessionCouncil.columnValue(dao.sessionTeam(sessionId))
+
     /** True when the resolved team came from the project, not from the chat. */
     suspend fun councilIsInherited(sessionId: String): Boolean {
         val own = dao.sessionTeam(sessionId)

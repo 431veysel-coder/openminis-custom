@@ -570,14 +570,36 @@ def check_calls_for(
     text = path.read_text(errors="ignore")
     # Compose widget'ları da veri sınıfı gibi görünüyor (`Card`, `Column`);
     # dosyada androidx'ten import edilmiş bir ad, bizim veri sınıfımız değildir.
-    compose_imports = {
-        line.rsplit(".", 1)[-1].split(" as ")[0].strip()
-        for line in text.splitlines()
-        if line.startswith("import androidx.compose")
-    }
+    # [37130] HER import: dosyada import edilen bir ad, bu deponun veri sınıfı
+    # değildir. Önce yalnız `androidx.compose` dışlanıyordu ve `import
+    # androidx.compose.foundation.layout.Rect` gibi bir satır, `Rect(bottom=…)`
+    # çağrısını "bu alan yok" diye işaretledi — üstelik `Rect` başka bir
+    # paketten geliyordu (`GroupEntry` aynı sınıf). Kapı, sahibi olmadığı bir
+    # borcu ödetmemeli: ithal edilen tip bu dosyanın denetim alanı dışında.
+    imported_names = set()
+    for line in text.splitlines():
+        st = line.strip()
+        if not st.startswith("import "):
+            continue
+        name = st[len("import "):].strip()
+        if " as " in name:
+            name = name.split(" as ", 1)[1].strip()
+        else:
+            name = name.rsplit(".", 1)[-1].strip()
+        if name and name != "*":
+            imported_names.add(name)
+    compose_imports = imported_names
     for m in re.finditer(r"\b(\w+)\s*\(", text):
         type_name = m.group(1)
         if type_name not in fields or type_name in compose_imports:
+            continue
+        # [37130] NİTELİKLİ ÇAĞRI ATLANIR: `androidx.compose.ui.geometry.Rect(...)`
+        # içinde `Rect(` bir tip kurulumu değil, başka bir paketin fonksiyonu;
+        # aynı ada sahip yerel bir veri sınıfı varsa kapı yanlış konuşuyordu.
+        # Aynı sınıf `PendingNonTextSelection.GroupEntry(...)` için de geçerli.
+        # Önceki karakter bir `.` (ve ondan önce tanımlayıcı) ise ad niteliklidir.
+        j = m.start() - 1
+        if j >= 0 and text[j] == ".":
             continue
         # [37126] ANOTASYON DEĞİL: `@Insert(onConflict = …)`, `@Query(...)` gibi
         # kullanımlar veri sınıfı kurmuyor. Adlandırılmış argümanları KSP ve
