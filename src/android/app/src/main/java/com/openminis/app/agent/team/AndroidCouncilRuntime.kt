@@ -554,9 +554,50 @@ class AndroidCouncilRuntime(
         }
 
         /** Device → council depth. See [CouncilPolicy] for the numbers. */
+        /**
+         * [37132] Politika artık **ısıyı ve boş belleği** de okuyor.
+         *
+         * `forDevice` yalnız toplam RAM'e bakıyordu: 8 GB'lık bir telefon
+         * termal `SEVERE` iken ya da 200 MB boş bellekle 5 üye başlatıyordu.
+         * Beş paralel model beş ısıtıcı; cihaz zaten frekans düşürecekse fazla
+         * üye yalnız gecikme ve pil ekler, cevap eklemez.
+         *
+         * Karar `DeviceProfile.advise` içinde (saf, testli); burada yalnız
+         * ölçüm var. `waveSize` **küçültüldüyse** bunun sebebi koşunun ön
+         * uyarısına yazılır — sessiz küçültme "konsey bozuk" dedirtir.
+         */
         fun policyFor(context: Context, memberCount: Int? = null): CouncilPolicy.Preset {
             val (lowRam, totalMb) = deviceClass(context)
-            return CouncilPolicy.forDevice(lowRam, totalMb, memberCount)
+            val base = CouncilPolicy.forDevice(lowRam, totalMb, memberCount)
+            val facts = runCatching {
+                com.openminis.app.device.AndroidDeviceProbe.facts(context)
+            }.getOrNull() ?: return base
+
+            val advice = com.openminis.app.device.DeviceProfile.advise(
+                f = facts,
+                requestedWave = base.budget.waveSize,
+                requestedRounds = base.budget.maxRounds,
+            )
+            if (!advice.throttled) return base
+
+            // Kullanıcı 5 üye kurduysa ve cihaz 2'ye düşürdüyse **söylenir**.
+            val reason = when (advice.throttleReason) {
+                "thermal" -> "ısınma"
+                "memory" -> "boş bellek"
+                "battery" -> "pil"
+                else -> advice.throttleReason
+            }
+            return base.copy(
+                budget = base.budget.copy(
+                    waveSize = advice.waveSize,
+                    // Isı turu da kesiyor (advise içinde): düşürülen bir tur
+                    // sınırını yok saymak, "dalga küçüldü ama koşu uzadı"
+                    // demek olurdu — toplam yük aynı kalır.
+                    maxRounds = advice.maxRounds,
+                ),
+                reason = base.reason + " · cihaz durumu ($reason) dalgayı " +
+                    "${advice.waveSize}'e düşürdü",
+            )
         }
 
         /** Device → run-level sub agent budget. See [RunSubAgentBudget]. */
