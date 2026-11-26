@@ -40,7 +40,7 @@ class CouncilTimelineTest {
 
     @Test
     fun katilmayan_uye_ayri_tur() {
-        val e = CouncilEvent.Positioned(member = "Mehmet", claim = "", absent = true, why = "kota")
+        val e = CouncilEvent.Positioned(member = "Mehmet", claim = "", absent = true)
         e.stamp(5L)
         assertEquals("absent", CouncilTimeline.toLine(e)!!.kind)
     }

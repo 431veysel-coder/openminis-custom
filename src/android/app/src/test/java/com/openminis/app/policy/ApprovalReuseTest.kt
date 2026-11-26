@@ -99,7 +99,7 @@ class ApprovalReuseTest {
     fun deny_sinifi_hicbir_zaman_izin_almaz() {
         val book = GrantBook(session = ApprovalScope.Session("s1"), project = null)
         val g = ApprovalPolicy.grantFor(
-            request = request(ruleId = "deny:rm-rf-root"),
+            request = request(verdict(ruleId = "deny:rm-rf-root", recovery = Recovery.PERMANENT)),
             scope = ApprovalScope.Global,
             decision = Decision.ALLOW,
             nowMs = 1_000L,
