@@ -15,7 +15,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         WebAppShortcutEntity::class,
         FolderEntity::class,
     ],
-    version = 15,
+    version = 16,
     // [T-android-downgrade-compat] Kept ON so MigrationTestHelper and CI can
     // validate every migration (and its downgrade counterpart) against the
     // committed schema json. Without it the upgrade/downgrade chain has no
@@ -389,6 +389,27 @@ abstract class AppDatabase : RoomDatabase() {
          * an index there would cost more to keep than it saves, and adding one
          * would force a second schema step (Room validates expected indexes).
          */
+        /**
+         * [37129 · A1] Sohbet düzeyinde konsey.
+         *
+         * Tek kolon, `NULL` varsayılan: mevcut satırlar "proje varsayılanını
+         * kullan" durumunda kalır — yani yükseltme **hiçbir davranışı
+         * değiştirmez**. Yeni bir özelliğin ilk yüklemede sessizce bir şey
+         * açması, bu depoda kınanan sınıf.
+         */
+        val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE sessions ADD COLUMN team_id TEXT")
+            }
+        }
+
+        /** Downgrade counterpart: Room, bildirilmeyen bir kolonu düşmüş gibi reddeder. */
+        val MIGRATION_16_15 = object : Migration(16, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE sessions DROP COLUMN team_id")
+            }
+        }
+
         val MIGRATION_14_15 = object : Migration(14, 15) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -463,6 +484,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_12, MIGRATION_12_11,
                         MIGRATION_13_14, MIGRATION_14_13,
                         MIGRATION_14_15, MIGRATION_15_14,
+                        MIGRATION_15_16, MIGRATION_16_15,
                     )
                     .build()
                     .also { INSTANCE = it }

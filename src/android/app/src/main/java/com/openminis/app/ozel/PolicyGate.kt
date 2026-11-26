@@ -147,15 +147,28 @@ object PolicyGate {
         // yukarıda döndü.
         val rule = RiskRules.byId(verdict.ruleId)
         if (rule != null && mode.autoGrants(rule)) {
+            // [37129] `unlimited = true` VE `consume` YOK.
+            //
+            // ## Neden — kullanıcının şikâyeti
+            //
+            // *"onay istiyor sesli olarak, onaylanmış olsa dahi istiyor"*.
+            //
+            // Eski hâlde bu izin de cevap kayıtlarıyla aynı sayacı alıyordu
+            // (PERMANENT 20, RECOVERABLE 50) ve her kullanımda tüketiliyordu.
+            // Yani kullanıcı "artık sorma" dedikten **20 komut sonra** kayıt
+            // düşüyor, kapı yeniden onay üretiyor, ses yeniden konuşuyordu.
+            //
+            // Bir mod kararı bir **soru cevabı** değildir: kullanıcı bir sınıf
+            // hakkında bir kez karar verdi. Değiştirene kadar geçerli olmalı.
             val grant = ApprovalPolicy.grantFor(
                 request = request,
                 scope = ApprovalScope.Global,
                 decision = Decision.ALLOW,
                 nowMs = now,
                 note = "Ayarlar › İzinler · mod: ${mode.key}",
+                unlimited = true,
             )
             book.put(grant)
-            book.consume(grant, now)
             persist(ctx, book)
 
             // [37118] Kart kalktı, **haber** kalkmadı.
@@ -165,7 +178,10 @@ object PolicyGate {
             // ve iş devam eder. Kullanıcının şikâyeti "onay veremiyorum"du;
             // "ne olduğunu bilmiyorum" değil. Bu satır olmadan `ALLOW_ALL`,
             // sessiz bir silme makinesi olurdu.
-            if (mode.notifyOnly(rule)) {
+            // [37129] Bir kez: aynı kural için ikinci bir koşuda tekrar
+            // konuşmak, "onay verilmiş olsa da soruyor" şikâyetinin sesli
+            // yarısıydı. Kullanıcı bir sınıfın ne olduğunu bir kez duyar.
+            if (mode.notifyOnly(rule) && ApprovalVoice.firstTime(verdict.ruleId)) {
                 runCatching { ApprovalVoice.notice(ctx, request) }
             }
             return GateDecision.Silent(verdict, grant)

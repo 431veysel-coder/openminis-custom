@@ -139,6 +139,23 @@ interface ChatDao {
     @Query("UPDATE sessions SET last_message = :preview, updated_at = :updatedAt WHERE id = :id")
     suspend fun updateLastMessage(id: String, preview: String?, updatedAt: Long)
 
+    /**
+     * [37129] Bu sohbetin konseyi. `NULL` = proje varsayılanını kullan.
+     *
+     * `updated_at` **yazılmıyor**: takım atamak organizasyonel bir eylem,
+     * sohbeti son konuşmalar listesinin başına taşımamalı. `setSessionFolder`
+     * ile aynı kural.
+     */
+    @Query("UPDATE sessions SET team_id = :teamId WHERE id = :id")
+    suspend fun setSessionTeam(id: String, teamId: String?)
+
+    @Query("SELECT team_id FROM sessions WHERE id = :id")
+    suspend fun sessionTeam(id: String): String?
+
+    /** Bir koşu canlıysa hangi takım için olduğunu ekran sormadan bilmeli. */
+    @Query("SELECT COUNT(*) FROM sessions WHERE team_id = :teamId")
+    suspend fun sessionCountForTeam(teamId: String): Int
+
     @Query("UPDATE sessions SET model_id = :modelId, updated_at = :updatedAt WHERE id = :id")
     suspend fun updateSessionModel(id: String, modelId: String, updatedAt: Long = System.currentTimeMillis())
 

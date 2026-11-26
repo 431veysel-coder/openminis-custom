@@ -2664,4 +2664,14 @@
     <string name="council_stop">Durdur</string>
     <string name="council_stop_title">Bu konsey koşusu durdurulsun mu?</string>
     <string name="council_stop_body">Tamamlanan turlar korunur ve koşu listesinde durdurulmuş olarak görünür. Kalan turlar çalışmaz.</string>
+    <string name="chat_council_none">Bu sohbetin konseyi yok</string>
+    <string name="chat_council_idle">Konsey hazır</string>
+    <string name="chat_council_running">Konsey çalışıyor</string>
+    <string name="chat_council_pick_title">Bu sohbetin konseyini seç</string>
+    <string name="chat_council_from_project">Projeden devralındı</string>
+    <string name="chat_council_own">Bu sohbete özel</string>
+    <string name="chat_council_change">Değiştir</string>
+    <string name="chat_council_clear">Bu sohbetten kaldır</string>
+    <string name="chat_council_no_teams">Henüz takım yok — önce Ekip ekranından bir tane kur.</string>
+    <string name="chat_council_member_count">%1$d üye</string>
 </resources>

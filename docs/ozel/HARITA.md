@@ -8,14 +8,14 @@ Sürüm `1.15-ozel.17` / 37098 · commit ve sayılar aşağıdaki ölçüm bloğ
 <!-- OTO:BASLA -->
 | Ölçüm | Değer |
 |---|---|
-| Kotlin dosyası (main) | 903 · 322 425 satır |
+| Kotlin dosyası (main) | 905 · 322 897 satır |
 | Ekran | 76 · UI paketi 19 |
 | Dilim | 13 (bağımlılığı olan: 1) |
 | Risk kuralı | 43 — DENY 5 · karta düşen 38 |
 | Özellik anahtarı | 25 — açık 21 · kapalı 4 |
 | İzin | 27 Android + 2 özel |
-| Test | 6 749 birim (785 dosya) + 124 cihaz |
-| Çeviri | en 3049 · tr 2608 · eksik 441 (yeni 0) |
+| Test | 6 754 birim (786 dosya) + 124 cihaz |
+| Çeviri | en 3059 · tr 2618 · eksik 441 (yeni 0) |
 | Sözleşme | 13 · kayıt 72 |
 
 Ayrıntı ve yönlendirme: [`docs/harita/00-GIRIS.md`](../harita/00-GIRIS.md)

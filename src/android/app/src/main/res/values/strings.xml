@@ -3354,4 +3354,14 @@
     <string name="council_stop">Stop</string>
     <string name="council_stop_title">Stop this council run?</string>
     <string name="council_stop_body">The rounds already finished are kept and appear in the run list as stopped. Remaining rounds will not run.</string>
+    <string name="chat_council_none">No council for this chat</string>
+    <string name="chat_council_idle">Council ready</string>
+    <string name="chat_council_running">Council is running</string>
+    <string name="chat_council_pick_title">Choose this chat\'s council</string>
+    <string name="chat_council_from_project">Inherited from the project</string>
+    <string name="chat_council_own">Set for this chat</string>
+    <string name="chat_council_change">Change</string>
+    <string name="chat_council_clear">Remove from this chat</string>
+    <string name="chat_council_no_teams">No teams yet — create one on the Teams screen first.</string>
+    <string name="chat_council_member_count">%1$d member(s)</string>
 </resources>

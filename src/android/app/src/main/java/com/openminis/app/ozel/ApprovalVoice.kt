@@ -61,6 +61,45 @@ import java.util.concurrent.ConcurrentHashMap
  */
 object ApprovalVoice {
 
+    /**
+     * [37129] Kural başına **bir kez** duyuru.
+     *
+     * ## Neden
+     *
+     * Kullanıcının şikâyeti: *"onay istiyor sesli olarak, onaylanmış olsa dahi
+     * istiyor"*. Sesli yarısının sebebi buydu — `ALLOW_ALL` modunda her yeni
+     * izin kaydı bir duyuru üretiyordu, dolayısıyla aynı sınıfın işi (ör.
+     * her `rm`) defalarca konuşuluyordu.
+     *
+     * Kullanıcı bir kuralın ne olduğunu **bir kez** duyar. Uyarı kaybolmuyor:
+     * ilk seferde söyleniyor, titreşim ve bildirim de o an bırakılıyor.
+     *
+     * ## Neden süreç ömürlü, neden diskte değil
+     *
+     * Bu bir bilgi tekrarı engeli, kalıcı bir kayıt değil. Uygulama yeniden
+     * açıldığında bir kez daha duymak makul (kullanıcı ne olduğunu hatırlar ya
+     * da hatırlamaz). Diske yazmak, "hiç duymadım ama söylenmiş sayılıyor"
+     * durumunu yaratırdı.
+     *
+     * ## Neden sınırlı
+     *
+     * Küme, kural kimlikleriyle sınırlı (`RiskRules` kataloğu onlarca satır) ve
+     * süreçle birlikte ölür — bir sızıntı değil.
+     */
+    private val announced = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
+    /** true exactly once per rule id in this process. */
+    fun firstTime(ruleId: String): Boolean {
+        if (ruleId.isBlank()) return false
+        return announced.add(ruleId)
+    }
+
+    /** Test/reset hook. */
+    internal fun resetAnnounced() {
+        announced.clear()
+    }
+
+
     private const val TAG = "ApprovalVoice"
     private const val CHANNEL_ID = "minis_approval_voice"
     private const val NOTIFICATION_TAG = "approval-voice"

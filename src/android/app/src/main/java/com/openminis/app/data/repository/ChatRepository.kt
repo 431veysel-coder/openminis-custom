@@ -176,6 +176,33 @@ class ChatRepository(internal val dao: ChatDao) {
     suspend fun sessionBriefsInFolder(folderId: String): List<SessionBriefRow> =
         dao.sessionBriefsInFolder(folderId)
 
+    /**
+     * [37129] Bu sohbetin **çözülmüş** konseyi: sohbet → proje → yok.
+     *
+     * Kural `SessionCouncil.resolve` içinde, saf ve testli. Burada yalnız iki
+     * kolon okunuyor.
+     */
+    suspend fun councilForSession(sessionId: String): String? {
+        val own = dao.sessionTeam(sessionId)
+        val project = folderOfSession(sessionId)?.defaultTeamId
+        return com.openminis.app.data.team.SessionCouncil.resolve(own, project)
+    }
+
+    /** True when the resolved team came from the project, not from the chat. */
+    suspend fun councilIsInherited(sessionId: String): Boolean {
+        val own = dao.sessionTeam(sessionId)
+        val project = folderOfSession(sessionId)?.defaultTeamId
+        return com.openminis.app.data.team.SessionCouncil.isInherited(own, project)
+    }
+
+    /**
+     * Set or clear this chat's own council. Passing `null` (or blank) means
+     * "follow the project default" — it does **not** mean "no council".
+     */
+    suspend fun setCouncilForSession(sessionId: String, teamId: String?) {
+        dao.setSessionTeam(sessionId, com.openminis.app.data.team.SessionCouncil.columnValue(teamId))
+    }
+
     /** [37126] Sessions filed nowhere — candidates for "add to this project". */
     suspend fun unfiledSessionBriefs(limit: Int = 200): List<SessionBriefRow> =
         dao.unfiledSessionBriefs(limit)

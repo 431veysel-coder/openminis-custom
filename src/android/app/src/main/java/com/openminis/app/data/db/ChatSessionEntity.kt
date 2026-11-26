@@ -52,6 +52,21 @@ data class ChatSessionEntity(
     // choice that survives cold-start.
     @ColumnInfo(name = "thinking_override") val thinkingOverride: String? = null,
     /**
+     * [37129 · A1] **Bu sohbetin konseyi.**
+     *
+     * NULL = "proje varsayılanını kullan" — devralma tek satır kuralda:
+     * *sohbetin takımı → projenin varsayılanı → yok.* Böylece kullanıcı bir
+     * projede tek bir sohbet için farklı heyet denemek istediğinde projeyi
+     * bölmek zorunda kalmaz.
+     *
+     * `folders.default_team_id` (`.15`'ten beri var) ilk kez **okunuyor**;
+     * bugüne kadar yazılıyor ama tüketilmiyordu.
+     *
+     * `folder_id` gibi bu da **foreign key değil**: silinmiş bir takımın
+     * kimliği geçici ve meşru bir durum, çökme sebebi değil.
+     */
+    @ColumnInfo(name = "team_id") val teamId: String? = null,
+    /**
      * [T-android-session-grouping] Group membership. NULL = ungrouped.
      *
      * Deliberately NOT a declared @ForeignKey. A folder_id pointing at a group

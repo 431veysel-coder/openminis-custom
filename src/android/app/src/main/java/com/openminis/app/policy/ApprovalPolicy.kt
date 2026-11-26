@@ -105,13 +105,33 @@ object ApprovalPolicy {
         Recovery.UNDOABLE -> null
     }
 
-    /** Verilen cevaptan kaydı üretir. */
+    /**
+     * Verilen cevaptan kaydı üretir.
+     *
+     * @param unlimited [37129] `true` ise **kullanım sayacı yoktur**. Yalnız
+     *   mod düzeyinde verilen izinler için (`ALLOW_ALL` / `SETTINGS_ONLY`).
+     *
+     * ## Neden bu parametre var (kullanıcının şikâyeti)
+     *
+     * *"onay istiyor sesli olarak, onaylanmış olsa dahi istiyor"*.
+     *
+     * Kök sebep buradaydı: mod izni de normal cevapla aynı `maxUses`'ı
+     * alıyordu (PERMANENT 20, RECOVERABLE 50) ve her kullanımda tüketiliyordu.
+     * Yani kullanıcı "bu sınıfı bir daha sorma" dedikten **20 komut sonra**
+     * kayıt düşüyor, kapı yeniden onay üretiyor, ses yeniden konuşuyordu.
+     *
+     * Ayrım şu: bir **soruya verilen cevap** sayılıdır (kullanıcı tek bir iş
+     * için izin verdi, belli bir sayıdan sonra tekrar bakmak doğru). Bir
+     * **mod kararı** sayılı değildir: kullanıcı bir sınıf hakkında bir kez
+     * karar verdi ve o karar değişene kadar geçerlidir.
+     */
     fun grantFor(
         request: ApprovalRequest,
         scope: ApprovalScope,
         decision: Decision,
         nowMs: Long,
         note: String = "",
+        unlimited: Boolean = false,
     ): Grant {
         val v = request.verdict
         val ttl = ttlMs(scope, v)
@@ -122,7 +142,7 @@ object ApprovalPolicy {
             decision = decision,
             grantedAtMs = nowMs,
             expiresAtMs = ttl?.let { nowMs + it },
-            maxUses = if (decision == Decision.ALLOW) maxUses(v) else null,
+            maxUses = if (!unlimited && decision == Decision.ALLOW) maxUses(v) else null,
             note = note,
         )
     }
