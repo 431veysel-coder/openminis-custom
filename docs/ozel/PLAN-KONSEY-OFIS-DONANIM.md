@@ -282,12 +282,99 @@ Bu özelliğin **kendisi** yeni bellek yükü getiriyor. Kurallar:
 
 ---
 
-## 6 · Açık kaynak taraması
+## 6 · Açık kaynak taraması (tamamlandı)
 
-> Mobil uyumlu açık kaynaklar ayrı bir araştırma turunda toplanıyor
-> (paralel alt ajan). Sonuç geldiğinde bu bölüme **ölçülmüş** hâliyle eklenecek:
-> proje · Android uygunluğu · lisans · son sürüm · entegrasyon riski.
-> Bu bölüm boşken plan **tamamlanmış sayılmaz** — kullanıcı bunu istedi.
+> **Yöntem:** paralel bir araştırma turu 5 alanı taradı; **sürüm/lisans iddialarını
+> GitHub API'sinden kendim doğruladım** (aşağıdaki tablo doğrulanmış değerler).
+> Doğrulayamadığım her şey "doğrulanmadı" diye işaretli.
+
+### 6.0 Bizim iki kısıtımız — öneriyi bunlar belirliyor
+
+| Kısıt | Ölçüm |
+|---|---|
+| **APK bütçesi** | `APK_BUDGET_KB` = **120 KB**, `MAX_EMBEDDED_ASSET_KB` = 4096 KB — yani APK'ya yük gömülmüyor, indiriliyor |
+| **Yerel çıkarım** | **Sıfır.** Kodda `gguf/llama/onnx/tflite` geçmiyor; tüm modeller bulut sağlayıcısı |
+| **Elimizde olan** | PRoot sandbox + `NativeOffloadHandler` altyapısı (tarayıcı CLI, konuşma CLI, cihaz CLI bunu kullanıyor) |
+
+**Bu üçü birlikte tek bir mimari karar zorluyor:**
+
+> Yerel çıkarım için **JNI/native kütüphane almayacağız**; **sandbox içinde CLI**
+> olarak çalıştıracağız.
+
+Gerekçe, sayıyla: llama.cpp JNI `.so` dosyaları ABI başına ~20-40 MB,
+sherpa-onnx ~20 MB+. Bu, 43.5 MB'lık APK'yı **ikiye katlar** ve 120 KB'lık yük
+bütçesiyle çelişir. Oysa sandbox zaten var, CLI çalıştırma yolu zaten çalışıyor,
+model ağırlıkları (1-4 GB gguf) **cihaza indirilebilir** — APK'ya gömülmez.
+
+Bedeli: süreç başlatma gecikmesi (~100-300 ms) ve akış yerine blok çıktı. Bir
+konsey üyesi için bu **önemsiz** (tur saniyeler-dakikalar sürüyor). Sohbette
+anlık yanıt için ise bulut sağlayıcı zaten var.
+
+### 6.1 Doğrulanmış tablo (GitHub API, 2026-11-26)
+
+| Proje | Ne yapar | Android | Lisans | Son sürüm | Bizde nasıl |
+|---|---|---|---|---|---|
+| [ggml-org/llama.cpp](https://github.com/ggml-org/llama.cpp) | GGUF çıkarım motoru, CPU+GPU | (a) + (c) | MIT | v1.1.0 · 2026-11-26 | **Sandbox CLI** — `llama-cli` derlenir, model indirilir |
+| [k2-fsa/sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) | ASR + TTS + VAD + diarization | (a) Kotlin API | Apache-2.0 | v2.0.3 · 2026-11-22 | **Sandbox CLI** (Python/CLI) — JNI almadan |
+| [google/perfetto](https://github.com/google/perfetto) | İzleme + `heapprofd` + termal/CPU sayaçları | (a) SDK · (c) CLI | Apache-2.0 | v59.1 · 2026-10-27 | **Sandbox CLI** — §4 tanılamasını besler |
+| [square/leakcanary](https://github.com/square/leakcanary) | Sızıntı tespiti | (b) Kotlin | Apache-2.0 | v3.0-alpha-9 · 2026-06-25 | `debugImplementation` — **APK'ya girmez** |
+| [modelcontextprotocol/kotlin-sdk](https://github.com/modelcontextprotocol/kotlin-sdk) | MCP istemci/sunucu | (b) KMP | **belirsiz (NOASSERTION)** | 0.16.0 · 2026-10-27 | **Bekle** — pre-1.0, lisans net değil |
+| [google-ai-edge/LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM) | Google'ın kenar LLM çalışma zamanı | (a) Kotlin | Apache-2.0 | v0.20.0 · 2026-11-23 | **İzle** — NPU hikâyesi için tek taşınabilir yol |
+
+**Doğrulanamayan:** `microsoft/onnxruntime` — API bu ağdan 404 döndü; mevcut
+ama sürüm/lisans teyit edilemedi.
+
+### 6.2 Ne alacağız, ne almayacağız
+
+**Alacağız (sırayla):**
+
+1. **llama.cpp — sandbox CLI.** Konseyin **yerel üyesi**: internet yokken de
+   çalışan, ücretsiz, gizliliği tam bir heyet üyesi. Maliyet: 0 KB APK.
+   İlk somut adım: `.54`'te **yalnız kurulum + sağlık kontrolü** (derleme
+   çalışıyor mu, model indi mi) — entegrasyon sonraki tur.
+2. **perfetto CLI — tanılama.** §4'teki kaynak ekranının **derin** verisi
+   (CPU kümesi kullanımı, termal eğri). Uygulama içi SDK değil, sandbox CLI:
+   `heapprofd` zaten debuggable/profileable build ister, üretimde koşmaz.
+3. **LeakCanary — yalnız debug.** APK'ya girmez, CI'da çalışır. Sızıntı
+   avında en yüksek getirisi olan tek satır.
+
+**Almayacağız:**
+
+| Proje | Neden |
+|---|---|
+| **MLC-LLM** | Model başına **telefon GPU sınıfına özel** derleme; 1-2 GB blob; TVM araç zinciri. Sahada yönetilemez |
+| **ExecuTorch** | Android LLM yolu üç motorun en kırılganı; export zinciri + özel kernel boşlukları |
+| **MediaPipe LLM** | LiteRT-LM'e devredilmiş, kullanımdan kalkma yolunda |
+| **ONNX Runtime** | Doğrulanamadı + GenAI/LLM yolu Android'de en az olgun |
+| **ncnn** | Otoregresif çözümlemede KV-cache/sampler yığını olgun değil |
+| **Piper TTS** | **GPL-3.0** — JNI ile bağlamak uygulamayı GPL yapar. Sandbox'ta ayrı süreç sınırda |
+| **Coqui TTS** | Ölü (2024), 1-2 GB Torch modeli |
+| **Profilo / GAPID** | Arşivlenmiş / masaüstü |
+| **Ethos-U Vela** | MCU'da, telefonda yok |
+| **NNAPI** | Resmen kullanımdan kaldırıldı (belge alıntısı §4.1'de) |
+| **MCP kotlin-sdk** | Şimdilik değil: pre-1.0, lisans NOASSERTION, spec hâlâ oynuyor. Bir yıl sonra tekrar bakılır |
+| **langchain4j / adk-java** | Masaüstü-JVM varsayımları, R8/reflection acısı; bizim ajan döngümüz zaten var |
+
+### 6.3 Donanım sorgulama: alacak kütüphane **yok**
+
+Araştırmanın en net bulgusu ve benim §4 ölçümümle örtüşüyor: **Android'de
+GPU/NPU/termal sorgulayan olgun açık kaynak kütüphane yok.** Bulunanlar ya
+oyuncak depo (2018'de durmuş) ya masaüstü aracı ya da MCU için.
+
+Yani §4'teki `DeviceProfile` **kendimiz yazacağız** — tahmini 200-400 satır ince
+sarmalayıcı. Kaynaklar: `ActivityManager.MemoryInfo`, `PowerManager`
+termal durumu, `/sys/devices/system/cpu/*/cpufreq/*`, `GLES20.glGetString`.
+Bu bir **eksik değil, gerçek**: bu katman hiçbir yerde hazır satılmıyor.
+
+### 6.4 Top 3'ün gerçekçi hâli
+
+| Alt ajanın önerisi | Benim kararım |
+|---|---|
+| 1. llama.cpp | ✅ **ama JNI değil, sandbox CLI** — APK bütçesi zorluyor |
+| 2. sherpa-onnx | ✅ aynı gerekçe; ayrıca cihazda zaten sistem STT/TTS var (§A4 cihaz sınaması) — **önce o ölçülsün**, sonra gerekirse sherpa |
+| 3. MCP kotlin-sdk | ❌ **ertelendi** — pre-1.0 + lisans belirsiz |
+
+
 
 ---
 
@@ -302,7 +389,8 @@ Bu özelliğin **kendisi** yeni bellek yükü getiriyor. Kurallar:
 | **.51** | Zaman hattı altyapısı (`atMs` + sınırlı kuyruk) + oda sözleşmesi + 6→5 | 1 tur | Ofisin **ön koşulu**; sözleşme kapısı boş oda riskini kapatır |
 | **.52** | Sanal ofis: zoom + Bakış + Kayıt | 1 tur | Veri artık var |
 | **.53** | Donanım profili + tanılama ekranı | 1 tur | Bağımsız, paralel yapılabilir |
-| **.54** | Açık kaynak entegrasyonu (araştırma sonucuna göre 1-2 kalem) | 1-2 tur | En pahalı, en sona |
+| **.54** | llama.cpp **sandbox CLI** kurulumu + sağlık kontrolü (APK'ya yük yok) | 1 tur | Yerel üye = internet yokken çalışan konsey |
+| **.55** | llama.cpp'yi konsey üyesi olarak bağla (§6.1) | 1-2 tur | Yukarıdakine yaslanıyor |
 
 **Not:** canlı içerik (`.49`/`.50` eski plan) bu planda **geriye** düştü.
 Gerekçe: kullanıcı üç kez konsey/ofis istedi, canlı içerik bir kez. Ayrıca
