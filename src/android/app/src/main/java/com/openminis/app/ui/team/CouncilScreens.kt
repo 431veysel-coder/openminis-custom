@@ -1,5 +1,6 @@
 package com.openminis.app.ui.team
 
+import com.openminis.app.agent.team.CouncilTimeline
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
@@ -182,8 +183,11 @@ fun CouncilScreen(
                     recorded = recorded,
                 )
                 3 -> ComparisonRoom(live = live, recorded = recorded?.matrix)
-                4 -> CommsRoom(live = live)
-                else -> NeedsRoom(live = live)
+                // [37131] "İletişim" odası "İlişkiler"e katlandı: sorular,
+                // sahipsiz işler ve iddia→görev bağları tek soruya cevap
+                // veriyor. Boş kalan sekme yerine **Kayıt** geldi.
+                4 -> NeedsRoom(live = live)
+                else -> TimelineRoom(live = live)
             }
         }
     }
@@ -228,8 +232,11 @@ private fun TabStrip(selected: Int, onSelect: (Int) -> Unit) {
         stringResource(R.string.council_room_tasks),
         stringResource(R.string.council_room_result),
         stringResource(R.string.council_room_compare),
-        stringResource(R.string.council_room_comms),
-        stringResource(R.string.council_room_needs),
+        // [37131 · Ofis] "İletişim" + "Bağımlılık" tek odaya birleşti
+        // (ilişkiler = aynı sorunun iki yarısı), yerine **Kayıt** geldi:
+        // zaman damgalı, filtrelenebilir transcript. Ofisin gerçek kalbi.
+        stringResource(R.string.council_room_relations),
+        stringResource(R.string.council_tl_title),
     )
     LazyRow(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
@@ -691,6 +698,148 @@ private fun CommsRoom(live: CouncilLiveRegistry.LiveRun?) {
         }
     }
 }
+
+/**
+ * [37131 · Ofis] **Kayıt odası** — kim ne zaman ne yaptı.
+ *
+ * ## Neden bu oda ofisin kalbi
+ *
+ * Diğer beş oda *durumun* fotoğrafı: kim konuşuyor, ne çıktı, kim karşı.
+ * Bu oda **zamanın** kendisi. Kullanıcı bir koşu bittikten sonra "bu karar
+ * nasıl oluştu" diye sorduğunda cevap burada.
+ *
+ * ## Neden filtrelenebilir
+ *
+ * 500 satırlık düz bir liste okunmaz. Üye filtresi ("Ayşe ne demişti") ve
+ * tür filtresi ("hangi turda düştü") iki gerçek soruya cevap veriyor.
+ *
+ * ## Neden kırpma yazılı
+ *
+ * Kuyruk sınırlı (`CouncilTimeline.MAX_LINES`). Sessiz kırpma, eksik kaydı tam
+ * göstermek olurdu — o satır olmadan kullanıcı kaydın bütün olduğunu sanır.
+ */
+@Composable
+private fun TimelineRoom(live: CouncilLiveRegistry.LiveRun?) {
+    val tl = live?.timeline ?: CouncilTimeline.State()
+    var who by remember(live?.runId) { mutableStateOf<String?>(null) }
+    var kind by remember(live?.runId) { mutableStateOf<String?>(null) }
+
+    val members = remember(tl) { CouncilTimeline.perMember(tl).keys.sorted() }
+    val kinds = remember(tl) { CouncilTimeline.kinds(tl) }
+
+    val shown = remember(tl, who, kind) {
+        tl.lines.filter { l ->
+            (who == null || l.who == who) && (kind == null || l.kind == kind)
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        if (live == null) {
+            // Kayıt yalnız canlı koşuda tutuluyor. Diske yazılmıyor: 500 satırlık
+            // bir transcript her koşu için run.json'ı şişirirdi ve ofis "son
+            // koşu" odası, arşiv değil.
+            SettingsSection {
+                SettingsRow(
+                    title = stringResource(R.string.council_tl_empty),
+                    subtitle = stringResource(R.string.council_tl_live_only),
+                    showDivider = false,
+                )
+            }
+            return@Column
+        }
+
+        if (tl.truncated) {
+            Text(
+                stringResource(R.string.council_tl_truncated, tl.dropped),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            )
+        }
+
+        // Üye filtresi: yalnız konuşan üyeler (koşu düzeyi olaylar "who" boş).
+        if (members.isNotEmpty()) {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                item {
+                    TextButton(onClick = { who = null }) {
+                        Text(
+                            stringResource(R.string.council_tl_all_members),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (who == null) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                items(members.size) { i ->
+                    val m = members[i]
+                    TextButton(onClick = { who = if (who == m) null else m }) {
+                        Text(
+                            m,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (who == m) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
+
+        if (shown.isEmpty()) {
+            SettingsSection {
+                SettingsRow(
+                    title = stringResource(R.string.council_tl_empty),
+                    showDivider = false,
+                )
+            }
+        } else {
+            // Sanal liste: 500 satırı bir seferde çizmek jank üretir.
+            LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 620.dp)) {
+                items(shown.size) { i ->
+                    val line = shown[i]
+                    SettingsRow(
+                        title = clock(line.atMs) + " · " + kindLabel(line.kind) +
+                            if (line.who.isBlank()) "" else " · " + line.who,
+                        subtitle = line.detail.ifBlank { null },
+                        showDivider = i < shown.size - 1,
+                        minHeight = 48.dp,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** `12:04:31` — tarih değil saat: aynı koşunun içindeyiz. */
+private fun clock(ms: Long): String {
+    val t = java.util.Calendar.getInstance()
+    t.timeInMillis = ms
+    return String.format(
+        "%02d:%02d:%02d",
+        t.get(java.util.Calendar.HOUR_OF_DAY),
+        t.get(java.util.Calendar.MINUTE),
+        t.get(java.util.Calendar.SECOND),
+    )
+}
+
+@Composable
+private fun kindLabel(kind: String): String = stringResource(
+    when (kind) {
+        "started" -> R.string.council_kind_started
+        "round_started" -> R.string.council_kind_round_started
+        "position" -> R.string.council_kind_position
+        "absent" -> R.string.council_kind_absent
+        "canonicalized" -> R.string.council_kind_canonicalized
+        "consensus" -> R.string.council_kind_consensus
+        "stable" -> R.string.council_kind_stable
+        "synthesized" -> R.string.council_kind_synthesized
+        "audited_ok" -> R.string.council_kind_audited_ok
+        "audited_fail" -> R.string.council_kind_audited_fail
+        else -> R.string.council_kind_finished
+    },
+)
 
 /**
  * [37099c] **Bağımlılık / ihtiyaçlar hattı** — kim kime bağlı, ne eksik.

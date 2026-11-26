@@ -54,6 +54,9 @@ GATES: dict[str, tuple[list[str], bool]] = {
     # kullanılmayan import); yanlış-pozitif üreten denetimler bilgi olarak
     # basılır, kapıyı kırmızı yapmaz.
     "kotlin": ([sys.executable, "scripts/ozel/kotlin-hizli.py"], True),
+    # [37131] Oda sozlesmesi: her CouncilEvent en az bir odaya bagli olmali.
+    # `.22`'de bir oda bos acildi cunku veri uretiliyor ama tuketilmiyordu.
+    "oda-sozlesmesi": ([sys.executable, "scripts/ozel/kural_oda_sozlesmesi.py"], True),
     # [37099l] Ölü kod: yalnız **bu commit'te eklenen** fonksiyonlara bakar ve
     # yalnız bilgi verir (zorunlu değil). Tüm ağaçta 250 devralınmış kayıt var;
     # hepsini kırmızı yapmak kapıyı susturur. Amaç: "yazdım, bağlamadım"

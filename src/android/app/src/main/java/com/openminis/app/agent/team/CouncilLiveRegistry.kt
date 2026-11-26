@@ -98,6 +98,14 @@ object CouncilLiveRegistry {
          */
         val needs: List<NeedLine> = emptyList(),
         val finished: Finished? = null,
+        /**
+         * [37131 · Ofis] Zaman çizgisi — sanal ofisin "Kayıt" görünümü.
+         *
+         * Sınırlı (`CouncilTimeline.MAX_LINES`); kırpma sayısı `dropped` içinde
+         * tutulur ve arayüzde **yazılır**. Sınırsız bir liste, koşu uzadıkça
+         * büyüyen bir sızıntı olurdu.
+         */
+        val timeline: CouncilTimeline.State = CouncilTimeline.State(),
     ) {
         val running: Boolean get() = finished == null
     }
@@ -403,6 +411,20 @@ object CouncilLiveRegistry {
         _runs.update { current ->
             val run = current[runId] ?: return@update current
             current + (runId to run.copy(tasks = run.tasks + (task.id to task)))
+        }
+    }
+
+    /**
+     * [37131] Append one event to a run's timeline.
+     *
+     * Called from the same `onEvent` sink that already feeds this registry —
+     * a second subscription would be a second chance to miss an event.
+     * Unknown run (already forgotten) is a no-op, not a crash.
+     */
+    fun timelineAppend(runId: String, event: CouncilEvent) {
+        _runs.update { current ->
+            val run = current[runId] ?: return@update current
+            current + (runId to run.copy(timeline = CouncilTimeline.append(run.timeline, event)))
         }
     }
 

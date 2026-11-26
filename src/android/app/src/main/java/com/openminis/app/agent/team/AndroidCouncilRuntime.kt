@@ -705,6 +705,11 @@ object CouncilRunner {
                     // (any screen that opens later). Neither can be the only
                     // one — the first is gone when the user navigates away, and
                     // the second never sees a run it did not start.
+                    //
+                    // [37131 · Ofis] Üçüncü tüketici DEĞİL: zaman çizgisi aynı
+                    // kaydın bir alanı. Ayrı bir abone eklemek, ikinci bir
+                    // "bir olayı kaçırma" şansı olurdu.
+                    runCatching { CouncilLiveRegistry.timelineAppend(runId, e) }
                     runCatching {
                         when (e) {
                             is CouncilEvent.Started -> CouncilLiveRegistry.phase(runId, CouncilLiveRegistry.Phase.STARTING)

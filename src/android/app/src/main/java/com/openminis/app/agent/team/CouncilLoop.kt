@@ -91,6 +91,11 @@ class CouncilLoop(
     ): CouncilOutcome {
         val events = mutableListOf<CouncilEvent>()
         fun emit(e: CouncilEvent) {
+            // [37131 · Ofis] Damga TEK yerde basılır. Dokuz olay tipinin her
+            // birine `System.currentTimeMillis()` yazmak, birini unutmak
+            // demek — bu depoda "dört PRoot kurucusundan birini unutma" hatası
+            // üç kez yaşandı. `stamp` ikinci çağrıda ilk damgayı korur.
+            e.stamp()
             events += e
             onEvent(e)
         }

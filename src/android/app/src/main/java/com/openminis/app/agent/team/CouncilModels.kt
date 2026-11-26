@@ -296,6 +296,32 @@ data class CouncilOutcome(
 
 /** Everything the screen draws, in order. */
 sealed class CouncilEvent {
+    /**
+     * [37131 · Ofis] **Bu olay ne zaman oldu** (epoch ms).
+     *
+     * ## Neden alan, neden `Positioned`'a gömülmedi
+     *
+     * Sanal ofisin "Kayıt" görünümü zaman damgasız çizilemez: "kim ne zaman
+     * konuştu" sorusunun cevabı veride yoktu. Damga **tüm** olaylara gerekiyor
+     * (tur başladı, sentez yazıldı, denetim düştü…), yalnız pozisyona değil.
+     *
+     * ## Neden varsayılan `0`, neden `abstract`
+     *
+     * `abstract` yapmak dokuz alt sınıfı ve onların tüm test kurucularını
+     * kırar. `0` = "damga verilmedi" ve yazıcı onu **atlar** (uydurma zaman
+     * yazmaz). Üretici tarafı tek yerde — `CouncilLoop.emit` — damgayı basıyor,
+     * yani gerçek koşularda hiçbir olay 0 kalmıyor. Testler ise sadece
+     * `copy(atMs = …)` yazmadan çalışmaya devam ediyor.
+     */
+    var atMs: Long = 0L
+        private set
+
+    /** Stamped by the producer, once. A second call keeps the first stamp. */
+    internal fun stamp(nowMs: Long = System.currentTimeMillis()): CouncilEvent {
+        if (atMs == 0L) atMs = nowMs
+        return this
+    }
+
     data class Started(val task: String, val members: List<String>, val waveSize: Int) : CouncilEvent()
     data class RoundStarted(val round: Int, val questions: Int) : CouncilEvent()
     /**
