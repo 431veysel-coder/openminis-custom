@@ -1,5 +1,11 @@
 package com.openminis.app.ui.team
 
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.Icons
 import com.openminis.app.agent.team.RecordedMatrix
 import com.openminis.app.agent.team.ClaimMatrix
 import androidx.compose.ui.semantics.semantics
@@ -83,10 +89,58 @@ fun CouncilScreen(
 
     var tab by remember { mutableStateOf(0) }
 
+    // [37128 · A1] Durdurma yalnız koşarken anlamlı. `finished == null` canlı
+    // kaydın kendi tanımı ("koşuyor"); ayrı bir bayrak tutmak iki gerçek
+    // kaynağı yaratırdı.
+    val running = live?.running == true
+    var stopAsked by remember(runId) { mutableStateOf(false) }
+
     SettingsScaffold(
         title = live?.teamName ?: recorded?.teamName ?: stringResource(R.string.council_title),
         onBack = onBack,
+        actions = if (running) {
+            {
+                IconButton(onClick = { stopAsked = true }) {
+                    Icon(
+                        Icons.Filled.Stop,
+                        contentDescription = stringResource(R.string.council_stop),
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+        } else {
+            null
+        },
     ) {
+        // [37128 · A1] Onay istenir: iptal geri alınamaz (yarım koşu kaydedilir,
+        // kalan turlar harcanmaz). "Yanlışlıkla bastım" maliyeti, tek dokunuşla
+        // ödenen bedelden büyük.
+        if (stopAsked) {
+            AlertDialog(
+                onDismissRequest = { stopAsked = false },
+                title = { Text(stringResource(R.string.council_stop_title)) },
+                text = { Text(stringResource(R.string.council_stop_body)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        stopAsked = false
+                        // Koşmuyorsa `false` döner; kullanıcıya "durdurdum"
+                        // demeyiz — düz ekran zaten durumu gösterir.
+                        com.openminis.app.agent.team.CouncilRunRegistry.cancel(runId)
+                    }) {
+                        Text(
+                            stringResource(R.string.council_stop),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { stopAsked = false }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                },
+            )
+        }
+
         Column(modifier = Modifier.fillMaxWidth()) {
             // Header: the one line that answers "is it still going".
             SettingsSection {

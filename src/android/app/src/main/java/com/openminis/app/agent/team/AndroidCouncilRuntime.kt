@@ -681,6 +681,15 @@ object CouncilRunner {
             },
         )
 
+        // [37128 · A1] Durdurma tutamağı. Kaydedilen şey `job::cancel`;
+        // kayıt defteri coroutine bilmiyor (bkz. CouncilRunRegistry KDoc'u).
+        // `currentCoroutineContext()[Job]` bu `withContext(Dispatchers.IO)`
+        // gövdesinin işidir — iptal edilirse aşağıdaki catch'e düşer.
+        val runJob = kotlinx.coroutines.currentCoroutineContext()[kotlinx.coroutines.Job]
+        if (runJob != null) {
+            CouncilRunRegistry.register(runId) { runJob.cancel() }
+        }
+
         val outcome = try {
             loop.run(
                 teamName = team.name,
@@ -743,6 +752,24 @@ object CouncilRunner {
             // Cancel is a legitimate ending (the user pressed stop). The
             // `finally` below unpins either way; a pinned session that is never
             // released keeps its member VM alive for the life of the process.
+            //
+            // [37128 · A1] AMA buraya kadar hiçbir kayıt yazılmıyordu: kullanıcı
+            // "durdur"a basınca koşu **tamamen kayboluyordu** — ne listede ne
+            // diskte. `CouncilStop.CANCELLED` enum'da tanımlıydı ve ağaçta onu
+            // üreten tek bir satır yoktu (ölçüldü). Aşağıdaki tek satır o enum'u
+            // ilk kez üretiyor.
+            runCatching {
+                TeamRunStore.recordCancelled(
+                    context = context,
+                    runId = runId,
+                    team = team,
+                    live = CouncilLiveRegistry.runs.value[runId],
+                )
+            }.onFailure {
+                // Kayıt yazılamazsa iptal yine iptaldir: burada fırlatmak,
+                // kullanıcının durdurma eylemini hataya çevirirdi.
+                AppLogger.info("CouncilRunner", "cancelled run $runId could not be recorded: ${it.message}")
+            }
             throw e
         } catch (e: Exception) {
             AppLogger.info("CouncilRunner", "run failed: ${e.message}")
@@ -759,6 +786,9 @@ object CouncilRunner {
             // [37062] The gate closes FIRST: it also drops any delegation the
             // members left queued, and a queued sub agent that fires after the
             // run ends would spend tokens into a session nobody reads.
+            // [37128] Tutamak her üç yolda da bırakılır. Bırakılmazsa her koşu
+            // için bir lambda süreç ömrü boyunca birikir (sızıntı).
+            CouncilRunRegistry.forget(runId)
             runtime.closeRunGate()
             runtime.releaseHolds()
             // [37065] Question counters are per run; keeping them would leak one

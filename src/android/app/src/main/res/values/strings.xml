@@ -3351,4 +3351,7 @@
     <string name="teams_role_tools_preset">This role grants: %1$s</string>
     <string name="teams_role_tools_explicit">Role ignored — you picked these tools: %1$s</string>
     <string name="teams_role_tools_unknown">Unknown role — this member falls back to the full member tool set.</string>
+    <string name="council_stop">Stop</string>
+    <string name="council_stop_title">Stop this council run?</string>
+    <string name="council_stop_body">The rounds already finished are kept and appear in the run list as stopped. Remaining rounds will not run.</string>
 </resources>

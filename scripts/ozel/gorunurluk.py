@@ -123,11 +123,25 @@ def _text(p: Path) -> str:
     return _CACHE[p]
 
 
+# [37128 · A3] Ağaç DİZİNİ bir kez yürünür, sonra desenler o listeye uygulanır.
+#
+# Önce: `count_refs` her anahtar için `sorted(root.rglob("*.kt"))` yapıyordu —
+# 25 anahtar × 2 tarama (tüm ağaç + `ui/`) = **50 tam dizin yürüyüşü**, ölçülen
+# 303 s. Şimdi: yürüyüş bir kez, 25 desen bellekteki listeye uygulanıyor.
+# Dosya YÜKLEME maliyeti değişmiyor (`_CACHE` zaten vardı); kalkan şey
+# dosya sistemi dolaşması.
+_WALK: dict[Path, list[Path]] = {}
+
+def _walk(root: Path) -> list[Path]:
+    if root not in _WALK:
+        _WALK[root] = sorted(root.rglob("*.kt"))
+    return _WALK[root]
+
 def count_refs(root: Path, name: str, exclude: Path | None = None) -> tuple[int, list[str]]:
     """`Feature.NAME` geçen dosyalar. Yorumlar silinir: yorum kullanım değildir."""
     pattern = re.compile(r"\bFeature\." + re.escape(name) + r"\b")
     files: list[str] = []
-    for p in sorted(root.rglob("*.kt")):
+    for p in _walk(root):
         if exclude is not None and p == exclude:
             continue
         if pattern.search(_text(p)):

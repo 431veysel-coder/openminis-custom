@@ -110,6 +110,73 @@ object TeamRunStore {
         return dir
     }
 
+    /**
+     * [37128 · A1] **Durdurulan koşunun kaydı.**
+     *
+     * ## Neden ayrı bir yol, `record`'un bir dalı değil
+     *
+     * `record` bir [CouncilOutcome] alır; o nesne sentez raporunu, atıf
+     * denetimini ve onaylanmış matrisi taşır. İptal edilen koşuda bunların
+     * **hiçbiri yok** — uydurmak, olmayan bir çıktıyı kayda yazmak olurdu.
+     * Bu yüzden burada yalnız **gerçekten bilinen** alanlar yazılıyor:
+     *
+     * - `rounds` → o ana kadar bitmiş tur sayısı (canlı kayıttan)
+     * - `tokensUsed` → o ana kadar harcanan (canlı kayıttan)
+     * - `members` → koşuya giren üyeler
+     * - `verified = false`, `audit` **yok** → doğrulanmadı, çünkü doğrulama
+     *   hiç koşmadı. `false` bir yalan değil, tam olarak olan.
+     * - `consensus` → boş. Uzlaşma **oluşmadı**; sıfır sayı yazmak
+     *   "oylar sayıldı ve sıfır çıktı" demek olurdu.
+     * - `matrix = null` → matris kaydedilmedi. Ekran bu durumu `null` ile
+     *   "boş tablo" arasında zaten ayırıyor (`.46`).
+     *
+     * Rapor dosyası **yazılmaz**: rapor yok. Boş bir `report.md` bırakmak,
+     * "rapor var ama boş" diye okunur.
+     */
+    fun recordCancelled(
+        context: Context,
+        runId: String,
+        team: Team,
+        live: CouncilLiveRegistry.LiveRun?,
+    ): File {
+        val dir = runDir(context, runId)
+        dir.mkdirs()
+        val header = JSONObject().apply {
+            put("runId", runId)
+            put("teamId", team.id)
+            put("teamName", team.name)
+            put("mode", team.mode.wire)
+            put("createdAt", live?.startedAtMs ?: System.currentTimeMillis())
+            put("rounds", live?.round ?: 0)
+            // İlk kez gerçekten üretiliyor: bu değerin ağaçta üreticisi yoktu.
+            put("stoppedBy", CouncilStop.CANCELLED.name)
+            put("verified", false)
+            put("cancelled", true)
+            put("tokensUsed", live?.tokensUsed ?: 0)
+            put("tokensEstimated", true)
+            // Politika (dalga boyu/tur sınırı) canlı kayıtta **tutulmuyor**;
+            // var olan `record` onu çağrının argümanından alıyor. Uydurmak
+            // yerine boş yazılıyor: "bilinmiyor" doğru cevap. `waveSize`
+            // canlı kayıtta var, onu yazıyorum.
+            put("policy", JSONObject().apply {
+                put("label", "")
+                put("reason", "")
+                put("waveSize", live?.waveSize ?: 0)
+            })
+            put("members", JSONArray(live?.members?.keys?.toList() ?: team.members.map { it.name }))
+            put("consensus", JSONObject())
+            put("claims", JSONArray())
+            put("dissent", JSONArray())
+        }
+        val tmp = File(dir, "$HEADER.tmp")
+        tmp.writeText(header.toString(2))
+        val target = File(dir, HEADER)
+        if (target.exists()) target.delete()
+        tmp.renameTo(target)
+        AppLogger.info(TAG, "recorded cancelled run $runId rounds=${live?.round ?: 0}")
+        return dir
+    }
+
     /** Newest first. A corrupt header is skipped with a log line, never thrown. */
     fun list(context: Context): List<Header> {
         val dir = directory(context)

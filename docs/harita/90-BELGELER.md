@@ -1,6 +1,6 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Belgeler — 89 dosya
+# Belgeler — 90 dosya
 
 | Belge | Başlık | İlk satır |
 |---|---|---|
@@ -42,6 +42,7 @@
 | `docs/ozel/SURUM-NOTU-1.15-ozel.45.md` | SÜRÜM NOTU — 1.15-ozel.45 / 37125 | Bu sürüm `.44`'ten devraldığı üç açık maddeyi kapatıyor ve **ilk kez** |
 | `docs/ozel/SURUM-NOTU-1.15-ozel.46.md` | SÜRÜM NOTU — 1.15-ozel.46 / 37126 | Bu sürüm üç katmanı derinleştiriyor: **konsey · termux · projeler**. |
 | `docs/ozel/SURUM-NOTU-1.15-ozel.47.md` | SÜRÜM NOTU — 1.15-ozel.47 / 37127 | Kanıt kuralı tek yerde (`TeamTask.canBeDone`), `doneRefusal()` gerekçeyi cümleyle |
+| `docs/ozel/SURUM-NOTU-1.15-ozel.48.md` | SÜRÜM NOTU — 1.15-ozel.48 / 37128 | `CouncilStop.CANCELLED` enum'da **tanımlıydı** (`CouncilModels.kt:270`). Ölçüm: |
 | `docs/ozel/TERMUX-APK-KARARI.md` | KARAR — Termux: katman mı, ayrı APK mı? | Soru (kullanıcı, 2026-11-22): *"Termux araç zincirleri bölümünde olmalı, tek |
 | `docs/ozel/TERMUX-ENTEGRASYONU.md` | TERMUX ENTEGRASYONU — tasarım, güvenlik, ön/arka yüz, etkiler | Bu belge bir niyet beyanı değil. Her bölüm ya **ölçülmüş** bir gerçeğe, ya |
 | `docs/ozel/YAPILACAKLAR.md` | YAPILACAKLAR — geniş kapsamlı, kategori kategori | hâlâ üye başına tek satır**. Sağlayıcı hatası, JSON bozukluğu, kota, model yok |

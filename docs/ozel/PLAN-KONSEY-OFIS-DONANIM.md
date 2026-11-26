@@ -288,6 +288,20 @@ Bu özelliğin **kendisi** yeni bellek yükü getiriyor. Kurallar:
 > GitHub API'sinden kendim doğruladım** (aşağıdaki tablo doğrulanmış değerler).
 > Doğrulayamadığım her şey "doğrulanmadı" diye işaretli.
 
+> ## ⛔ KULLANICI KARARI (2026-11-26): yerel model YOK
+>
+> **"Yerel model çalıştırma olmayacak, tamamen anahtarlar üzerinden yapay
+> zekaları kullanıyoruz. Uygulamanın amacı bu zaten."**
+>
+> Bu kararla **`.54` ve `.55` iptal edildi.** Aşağıdaki §6.1 tablosu ve sandbox-CLI
+> gerekçesi **tarihsel kayıt olarak** duruyor — bir gün yerel çıkarım gerekirse
+> hangi yolun seçilmiş olduğunu ve nedenini hatırlatıyor. Bugün için bağlayıcı
+> değil.
+>
+> **Konseyin tek üye kaynağı: sağlayıcı anahtarları.** Bu bir kısıt değil,
+> ürünün kendi tanımı: kullanıcı kendi anahtarını getirir, hangi modeli
+> kullanacağını seçer.
+
 ### 6.0 Bizim iki kısıtımız — öneriyi bunlar belirliyor
 
 | Kısıt | Ölçüm |
@@ -389,8 +403,8 @@ Bu bir **eksik değil, gerçek**: bu katman hiçbir yerde hazır satılmıyor.
 | **.51** | Zaman hattı altyapısı (`atMs` + sınırlı kuyruk) + oda sözleşmesi + 6→5 | 1 tur | Ofisin **ön koşulu**; sözleşme kapısı boş oda riskini kapatır |
 | **.52** | Sanal ofis: zoom + Bakış + Kayıt | 1 tur | Veri artık var |
 | **.53** | Donanım profili + tanılama ekranı | 1 tur | Bağımsız, paralel yapılabilir |
-| **.54** | llama.cpp **sandbox CLI** kurulumu + sağlık kontrolü (APK'ya yük yok) | 1 tur | Yerel üye = internet yokken çalışan konsey |
-| **.55** | llama.cpp'yi konsey üyesi olarak bağla (§6.1) | 1-2 tur | Yukarıdakine yaslanıyor |
+| ~~.54~~ | ~~llama.cpp sandbox CLI~~ | — | **İPTAL** — aşağıdaki karar |
+| ~~.55~~ | ~~llama.cpp'yi üye olarak bağla~~ | — | **İPTAL** |
 
 **Not:** canlı içerik (`.49`/`.50` eski plan) bu planda **geriye** düştü.
 Gerekçe: kullanıcı üç kez konsey/ofis istedi, canlı içerik bir kez. Ayrıca

@@ -2661,4 +2661,7 @@
     <string name="teams_role_tools_preset">Bu rolün verdiği araçlar: %1$s</string>
     <string name="teams_role_tools_explicit">Rol yok sayılıyor — araçları elle seçtin: %1$s</string>
     <string name="teams_role_tools_unknown">Tanınmayan rol — bu üye genel araç setine düşer.</string>
+    <string name="council_stop">Durdur</string>
+    <string name="council_stop_title">Bu konsey koşusu durdurulsun mu?</string>
+    <string name="council_stop_body">Tamamlanan turlar korunur ve koşu listesinde durdurulmuş olarak görünür. Kalan turlar çalışmaz.</string>
 </resources>
