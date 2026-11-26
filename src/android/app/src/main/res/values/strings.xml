@@ -3321,4 +3321,10 @@
     <string name="virtual_screen_capture_failed">No frame could be produced.</string>
     <string name="council_compare_claim_col">Claim</string>
     <string name="council_compare_scroll_hint">Swipe the columns sideways — the claim column stays put.</string>
+    <string name="council_stance_support">supports</string>
+    <string name="council_stance_oppose">opposes</string>
+    <string name="council_stance_uncertain">uncertain</string>
+    <string name="council_stance_none">no position</string>
+    <string name="council_tab_selected">selected</string>
+    <string name="council_compare_action">Start a council run from a team</string>
 </resources>

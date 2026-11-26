@@ -1,17 +1,17 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Testler — 6709 birim testi
+# Testler — 6715 birim testi
 
 | | |
 |---|---|
-| Birim test dosyası | 778 |
-| Birim `@Test` | 6709 |
+| Birim test dosyası | 779 |
+| Birim `@Test` | 6715 |
 | Cihaz testi dosyası | 12 |
 | Cihaz `@Test` | 124 |
 
 | Paket | Test dosyası |
 |---|---|
-| `ui` | 237 |
+| `ui` | 238 |
 | `provider` | 84 |
 | `data` | 78 |
 | `backup` | 53 |

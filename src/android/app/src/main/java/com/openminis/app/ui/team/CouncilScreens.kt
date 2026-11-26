@@ -1,5 +1,10 @@
 package com.openminis.app.ui.team
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.rememberScrollState
@@ -172,7 +177,16 @@ private fun TabStrip(selected: Int, onSelect: (Int) -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         items(labels.size) { i ->
-            androidx.compose.material3.TextButton(onClick = { onSelect(i) }) {
+            // [37125 · §8.4] `selected` bildirilmezse TalkBack hangi odada
+            // olduğunu söylemez; kullanıcı ekranı her seferinde yeniden
+            // keşfetmek zorunda kalır. `Role.Tab` da "sekme" diye okutur.
+            androidx.compose.material3.TextButton(
+                onClick = { onSelect(i) },
+                modifier = Modifier.semantics {
+                    role = Role.Tab
+                    selected = selected == i
+                },
+            ) {
                 Text(
                     labels[i],
                     style = MaterialTheme.typography.labelLarge,
@@ -318,6 +332,12 @@ private fun DecisionTab(
 fun CouncilRunsScreen(
     onBack: () -> Unit,
     onOpenRun: (String) -> Unit,
+    /**
+     * [37125 · §8.1] Boş durumdaki eylemin hedefi. Varsayılan `null`: çağrı
+     * yeri bağlamadıysa düğme çizilmez — hedefi olmayan bir düğme, bu depoda
+     * kınanan "vaat" sınıfıdır.
+     */
+    onStartRun: (() -> Unit)? = null,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val live by CouncilLiveRegistry.runs.collectAsState()
@@ -350,11 +370,27 @@ fun CouncilRunsScreen(
                 footer = if (past.isEmpty()) stringResource(R.string.council_empty_hint) else null,
             ) {
                 if (past.isEmpty()) {
+                    // [37125 · §8.1] Boş durum "neden boş" diyordu ama
+                    // "ne yapayım" demiyordu: kullanıcı altı odaya girip tek
+                    // cümle görüp çıkıyordu. Eylem düğmesi 48 dp hedefle
+                    // çiziliyor (M3 varsayılanı) ve etiketi ne yapacağını
+                    // söylüyor.
                     SettingsRow(
                         title = stringResource(R.string.council_empty_title),
-                        subtitle = null,
-                        showDivider = false,
+                        subtitle = stringResource(R.string.council_empty_hint),
+                        showDivider = true,
                     )
+                    // Hedef yoksa düğme çizilmez: tıklanınca hiçbir şey
+                    // yapmayan bir satır, "düğme bozuk" dedirtir.
+                    onStartRun?.let { start ->
+                        com.openminis.app.ui.settings.SettingsRow(
+                            title = stringResource(R.string.council_compare_action),
+                            subtitle = null,
+                            showDivider = false,
+                            showChevron = true,
+                            onClick = start,
+                        )
+                    }
                 } else {
                     past.forEachIndexed { i, run ->
                         SettingsRow(
@@ -476,9 +512,22 @@ private fun ComparisonRoom(live: CouncilLiveRegistry.LiveRun?) {
                         Row(modifier = Modifier.horizontalScroll(scroll)) {
                             layout.columns.forEach { c ->
                                 val stance = ClaimMatrixLayout.Stance.of(claim.stances[c.member])
+                                // [37125 · §8.4] Görsel tek karakter; ekran
+                                // okuyucu için üye + iddia + duruş tek cümle.
+                                val cellLabel = TeamA11y.cellLabel(
+                                    member = c.member,
+                                    claimId = claim.id,
+                                    stance = stance,
+                                    supportWord = stringResource(R.string.council_stance_support),
+                                    opposeWord = stringResource(R.string.council_stance_oppose),
+                                    uncertainWord = stringResource(R.string.council_stance_uncertain),
+                                    emptyWord = stringResource(R.string.council_stance_none),
+                                )
                                 Text(
                                     stance?.mark ?: "·",
-                                    modifier = Modifier.width(c.widthDp.dp),
+                                    modifier = Modifier.width(c.widthDp.dp).semantics {
+                                        contentDescription = cellLabel
+                                    },
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = when (stance) {
                                         ClaimMatrixLayout.Stance.SUPPORT -> MaterialTheme.colorScheme.primary

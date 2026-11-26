@@ -4,11 +4,11 @@
 
 | | |
 |---|---|
-| `values/` anahtar | 3016 |
-| `values-tr/` anahtar | 2535 |
-| Eksik | 481 |
+| `values/` anahtar | 3022 |
+| `values-tr/` anahtar | 2581 |
+| Eksik | 441 |
 | Bunlardan **yeni** (taban dışı) | 0 |
-| Taban (upstream devralınmış, bilerek çevrilmemiş) | 481 |
+| Taban (upstream devralınmış, bilerek çevrilmemiş) | 441 |
 
 Yeni eksikler (kırmızı olanlar):
 
