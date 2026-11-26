@@ -184,7 +184,11 @@ private fun TabStrip(selected: Int, onSelect: (Int) -> Unit) {
                 onClick = { onSelect(i) },
                 modifier = Modifier.semantics {
                     role = Role.Tab
-                    selected = selected == i
+                    // [37125] `this.` şart: parametre adı `selected` (Int),
+                    // semantik özelliği `selected` (Boolean). Gölgeleme
+                    // olmadan derleyici parametreye atama yapmaya çalışıyor
+                    // ("'val' cannot be reassigned") — CI yakaladı.
+                    this.selected = selected == i
                 },
             ) {
                 Text(
