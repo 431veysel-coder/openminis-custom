@@ -42,12 +42,27 @@ object ShellExecutor {
     suspend fun execute(
         context: Context,
         command: String,
-        timeout: Long = DEFAULT_TIMEOUT_MS,
+        // [37126] Varsayılan artık **komuta göre**: politika `.0`'dan beri
+        // yazılıydı ama hiçbir çağıran onu sormuyordu (ölçüldü: 0 çağrı), yani
+        // `gradle build` de `ls` de aynı 10 dakikayı alıyordu. Kotlin'de
+        // varsayılan değer önceki parametreyi okuyabildiği için düzeltme
+        // çağrı yerlerine dokunmadan geçerli; açıkça süre veren çağıran
+        // etkilenmez.
+        timeout: Long = ShellTimeoutPolicy.forCommand(command),
         environment: Map<String, String> = emptyMap(),
         lineCallback: ((String) -> Unit)? = null
     ): ShellResult = withContext(Dispatchers.IO) {
         check(PRootKernel.isBooted) { "PRootKernel must be booted before executing commands" }
 
+        if (timeout != ShellTimeoutPolicy.DEFAULT_TIMEOUT_MS) {
+            // Sınıf sessiz kalmasın: "bu komut neden uzun sürdü" sorusunun
+            // cevabı günlükte olsun.
+            com.openminis.app.logging.AppLogger.info(
+                TAG,
+                "[timeout] ${ShellTimeoutPolicy.tierOf(command)} -> ${timeout / 1000}s · " +
+                    command.take(60),
+            )
+        }
         val first = runOnce(context, command, timeout, environment, lineCallback, noSeccomp = false)
 
         // [T-android-seccomp-selfheal / GH#186] If the child died on an early

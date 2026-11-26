@@ -576,6 +576,14 @@ def check_calls_for(
         type_name = m.group(1)
         if type_name not in fields or type_name in compose_imports:
             continue
+        # [37126] ANOTASYON DEĞİL: `@Insert(onConflict = …)`, `@Query(...)` gibi
+        # kullanımlar veri sınıfı kurmuyor. Adlandırılmış argümanları KSP ve
+        # derleyici doğrular; kapı burada konuşursa sahibi olmadığı bir borcu
+        # ödetir (bu kez ChatDao'ya bir @Query eklerken tam olarak bu oldu —
+        # uyarı eklediğim satırla ilgili değildi).
+        before = text[:m.start()].rstrip()
+        if before.endswith("@"):
+            continue
         args = _param_list(text, m.end() - 1)
         if "=" not in args:
             continue

@@ -3327,4 +3327,19 @@
     <string name="council_stance_none">no position</string>
     <string name="council_tab_selected">selected</string>
     <string name="council_compare_action">Start a council run from a team</string>
+    <string name="council_compare_from_record">Recorded at the end of the run — this table does not update live.</string>
+    <string name="projects_new">New project</string>
+    <string name="projects_create">Create</string>
+    <string name="projects_rename">Rename</string>
+    <string name="projects_pin">Pin to top</string>
+    <string name="projects_unpin">Unpin</string>
+    <string name="projects_dissolve">Delete project</string>
+    <string name="projects_unnamed">(unnamed project)</string>
+    <string name="projects_name_field">Project name</string>
+    <string name="projects_desc_field">Description (optional)</string>
+    <string name="projects_dissolve_empty">"%1$s" will be deleted. It has no sessions.</string>
+    <string name="projects_dissolve_one">"%1$s" will be deleted. Its 1 session is NOT deleted — it becomes unfiled.</string>
+    <string name="projects_dissolve_many">"%1$s" will be deleted. Its %2$d sessions are NOT deleted — they become unfiled.</string>
+    <string name="projects_add_session">Add a chat</string>
+    <string name="projects_add_none">No unfiled chats — every chat is already in a project.</string>
 </resources>

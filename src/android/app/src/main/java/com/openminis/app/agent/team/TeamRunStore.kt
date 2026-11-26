@@ -86,6 +86,10 @@ object TeamRunStore {
                     put("uncertain", c.uncertain)
                 }
             }))
+            // [37126] Duruş matrisi: "kim hangi iddiaya ne dedi". Özet
+            // sayaçları (yukarıdaki `claims`) "kaç kişi" sorusunu cevaplıyordu;
+            // bu alan "kim" sorusunu süreç öldükten sonra da cevaplıyor.
+            put("matrix", ClaimMatrixCodec.encode(outcome.matrix))
             put("dissent", JSONArray(outcome.dissent))
             outcome.audit?.let { a ->
                 put("audit", JSONObject().apply {
@@ -207,6 +211,12 @@ object TeamRunStore {
         val dissent: List<String>,
         val policyLabel: String,
         val policyReason: String,
+        /**
+         * [37126] Duruş matrisi — `null` ise bu koşu matris kaydetmemiş
+         * (37126 öncesi kayıtlar). Ekran bu iki durumu ayırır: "matris yok"
+         * ile "matris boş" aynı şey değil.
+         */
+        val matrix: ClaimMatrix? = null,
     ) {
         /** One line for a list row; never says "done" for an unverified run. */
         fun statusLine(): String = buildString {
@@ -237,6 +247,7 @@ object TeamRunStore {
                 (0 until members.length()).map { members.optString(it) },
             consensus = if (consensus == null) emptyMap() else
                 consensus.keys().asSequence().associateWith { consensus.optInt(it) },
+            matrix = ClaimMatrixCodec.decode(o.optString("matrix", null)),
             dissent = if (dissent == null) emptyList() else
                 (0 until dissent.length()).map { dissent.optString(it) },
             policyLabel = policy?.optString("label").orEmpty(),

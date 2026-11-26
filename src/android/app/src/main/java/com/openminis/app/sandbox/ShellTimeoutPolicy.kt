@@ -40,11 +40,25 @@ object ShellTimeoutPolicy {
     const val LONG_RUNNING_TIMEOUT_MS = 1_800_000L // 30 min
 
     private val quickPrefixes = setOf(
-        "ls", "cat", "head", "tail", "wc", "grep", "rg", "egrep", "fgrep",
-        "sed", "awk", "tr", "cut", "sort", "uniq", "find",
+        "ls", "cat", "head", "tail", "wc", "tr", "cut", "uniq",
         "echo", "printf", "pwd", "which", "whoami", "id", "env", "date",
-        "basename", "dirname", "file", "stat", "du", "df",
+        "basename", "dirname", "file", "stat", "df",
         "mkdir", "rmdir", "touch", "chmod", "chown", "cp", "mv", "rm", "ln",
+    )
+
+    /**
+     * [37126] **Tarama** komutları — hızlı sınıfa sokulmaz.
+     *
+     * Neden ayrı: `grep`/`rg`/`find`/`sort`/`du` bir kelime gibi görünüyor ama
+     * maliyeti **girdiğin ağaca** bağlı, komuta değil. `/` üzerinde bir `rg`
+     * saniyeler de sürebilir dakikalar da; bu cihazda `/var/minis` altında
+     * binlerce dosya var. Bunlara 60 sn vermek, çalışan bir taramayı "hata"
+     * gibi göstermek olurdu — kullanıcı komutu bozuk sanar. Varsayılan bütçe
+     * (10 dk) doğru cevap: sınıflandırma yapmadığımızda en güvenli olan.
+     */
+    private val scanPrefixes = setOf(
+        "grep", "rg", "egrep", "fgrep", "find", "sort", "du",
+        "sed", "awk", "xargs", "tar", "zip", "unzip", "gzip", "gunzip",
     )
 
     private val networkPrefixes = setOf(
@@ -103,9 +117,31 @@ object ShellTimeoutPolicy {
         }
 
         if (firstToken in networkPrefixes) return NETWORK_TIMEOUT_MS
+        // Tarama, hızlı sayılmadan önce kontrol edilir: `grep` iki listede de
+        // olabilir ve doğru cevap tarama tarafıdır.
+        if (firstToken in scanPrefixes) return DEFAULT_TIMEOUT_MS
         if (firstToken in quickPrefixes) return QUICK_TIMEOUT_MS
 
         return DEFAULT_TIMEOUT_MS
+    }
+
+    /**
+     * [37126] Sınıf **etiketi** — günlük satırında görünür.
+     *
+     * Neden ayrı: politika bağlandığında "neden bu komut 20 dakika sürdü"
+     * sorusunun cevabı logda olmalı. Etiket olmadan kullanıcı (ve ben) yalnız
+     * süreyi görür, sebebini görmeyiz.
+     */
+    fun tierOf(command: String): String {
+        val ms = forCommand(command)
+        return when (ms) {
+            QUICK_TIMEOUT_MS -> "quick"
+            NETWORK_TIMEOUT_MS -> "network"
+            INSTALL_TIMEOUT_MS -> "install"
+            BUILD_TIMEOUT_MS -> "build"
+            LONG_RUNNING_TIMEOUT_MS -> "long-running"
+            else -> "default"
+        }
     }
 
     /** Heuristic: treat bare `apk`, `pip` etc. without an install subcommand as neutral. */

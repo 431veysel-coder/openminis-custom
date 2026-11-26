@@ -351,6 +351,25 @@ interface ChatDao {
     suspend fun sessionBriefsInFolder(folderId: String): List<SessionBriefRow>
 
     /**
+     * [37126] **Projeye eklenebilecek sohbetler** — hiçbir klasörde olmayanlar.
+     *
+     * Neden gerekli: proje ekranından içeri sohbet taşımanın yolu yoktu.
+     * Kullanıcı projeyi açıyor, içi boş görüyor ve ekleyecek hiçbir şey
+     * bulamıyordu; taşıma yalnız Sohbetler ekranının grup menüsünde vardı.
+     *
+     * `folder_id IS NULL` — Boş dizge de "dosyasız" sayılır (eski kayıtlarda
+     * ikisi karışık yazılmış olabilir; ikisini de dışlamak sessiz veri
+     * kaybı olurdu). Alt oturumlar hariç: onlar sayfa, sohbet değil.
+     */
+    @Query(
+        "SELECT id, title, updated_at AS updatedAt FROM sessions " +
+            "WHERE (folder_id IS NULL OR folder_id = '') " +
+            "AND (parent_session_id IS NULL OR parent_session_id = '') " +
+            "ORDER BY updated_at DESC LIMIT :limit",
+    )
+    suspend fun unfiledSessionBriefs(limit: Int): List<SessionBriefRow>
+
+    /**
      * Move a session in (non-null) or out (null) of a group.
      *
      * Writes ONLY `folder_id` — `updated_at` is deliberately untouched, because

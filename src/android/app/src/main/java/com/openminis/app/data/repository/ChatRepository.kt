@@ -176,6 +176,10 @@ class ChatRepository(internal val dao: ChatDao) {
     suspend fun sessionBriefsInFolder(folderId: String): List<SessionBriefRow> =
         dao.sessionBriefsInFolder(folderId)
 
+    /** [37126] Sessions filed nowhere — candidates for "add to this project". */
+    suspend fun unfiledSessionBriefs(limit: Int = 200): List<SessionBriefRow> =
+        dao.unfiledSessionBriefs(limit)
+
     /**
      * Create a group. The description is trimmed and capped at
      * [FolderEntity.DESC_MAX_CHARS]; blank collapses to null so "no

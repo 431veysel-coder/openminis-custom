@@ -2637,4 +2637,19 @@
     <string name="subagent_detail_context">Bağlam</string>
     <string name="subagent_detail_started">Başladı</string>
     <string name="voice_asr_discard">Vazgeç</string>
+    <string name="council_compare_from_record">Koşu sonunda kaydedildi — bu tablo canlı güncellenmez.</string>
+    <string name="projects_new">Yeni proje</string>
+    <string name="projects_create">Oluştur</string>
+    <string name="projects_rename">Yeniden adlandır</string>
+    <string name="projects_pin">Üste sabitle</string>
+    <string name="projects_unpin">Sabitlemeyi kaldır</string>
+    <string name="projects_dissolve">Projeyi sil</string>
+    <string name="projects_unnamed">(adsız proje)</string>
+    <string name="projects_name_field">Proje adı</string>
+    <string name="projects_desc_field">Açıklama (isteğe bağlı)</string>
+    <string name="projects_dissolve_empty">"%1$s" silinecek. İçinde sohbet yok.</string>
+    <string name="projects_dissolve_one">"%1$s" silinecek. İçindeki 1 sohbet SİLİNMEZ — grupsuz kalır.</string>
+    <string name="projects_dissolve_many">"%1$s" silinecek. İçindeki %2$d sohbet SİLİNMEZ — grupsuz kalırlar.</string>
+    <string name="projects_add_session">Sohbet ekle</string>
+    <string name="projects_add_none">Dosyasız sohbet yok — tüm sohbetler bir projede.</string>
 </resources>

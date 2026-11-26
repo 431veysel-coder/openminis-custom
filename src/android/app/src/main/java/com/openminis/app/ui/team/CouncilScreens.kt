@@ -1,5 +1,6 @@
 package com.openminis.app.ui.team
 
+import com.openminis.app.agent.team.ClaimMatrix
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.role
@@ -122,7 +123,7 @@ fun CouncilScreen(
                     dissent = live?.dissent.orEmpty(),
                     recorded = recorded,
                 )
-                3 -> ComparisonRoom(live = live)
+                3 -> ComparisonRoom(live = live, recorded = recorded?.matrix)
                 4 -> CommsRoom(live = live)
                 else -> NeedsRoom(live = live)
             }
@@ -427,14 +428,25 @@ fun CouncilRunsScreen(
  * durum yazılır — "herkes katıldı" varsayımı bir yalandır.
  */
 @Composable
-private fun ComparisonRoom(live: CouncilLiveRegistry.LiveRun?) {
-    val claims = live?.claims.orEmpty()
+private fun ComparisonRoom(
+    live: CouncilLiveRegistry.LiveRun?,
+    /**
+     * [37126] Koşu bittikten sonra da matris çizilebilsin diye diskten gelen
+     * tablo. `null` = bu koşu matris kaydetmemiş (eski kayıt) — o zaman boş
+     * tablo çizmek değil, dürüstçe söylemek gerekir.
+     */
+    recorded: ClaimMatrix? = null,
+) {
+    val claims = live?.claims ?: recorded?.claims.orEmpty()
     // Sütunlar: yalnız oy vermiş üyeler, kayıttaki sırayla.
     val members = remember(claims) {
         val order = live?.members?.keys?.toList().orEmpty()
         val voted = claims.flatMap { it.stances.keys }.distinct()
         order.filter { it in voted } .ifEmpty { voted }
     }
+    // [37126] Diskten gelen tabloda "kim oy verdi" ayrımı kayıtta yok; ama
+    // matrisin kendisi o üyeyi içeriyorsa sütun çizilir. Uydurma yok: oy
+    // vermeyen üye matriste zaten yok.
     if (claims.isEmpty() || members.isEmpty()) {
         SettingsSection {
             SettingsRow(
@@ -456,6 +468,17 @@ private fun ComparisonRoom(live: CouncilLiveRegistry.LiveRun?) {
         val scroll = rememberScrollState()
 
         Column(modifier = Modifier.fillMaxWidth()) {
+            if (live == null && recorded != null) {
+                // Kaynağı söylemek zorunlu: canlı koşuda tablo güncellenirken,
+                // buradaki tablo donmuş bir kayıt. Karıştırmak yanlış karar
+                // verdirir.
+                Text(
+                    stringResource(R.string.council_compare_from_record),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 12.dp, top = 6.dp),
+                )
+            }
             Text(
                 stringResource(R.string.council_compare_legend),
                 style = MaterialTheme.typography.labelSmall,

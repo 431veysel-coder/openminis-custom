@@ -1,5 +1,12 @@
 package com.openminis.app.ui.projects
 
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -47,8 +54,15 @@ fun ProjectDetailScreen(
     val context = LocalContext.current
     var folder by remember(folderId) { mutableStateOf<FolderEntity?>(null) }
     var sessions by remember(folderId) { mutableStateOf<List<SessionBriefRow>?>(null) }
+    // [37126] İçeri sohbet taşımanın yolu yoktu: proje ekranı açılıyor, boş
+    // görünüyor, eklenecek bir şey sunulmuyordu. Taşıma yalnız Sohbetler
+    // ekranının grup menüsünde vardı.
+    var adding by remember { mutableStateOf(false) }
+    var unfiled by remember { mutableStateOf<List<SessionBriefRow>>(emptyList()) }
+    var reload by remember { mutableStateOf(0) }
+    val scope = rememberCoroutineScope()
 
-    LaunchedEffect(folderId) {
+    LaunchedEffect(folderId, reload) {
         folder = chatRepository.getFolder(folderId)
         sessions = chatRepository.sessionBriefsInFolder(folderId)
     }
@@ -64,6 +78,19 @@ fun ProjectDetailScreen(
                 header = stringResource(R.string.projects_sessions_header),
                 footer = folder?.description,
             ) {
+                SettingsRow(
+                    title = stringResource(R.string.projects_add_session),
+                    icon = Icons.Outlined.Add,
+                    onClick = {
+                        adding = true
+                        scope.launch {
+                            // Diyalog açılırken yükle: liste boşsa "eklenecek
+                            // sohbet yok" demek zorundayız, boş bir kutu değil.
+                            unfiled = chatRepository.unfiledSessionBriefs()
+                        }
+                    },
+                    showDivider = true,
+                )
                 val rows = sessions
                 when {
                     rows == null -> SettingsRow(
@@ -86,6 +113,45 @@ fun ProjectDetailScreen(
                         )
                     }
                 }
+            }
+            if (adding) {
+                AlertDialog(
+                    onDismissRequest = { adding = false },
+                    title = { Text(stringResource(R.string.projects_add_session)) },
+                    text = {
+                        if (unfiled.isEmpty()) {
+                            Text(stringResource(R.string.projects_add_none))
+                        } else {
+                            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                                unfiled.forEach { row ->
+                                    TextButton(onClick = {
+                                        adding = false
+                                        scope.launch {
+                                            // Tek çağrı, tek liste: kısmi taşıma
+                                            // olmasın diye dizi hâlinde.
+                                            chatRepository.setFolderForSessions(
+                                                folderId,
+                                                listOf(row.id),
+                                            )
+                                            reload++
+                                        }
+                                    }) {
+                                        Text(
+                                            row.title?.takeIf { it.isNotBlank() }
+                                                ?: stringResource(R.string.projects_session_untitled),
+                                            maxLines = 1,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { adding = false }) {
+                            Text(stringResource(R.string.cancel))
+                        }
+                    },
+                )
             }
             Text(
                 text = stringResource(R.string.projects_detail_note),
