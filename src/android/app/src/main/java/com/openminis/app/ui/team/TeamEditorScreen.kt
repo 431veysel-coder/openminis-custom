@@ -364,6 +364,38 @@ private fun MemberDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp),
                 )
+                // [37127 · Roller] Rolun NE VERDIGI gorunur olsun. Onceden
+                // kullanici "arastirmaci" yazip shell_execute bekliyor, aracin
+                // neden yok oldugunu anlamiyordu; taninmayan bir rol ise
+                // sessizce GENEL seti veriyordu.
+                val roleResolved = RoleHint.of(role, tools)
+                val roleLine = when (roleResolved.kind) {
+                    RoleHint.Kind.NO_ROLE ->
+                        stringResource(R.string.teams_role_tools_general)
+                    RoleHint.Kind.EXPLICIT_TOOLS ->
+                        stringResource(
+                            R.string.teams_role_tools_explicit,
+                            RoleHint.toolSummary(roleResolved.tools),
+                        )
+                    RoleHint.Kind.PRESET ->
+                        stringResource(
+                            R.string.teams_role_tools_preset,
+                            RoleHint.toolSummary(roleResolved.tools),
+                        )
+                    RoleHint.Kind.UNKNOWN ->
+                        stringResource(R.string.teams_role_tools_unknown)
+                }
+                Text(
+                    roleLine,
+                    style = MaterialTheme.typography.bodySmall,
+                    // Taninmayan rol uyari renginde: sessiz davranis degil.
+                    color = if (roleResolved.kind == RoleHint.Kind.UNKNOWN) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.padding(top = 2.dp),
+                )
                 TextButton(
                     onClick = { picking = true },
                     modifier = Modifier.padding(top = 8.dp),

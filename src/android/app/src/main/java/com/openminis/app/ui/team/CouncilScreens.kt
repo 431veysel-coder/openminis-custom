@@ -99,11 +99,14 @@ fun CouncilScreen(
 
             // [37099f · §1.2] Ön kontrol uyarısı: koşu eksik üyeyle başladıysa
             // kullanıcı bunu **baştan** görür, sonuç boş geldiğinde değil.
-            if (!live?.preflightNote.isNullOrBlank()) {
+            // [37127] `live!!` kaldirildi: burada guvenliydi (ustteki null
+            // kontrolu), ama delege edilmis bir ozellikte `!!` bir sonraki
+            // duzenlemede sessiz NPE'ye acik kapi birakir.
+            live?.preflightNote?.takeIf { it.isNotBlank() }?.let { note ->
                 SettingsSection {
                     SettingsRow(
                         title = stringResource(R.string.council_preflight_warn),
-                        subtitle = live!!.preflightNote,
+                        subtitle = note,
                         showDivider = false,
                     )
                 }
@@ -656,7 +659,35 @@ private fun NeedsRoom(live: CouncilLiveRegistry.LiveRun?) {
         !it.canBeDone && (it.state == TeamTaskState.OPEN || it.state == TeamTaskState.DOING)
     }
 
+    // [37127 · Baglantilar] Ters yon: hangi iddia ise donustu? Gerev satirinda
+    // "C3" yaziyordu ama karsilastirma/karar odasindan bakan kullanici "bu
+    // tartisma ise donustu mu" sorusunu cevaplayamiyordu.
+    val claimLinks = remember(live?.claims, tasks) {
+        com.openminis.app.agent.team.TaskLinks.claimLinks(live?.claims.orEmpty(), tasks)
+    }
+
     Column(modifier = Modifier.fillMaxWidth()) {
+        SettingsSection(
+            header = stringResource(R.string.council_needs_links),
+            footer = if (claimLinks.isEmpty()) stringResource(R.string.council_needs_links_none) else null,
+        ) {
+            claimLinks.forEachIndexed { i, link ->
+                SettingsRow(
+                    title = "${link.claimId} → " + stringResource(
+                        R.string.council_needs_link_tasks,
+                        link.count,
+                    ),
+                    subtitle = link.claimText.take(90),
+                    showDivider = i < claimLinks.lastIndex,
+                )
+            }
+            if (claimLinks.isEmpty()) {
+                SettingsRow(
+                    title = stringResource(R.string.council_needs_links_empty),
+                    showDivider = false,
+                )
+            }
+        }
         SettingsSection(
             header = stringResource(R.string.council_needs_requests),
             footer = if (needs.isEmpty()) stringResource(R.string.council_needs_empty) else null,

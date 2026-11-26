@@ -27,6 +27,9 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+import sys
+sys.path.insert(0, str(__import__('pathlib').Path(__file__).parent))
+import kural_ic_ice_kaydirma as _nested_scroll
 SRC = ROOT / "src" / "android" / "app" / "src"
 
 # Kod içinde olmaması gereken yazı blokları — kopyala/yapıştır kazaları.
@@ -696,6 +699,8 @@ def main() -> int:
         check_comments(path, text)
         # [37126] Ayrıştırma gerektirmeyen tek sözdizimi sınıfı: çift virgül.
         check_double_comma(path, problems)
+        # [37127] İç içe dikey kaydırma: TaskHallScreen çökmesinin sınıfı.
+        _nested_scroll.check_file(path, problems, ROOT)
 
     # ŞÜPHELİ: yalnız bilgi. Veri sınıfı alan denetimi üst kaynakta (builder
     # arayüzleri, iç içe sınıflar) yanlış-pozitif üretiyor; bu yüzden kapı

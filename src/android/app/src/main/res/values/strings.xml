@@ -3342,4 +3342,13 @@
     <string name="projects_dissolve_many">"%1$s" will be deleted. Its %2$d sessions are NOT deleted — they become unfiled.</string>
     <string name="projects_add_session">Add a chat</string>
     <string name="projects_add_none">No unfiled chats — every chat is already in a project.</string>
+    <string name="task_evidence_count">%1$d evidence</string>
+    <string name="council_needs_links">Claims that became tasks</string>
+    <string name="council_needs_links_none">Claims without a task are not listed here — the decision tab holds them.</string>
+    <string name="council_needs_links_empty">No claim has produced a task yet.</string>
+    <string name="council_needs_link_tasks">%1$d task(s)</string>
+    <string name="teams_role_tools_general">No role set — this member gets the full member tool set.</string>
+    <string name="teams_role_tools_preset">This role grants: %1$s</string>
+    <string name="teams_role_tools_explicit">Role ignored — you picked these tools: %1$s</string>
+    <string name="teams_role_tools_unknown">Unknown role — this member falls back to the full member tool set.</string>
 </resources>

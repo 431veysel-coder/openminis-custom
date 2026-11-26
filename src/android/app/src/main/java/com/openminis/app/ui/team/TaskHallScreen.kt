@@ -1,5 +1,6 @@
 package com.openminis.app.ui.team
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -79,8 +80,25 @@ fun TaskHallScreen(
     SettingsScaffold(
         title = stringResource(R.string.task_hall_title),
         onBack = onBack,
+        // [37127] ÇÖKME ONARIMI. `SettingsScaffold` içeriği varsayılan olarak
+        // `verticalScroll` içine sarar. Bu ekranın gövdesinde bir `LazyColumn`
+        // var ve yüksekliği sınırsızdı: Compose iki dikey kaydırılabiliri
+        // ölçemez ve şu istisnayı fırlatır —
+        //
+        //   IllegalStateException: Vertically scrollable component was measured
+        //   with an infinity maximum height constraints, which is disallowed.
+        //
+        // Yani **görev listesi boş değilse ekran açılır açılmaz düşüyordu**;
+        // boşken (yalnız "görev yok" satırı) çalışıyordu, bu yüzden kolay
+        // gizlendi. Çözüm kod tabanındaki mevcut kalıp: kaydırmayı scaffold'tan
+        // al, listeye ver (LogManagement/StorageManagement da böyle yapıyor).
+        scrollable = false,
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
+        // `fillMaxSize()` ŞART: `weight(1f)` yalnız ebeveynin yüksekliği
+        // sınırlıysa "kalan alan" demek. `fillMaxWidth()` ile Column içerik
+        // yüksekliğine küçülür, kalan 0 olur ve liste görünmez kalırdı —
+        // çökmeyi düzeltirken ekranı boşaltmak en sinsi hata olurdu.
+        Column(modifier = Modifier.fillMaxSize()) {
             // Counters first: "5 open, 1 doing, 12 done" is the whole answer for
             // most visits, and it is one line.
             SettingsSection {
@@ -109,7 +127,10 @@ fun TaskHallScreen(
                     )
                 }
             } else {
-                LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                // `weight(1f)`: Column'un kalan yüksekliğini alır. Sabit bir
+                // `heightIn(max=)` de çökmeyi önlerdi ama iki kaydırma bölgesi
+                // yaratırdı (üstte sayaçlar + altta liste, kafa karıştırır).
+                LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
                     items(shown) { (teamName, task) ->
                         TaskRow(teamName = teamName, task = task)
                     }
@@ -168,7 +189,13 @@ private fun TaskRow(teamName: String, task: TeamTask) {
             if (teamName.isNotBlank()) append(teamName).append(" · ")
             if (task.owner.isNotBlank()) append(task.owner) else append(stringResource(R.string.task_unassigned))
             if (task.fromClaim.isNotBlank()) append(" · ").append(task.fromClaim)
-            if (task.evidence.isNotEmpty()) append(" · ").append("${task.evidence.size} evidence")
+            // [37127] Burada sabit Ingilizce "evidence" yaziyordu: Turkce
+            // arayuzde Ingilizce kelime. Sayac dize kaynagindan gelir.
+            if (task.evidence.isNotEmpty()) {
+                append(" · ").append(
+                    stringResource(R.string.task_evidence_count, task.evidence.size),
+                )
+            }
             if (task.state == TaskState.DROPPED && task.detail.isNotBlank()) {
                 append(" · ").append(task.detail.take(60))
             }
@@ -235,7 +262,11 @@ fun RunTasksSection(
                         SettingsRow(
                             title = task.title,
                             subtitle = buildString {
-                                append(task.state.wire)
+                                // [37127] `wire` tel bicimi ("open"/"doing"),
+                                // kullaniciya Ingilizce gorunuyordu. Ayni
+                                // ekrandaki sayaçlar `stateLabel` kullaniyor;
+                                // iki oda ayni gorevi iki dilde anlatamaz.
+                                append(stringResource(stateLabel(task.state)))
                                 if (task.owner.isNotBlank()) append(" · ").append(task.owner)
                                 if (task.fromClaim.isNotBlank()) append(" · ").append(task.fromClaim)
                                 if (!task.canBeDone && task.state != com.openminis.app.agent.team.TaskState.DONE) {

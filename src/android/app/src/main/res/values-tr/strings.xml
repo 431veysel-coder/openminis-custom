@@ -2652,4 +2652,13 @@
     <string name="projects_dissolve_many">"%1$s" silinecek. İçindeki %2$d sohbet SİLİNMEZ — grupsuz kalırlar.</string>
     <string name="projects_add_session">Sohbet ekle</string>
     <string name="projects_add_none">Dosyasız sohbet yok — tüm sohbetler bir projede.</string>
+    <string name="task_evidence_count">%1$d kanıt</string>
+    <string name="council_needs_links">Göreve dönüşen iddialar</string>
+    <string name="council_needs_links_none">Göreve dönüşmeyen iddialar burada listelenmez — karar odasında dururlar.</string>
+    <string name="council_needs_links_empty">Henüz hiçbir iddia görev üretmedi.</string>
+    <string name="council_needs_link_tasks">%1$d görev</string>
+    <string name="teams_role_tools_general">Rol seçilmedi — bu üye tam üye araç setini alır.</string>
+    <string name="teams_role_tools_preset">Bu rolün verdiği araçlar: %1$s</string>
+    <string name="teams_role_tools_explicit">Rol yok sayılıyor — araçları elle seçtin: %1$s</string>
+    <string name="teams_role_tools_unknown">Tanınmayan rol — bu üye genel araç setine düşer.</string>
 </resources>
