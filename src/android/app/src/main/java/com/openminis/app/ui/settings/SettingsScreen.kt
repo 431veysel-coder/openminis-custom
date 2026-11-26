@@ -459,6 +459,11 @@ fun SettingsScreen(
                 )
             }
 
+            // [37132 · Donanım] Cihaz kaynakları. Logların ÜSTÜNDE değil,
+            // ALTINDA: biri teşhis, diğeri günlük kullanım. Yanlış sıra,
+            // ayarları her açan kullanıcıya termal durumu gösterirdi.
+            DeviceResourcesSection()
+
             // -- About --
             SettingsSection(title = stringResource(R.string.settings_section_about)) {
                 // [T-update-channels] The update badge's Settings layer.
