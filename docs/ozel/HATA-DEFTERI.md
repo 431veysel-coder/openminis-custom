@@ -238,6 +238,71 @@
 
 ---
 
+## H-011 · 441 çeviri anahtarı Türkçede yok, kapı "yeşil" diyor
+
+- **Sürüm / tarih:** `.34`'ten beri, 2026-11-27'de ölçüldü
+- **Belirti:** Uygulama Türkçe'de 441 metni **İngilizce** gösteriyor
+  (`agent_callback_result`, `agent_detail_current_tool`, `agent_settings_allow`…).
+  Kullanıcı Türkçe kullandığı için bu doğrudan görünür.
+- **Kök neden:** `values/` 3112 anahtar, `values-tr/` 2671 anahtar.
+  `ceviri-denetim.py` farkı `taban.json`'daki 441 "upstream devralımı"
+  anahtarıyla eşleştirip **hepsini affediyor** → `SONUC: YESIL`.
+- **Kanıt:** `python3 scripts/ozel/ceviri-denetim.py` →
+  "eksik: 441 (0 tanesi YENI)" / "SONUC: YESIL".
+- **Neden hiçbir kapı görmedi:** Taban dosyası "upstream'den devralınan
+  eksikler" için yazılmıştı; amacı yeni regresyonu yakalamaktı, birikmiş
+  borcu değil. Ama 441 kalıcı borç hâline geldi ve sayı hiç düşmüyor.
+- **Düzeltme:** Taban borcu eritilmeli (aşağıdaki plan); kapı bir "borç
+  tavanı" tutmalı — sayı artarsa kırmızı.
+- **Kapı:** `scripts/ozel/ceviri-denetim.py` (`.ozel/ceviri/taban.json` borç tavanı)
+- **Kural:** Affedilen bir eksik listesi, **sayısı sabit** olduğu sürece
+  affedilebilir; sayı sessizce artıyorsa affetme bitmiştir.
+
+---
+
+## H-012 · Beş yayın etiketi yanlış commit'i gösteriyor
+
+- **Sürüm / tarih:** 2026-11-27'de tespit
+- **Belirti:** `v1.15-ozel.13`, `.14`, `.15`, `11.3.1`, `11.4` etiketleri
+  kendi sürümlerini içermeyen commit'lere işaret ediyor. Güncelleme kontrolü
+  `RELEASE_REPO`'dan release okuduğu için kullanıcıyı doğrudan etkilemiyor,
+  ama "bu sürümde ne değişti" sorusunun cevabı yanlış commit'te.
+- **Kök neden:** Etiketler elle atılmış; CI'ın ürettiği etiketle çakışmış.
+- **Kanıt:** `python3 scripts/ozel/tag-denetim.py` → "5 etiket yanlış
+  commit'i gösteriyor".
+- **Neden hiçbir kapı görmedi:** `tag-denetim.py` bunu **rapor ediyor** ama
+  Ozel Guard'da `--strict` olmadan çağrılıyor ("yanlış etiket bir push
+  problemidir, PR'ı engellememeli"). Yani kırmızı hiç olmuyor.
+- **Düzeltme:** Beş etiket silinip doğru commit'e yeniden atanmalı; kapı
+  yayın dalında `--strict` ile koşmalı.
+- **Kapı:** `scripts/ozel/tag-denetim.py` (`--strict` yayın adımında)
+- **Kural:** Rapor eden ama kırmızı olmayan kontrol, kapı değil günlüktür.
+
+---
+
+## H-013 · Geçici ağ hatası (Maven 429) "blocking test" olarak okundu
+
+- **Sürüm / tarih:** `.54` derlemesi, 2026-11-27
+- **Belirti:** `:app:kspGithubDebugUnitTestKotlin FAILED` → CI kırmızı.
+  Oysa kod sağlamdı: `Could not resolve junit:junit:4.13.2 … status code 429
+  from server: Too Many Requests`.
+- **Kök neden:** Gradle bağımlılık indirmesi tek denemeli. Maven Central
+  hız sınırı, test derlemesini kod hatası gibi gösteriyor.
+- **Kanıt:** CI logu 45919073382, "Unit tests → Fork tests (blocking)".
+- **Neden hiçbir kapı görmedi:** Bu bir kapı sorunu değil, kapının *yanlış
+  renk* vermesi. Kırmızı gördüğünde insan "kod bozuk" diye bakmaya başlıyor;
+  birkaç kez yaşanınca kırmızı ciddiye alınmıyor.
+- **Düzeltme:** Gradle'a `--refresh-dependencies` yerine retry: depo
+  tanımına `mavenCentral()` yanında bir mirror, ya da iş adımına
+  `continue-on-error` **değil** 3 denemeli `retry` sarmalayıcı. Yeniden
+  koşum (re-run failed jobs) ilk çözüm.
+- **Kapı:** `scripts/ozel/ci-hata-ayir.py` — 429/5xx'i ayırt eder;
+  çıkış 2 = "yeniden dene", 1 = "gerçekten bozuk"
+- **Kural:** "Kırmızı" iki anlama gelebiliyorsa (kod bozuk / ağ),
+  ikisini ayırmadan kimse kırmızıya bakmaz.
+
+---
+
 ## Sürekli senkron (H-008'in çözümü)
 
 `main` dalının elle ilerletilmesi bir alışkanlık değil, bir borçtur.

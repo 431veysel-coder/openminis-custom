@@ -77,7 +77,7 @@ for i in range(1, len(bloklar), 2):
 
     bulunan = 0
     for y in yollar:
-        y = y.split("(")[0].strip()
+        y = y.split("(")[0].strip().split(" ")[0]  # bayrakları at: `x.py --strict`
         if not re.search(r"(\.|/)", y):
             continue  # sınıf adı (AppDatabaseVersionTest) — ayrı denetim
         if "*" in y:

@@ -80,6 +80,12 @@ jobs:
         # kurulamaz). `check_identity.sh` serbest metin URL'lerini görmüyor.
         run: python3 scripts/ozel/kimlik-url.py
 
+      - name: Çeviri borcu artmadı mı
+        # [H-011] Türkçede 441 anahtar eksik ve `taban.json` hepsini affediyor,
+        # yani kapı "yeşil" derken kullanıcı Türkçe arayüzde İngilizce metin
+        # görüyor. Borç eriyene kadar en azından ARTAMAZ.
+        run: python3 scripts/ozel/ceviri-denetim.py --fail-on-new
+
       - name: Yapısal Kotlin denetimi
         run: python3 scripts/ozel/kotlin-denetim.py --no-warn
 
