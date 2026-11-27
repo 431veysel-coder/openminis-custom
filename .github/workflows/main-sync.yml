@@ -1,0 +1,118 @@
+# [H-008] `main` dalını sürekli güncel tutar.
+#
+# ## Sorun
+#
+# Çalışma dalı `ozel/16-duzeltmeler`; `main` 2026-11-16'da dondu ve `.53`
+# yayınlandığında 143 commit / 300 dosya gerideydi. Depoya GitHub'dan bakan
+# biri (ya da yeni bir klon) 16 Kasım hâlini görüyordu; release notlarındaki
+# bağlantılar `main`'e gidip 404 veriyordu.
+#
+# ## Ne yapar
+#
+# Bir yayın derlemesi **yeşil** bittiğinde, o commit'e `main`'i hızlı ileri
+# sarar (fast-forward). Zorla yazmaz: `main` gerçekten çatallanmışsa (yani
+# `main`'de olup çalışma dalında olmayan bir commit varsa) hiçbir şey
+# değiştirmez ve bir issue açar — çünkü o noktada hangi tarafın kazandığına
+# karar vermek bir insan işidir.
+#
+# ## Neden `push` tetikleyicisi değil
+#
+# Her push'ta ilerletmek, kırık bir commit'i `main`'e taşır. `main`'in anlamı
+# "yayınlanabilir" olmalı; bu yüzden yalnız Build APK başarılı olduğunda ve
+# yalnız yayın adımı geçtiyse ilerletilir.
+name: Main sync
+
+on:
+  workflow_run:
+    workflows: ["Build APK"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  actions: read
+
+concurrency:
+  group: main-sync
+  cancel-in-progress: false
+
+jobs:
+  fast-forward:
+    name: main ← yayınlanmış commit
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Hedef commit
+        id: hedef
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            SHA="$(git rev-parse origin/ozel/16-duzeltmeler)"
+            DAL="ozel/16-duzeltmeler"
+          else
+            SHA="${{ github.event.workflow_run.head_sha }}"
+            DAL="${{ github.event.workflow_run.head_branch }}"
+          fi
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "dal=$DAL" >> "$GITHUB_OUTPUT"
+          echo "Hedef: $SHA ($DAL)"
+
+      - name: Hızlı ileri sarılabilir mi
+        id: kontrol
+        run: |
+          SHA="${{ steps.hedef.outputs.sha }}"
+          git fetch origin main --quiet
+          if [ "$(git rev-parse origin/main)" = "$SHA" ]; then
+            echo "durum=guncel" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if git merge-base --is-ancestor origin/main "$SHA"; then
+            echo "durum=ileri" >> "$GITHUB_OUTPUT"
+            echo "main, $SHA'ya hızlı ileri sarılabilir."
+          else
+            echo "durum=catalli" >> "$GITHUB_OUTPUT"
+            echo "main ile hedef arasında gerçek çatallanma var."
+          fi
+
+      - name: main'i ilerlet
+        if: steps.kontrol.outputs.durum == 'ileri'
+        run: |
+          SHA="${{ steps.hedef.outputs.sha }}"
+          git config user.name "main-sync[bot]"
+          git config user.email "main-sync@users.noreply.github.com"
+          # `git push origin $SHA:main` --force YOK: sadece fast-forward.
+          git push origin "$SHA:refs/heads/main"
+          echo "main → $SHA"
+
+      - name: Çatallanma bildir
+        if: steps.kontrol.outputs.durum == 'catalli'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SHA="${{ steps.hedef.outputs.sha }}"
+          DAL="${{ steps.hedef.outputs.dal }}"
+          VAR=$(gh issue list --state open --search "main catallandi in:title" --json number --jq '.[0].number // ""')
+          GOVDE="main dali ${DAL} (${SHA}) ile hizli ileri sarilamiyor: main'de calisma dalinda olmayan commit var. Hangi tarafin kazandigi bir karar, bot bu karari vermez. Ayrinti: docs/ozel/HATA-DEFTERI.md H-008."
+          if [ -z "$VAR" ]; then
+            gh issue create --title "main catallandi — elle birlestirme gerekli" --body "$GOVDE"
+          else
+            gh issue comment "$VAR" --body "Hala catalli: ${SHA} (${DAL})."
+          fi
+
+      - name: Özet
+        if: always()
+        run: |
+          {
+            echo "### main senkron"
+            echo "- hedef: \`${{ steps.hedef.outputs.sha }}\` (\`${{ steps.hedef.outputs.dal }}\`)"
+            echo "- karar: **${{ steps.kontrol.outputs.durum }}**"
+          } >> "$GITHUB_STEP_SUMMARY"

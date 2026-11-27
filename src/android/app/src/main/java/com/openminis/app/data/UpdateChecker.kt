@@ -354,8 +354,22 @@ object UpdateChecker {
         return CheckResult.UpToDate
     }
 
-    /** Public so UI can deep-link users to manual download when GitHub is blocked. */
-    const val RELEASES_URL: String = "https://github.com/OpenMinis/OpenMinis/releases"
+    /**
+     * Public so UI can deep-link users to manual download when GitHub is
+     * blocked.
+     *
+     * [H-007 · MINIS-OZEL 1.15-ozel.54] Bu bir `const val` ile
+     * `github.com/OpenMinis/OpenMinis` adresine sabitlenmişti. Otomatik
+     * güncelleme `BuildConfig.RELEASE_REPO`'yu (fork) kullandığı için doğru
+     * çalışıyordu, ama güncelleme **başarısız** olduğunda gösterilen "manuel
+     * indir" düğmesi resmî APK'ya götürüyordu. O APK farklı anahtarla imzalı
+     * olduğu için cihaza **kurulamıyor** — kullanıcı için "güncelleme bozuk".
+     *
+     * Artık depo adı tek yerde: `BuildConfig.RELEASE_REPO`. `const val`
+     * olamaz çünkü BuildConfig derleme zamanında üretiliyor; `get()` ucuz.
+     */
+    val RELEASES_URL: String
+        get() = "https://github.com/${BuildConfig.RELEASE_REPO}/releases"
 
     /**
      * Stream the APK from [url] into `${cacheDir}/shared/minis-update.apk`,

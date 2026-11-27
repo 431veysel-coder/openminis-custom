@@ -67,6 +67,19 @@ jobs:
         # Ayrıntı: docs/ozel/HATA-DEFTERI.md → H-001
         run: python3 scripts/ozel/db-surum.py
 
+      - name: Hata defteri tutarlı mı
+        # [H-005] Defter kendi kendini denetlemezse iki şekilde çürür: `Kapı:`
+        # satırı silinmiş bir betiği gösterir, ya da bir kod yorumu
+        # "[FooTest] doğrular" der ve o test hiç yazılmamıştır. İkincisi
+        # H-001'in doğrudan sebebiydi.
+        run: python3 scripts/ozel/hata-defteri.py
+
+      - name: Kimlik ve güncelleme URL'si
+        # [H-007][H-009] `RELEASES_URL` resmî depoyu gösteriyordu (kurulamayan
+        # APK), `applicationId` ise sessizce değişmişti (güncelleme olarak
+        # kurulamaz). `check_identity.sh` serbest metin URL'lerini görmüyor.
+        run: python3 scripts/ozel/kimlik-url.py
+
       - name: Yapısal Kotlin denetimi
         run: python3 scripts/ozel/kotlin-denetim.py --no-warn
 

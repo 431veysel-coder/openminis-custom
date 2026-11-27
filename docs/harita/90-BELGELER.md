@@ -1,6 +1,6 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Belgeler — 90 dosya
+# Belgeler — 92 dosya
 
 | Belge | Başlık | İlk satır |
 |---|---|---|
@@ -14,7 +14,9 @@
 | `docs/ozel/DILIM-KAPISI.md` | DİLİM KAPISI — her dilim ayrı derlenir, ayrı rapor verir | Tek büyük derlemede 11 dilimin hatası tek log'a düşer ve birbirini maskeler. |
 | `docs/ozel/ENTEGRASYON-DURUMU.md` | MINIS X — entegrasyon durumu ve kullanıcı yüzeyi | `scripts/integration_audit.py` yalnız **bir** soruyu cevaplar: *üretim kodu bu |
 | `docs/ozel/HARITA.md` | HARİTA — Minis X | Bu dosya "ne, kim için, nasıl" sorusunun tek cevabı. Sayılar **ölçülmüş**; |
+| `docs/ozel/HATA-DEFTERI.md` | HATA DEFTERİ — Minis Özel | "Verileriniz daha yeni bir sürümden geliyor" ekranı. "Kapat" dışında hiçbir |
 | `docs/ozel/IS-LISTESI-2026-11-20.md` | İŞ LİSTESİ — 20 Kasım 2026 | `versionCode` yalnız **yayın anında** yakılır. 37095–37098 aynı sürümde (37092) |
+| `docs/ozel/KIMLIK.md` | YAYIN KİMLİĞİ — tek kaynak | `com.veysel.minis` kurulu bir cihaza `com.minis.x` **güncelleme olarak |
 | `docs/ozel/KONSEY-DILIMLERI.md` | Konsey hattı — dilim haritası (37037–37069) | Dal: `toplama-11.4` · taban `db2566e` · **derleme yok** (bu dal `apk.yml` |
 | `docs/ozel/OZELLIK-PAKETI.md` | ÖZELLİK PAKETİ — 37080–37090 (11 dilim) | Bu dosya, planlanan işlerin (konsey 37037–37069, proje hafızası 37070–37079, |
 | `docs/ozel/PLAN-35-45.md` | PLAN .35 → .46 — tur tur, kategori kategori, madde madde | Tek cümle: **çekirdek sağlam, kabuk yarım; belgeler bir sürüm geride.** |
