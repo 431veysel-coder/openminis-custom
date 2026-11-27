@@ -42,15 +42,17 @@ object DatabaseVersionGuard {
     private const val TAG = "DbVersionGuard"
 
     /**
-     * The schema version this build understands. MUST equal the `version` in
-     * [AppDatabase]'s `@Database` annotation.
+     * The schema version this build understands.
      *
-     * Kept as a separate constant because the annotation value is not readable
-     * at runtime without reflection. [AppDatabaseVersionTest] asserts the two
-     * agree, so they cannot drift apart silently — a stale copy here would
-     * either disable the guard or trip it on every launch.
+     * [T-db-version-single-source] This used to be a hand-copied literal, and
+     * on 1.15-ozel.53 it had drifted one behind [AppDatabase]'s annotation
+     * (`15` here, `16` there). Every install then wrote a v16 database and
+     * refused to open it on the next launch — "Verileriniz daha yeni bir
+     * sürümden geliyor" — locking the user out of their own chats. It now
+     * reads [DB_SCHEMA_VERSION], the same constant the `@Database` annotation
+     * uses, so the two cannot disagree even in principle.
      */
-    const val CODE_DB_VERSION = 15
+    const val CODE_DB_VERSION = DB_SCHEMA_VERSION
 
     /** Filename must match the one passed to `Room.databaseBuilder`. */
     private const val DB_NAME = "minis.db"
@@ -109,9 +111,9 @@ object DatabaseVersionGuard {
      * them a crash.
      */
     fun isHandledDowngrade(onDiskVersion: Int): Boolean =
-        (onDiskVersion == 12 && CODE_DB_VERSION == 11) ||
-            // [T-p1-delegate-task] 13 → 12: MIGRATION_13_12 is a verified no-op.
-            (onDiskVersion == 13 && CODE_DB_VERSION == 12)
+        AppDatabase.DOWNGRADE_PAIRS.any { (gelen, gidilen) ->
+            gelen == onDiskVersion && gidilen == CODE_DB_VERSION
+        }
 
     /** Result of the launch-time check. */
     enum class Decision {

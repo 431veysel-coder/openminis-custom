@@ -7,6 +7,24 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
+/**
+ * [T-db-version-single-source] The ONE place the chat database schema version
+ * is written down.
+ *
+ * Why this exists: `DatabaseVersionGuard.CODE_DB_VERSION` is what the
+ * launch-time downgrade guard compares the on-disk `user_version` against.
+ * Until 1.15-ozel.53 it was a hand-copied `15` while this annotation had moved
+ * to `16`, and the code comment promising a test that kept them in step was
+ * pointing at a file that did not exist. The result was on real devices: the
+ * build wrote a v16 database, then refused to open it on the next launch,
+ * showing "Verileriniz daha yeni bir sürümden geliyor" — the app locking
+ * itself out of its own data.
+ *
+ * Both sides now read this constant, so they cannot drift. `scripts/check-db-version.py`
+ * additionally proves it against the committed schema json in CI.
+ */
+const val DB_SCHEMA_VERSION = 16
+
 @Database(
     entities = [
         ChatSessionEntity::class,
@@ -15,7 +33,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         WebAppShortcutEntity::class,
         FolderEntity::class,
     ],
-    version = 16,
+    version = DB_SCHEMA_VERSION,
     // [T-android-downgrade-compat] Kept ON so MigrationTestHelper and CI can
     // validate every migration (and its downgrade counterpart) against the
     // committed schema json. Without it the upgrade/downgrade chain has no
@@ -27,6 +45,26 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun webAppShortcutDao(): WebAppShortcutDao
 
     companion object {
+        /**
+         * [T-db-version-single-source] Kayıtlı **downgrade** çiftleri, tek
+         * kaynak.
+         *
+         * `DatabaseVersionGuard.isHandledDowngrade` bu kümeyi okur. Daha önce
+         * kendi elle yazılmış listesini tutuyordu ve `13 → 12`'de durmuştu:
+         * `.16`'dan sonra eklenen `14→13`, `15→14`, `16→15` migration'ları
+         * kayıtlıydı ama muhafız onları bilmiyordu, yani sürüm düşüren her
+         * kullanıcı — elinde çalışan bir downgrade yolu varken — rehber ekranı
+         * görüyordu. Liste artık burada; buraya bir çift eklemek hem
+         * `addMigrations`'a hem muhafıza aynı anda girer.
+         */
+        val DOWNGRADE_PAIRS: Set<Pair<Int, Int>> = setOf(
+            12 to 11,
+            13 to 12,
+            14 to 13,
+            15 to 14,
+            16 to 15,
+        )
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -403,10 +441,70 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        /** Downgrade counterpart: Room, bildirilmeyen bir kolonu düşmüş gibi reddeder. */
+        /**
+         * Downgrade counterpart of [MIGRATION_15_16].
+         *
+         * **[MINIS-OZEL 1.15-ozel.54] `DROP COLUMN` kullanılamaz.** SQLite
+         * `ALTER TABLE … DROP COLUMN` yalnız 3.35.0+ sürümünde var (Mart 2021).
+         * Bu uygulamanın `minSdk = 26` → Android 8.0 → SQLite **3.18.2**.
+         * Yani burada `DROP COLUMN` yazan bir migration, Android 8/9/10'da
+         * `SQLiteException: near "DROP": syntax error` ile düşer ve o
+         * kullanıcı için sürüm düşürme *hiç* çalışmaz — hem de tam olarak
+         * "veriyi korumak için" yazılmış yolun üzerinde.
+         *
+         * [MIGRATION_15_14] aynı tuzağı zaten doğru şekilde çözmüş (gölge
+         * tablo). Burada da aynı yöntem: kopyala → düşür → yeniden adlandır.
+         * `CREATE TABLE` metni **v14/v15 şema json'undan birebir** alındı
+         * (`src/android/app/schemas/.../14.json`, `sessions` girdisi) çünkü
+         * Room açılışta canlı şemayı entity ile karşılaştırıyor: tek bir tip
+         * veya NOT NULL farkı `IllegalStateException` demek.
+         */
         val MIGRATION_16_15 = object : Migration(16, 15) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE sessions DROP COLUMN team_id")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS sessions_v15 (
+                        `id` TEXT NOT NULL,
+                        `title` TEXT,
+                        `model_id` TEXT NOT NULL,
+                        `created_at` INTEGER NOT NULL,
+                        `updated_at` INTEGER NOT NULL,
+                        `category` TEXT,
+                        `last_message` TEXT,
+                        `model_binding` TEXT,
+                        `source` TEXT,
+                        `memory_enabled` INTEGER NOT NULL,
+                        `pinned_at` INTEGER,
+                        `edit_count` INTEGER NOT NULL,
+                        `thinking_override` TEXT,
+                        `folder_id` TEXT,
+                        `parent_session_id` TEXT,
+                        `parent_tool_use_id` TEXT,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "INSERT OR REPLACE INTO sessions_v15 " +
+                        "(`id`, `title`, `model_id`, `created_at`, `updated_at`, `category`, " +
+                        "`last_message`, `model_binding`, `source`, `memory_enabled`, `pinned_at`, " +
+                        "`edit_count`, `thinking_override`, `folder_id`, `parent_session_id`, " +
+                        "`parent_tool_use_id`) " +
+                        "SELECT `id`, `title`, `model_id`, `created_at`, `updated_at`, `category`, " +
+                        "`last_message`, `model_binding`, `source`, `memory_enabled`, `pinned_at`, " +
+                        "`edit_count`, `thinking_override`, `folder_id`, `parent_session_id`, " +
+                        "`parent_tool_use_id` FROM sessions",
+                )
+                db.execSQL("DROP TABLE sessions")
+                db.execSQL("ALTER TABLE sessions_v15 RENAME TO sessions")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_sessions_folder_id` " +
+                        "ON `sessions` (`folder_id`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_sessions_updated_at` " +
+                        "ON `sessions` (`updated_at`)",
+                )
             }
         }
 

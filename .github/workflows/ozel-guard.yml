@@ -59,6 +59,14 @@ jobs:
       - name: Risk korpusu (kural tablosu ↔ beklenti)
         run: python3 scripts/ozel/risk-corpus.py --fail-on-mismatch
 
+      - name: Veritabanı sürümü (tek kaynak)
+        # [H-001] 1.15-ozel.53: `@Database(version = 16)` ile
+        # `CODE_DB_VERSION = 15` ayrıştı; uygulama kendi yazdığı veritabanını
+        # bir sonraki açılışta reddetti. İki sayı da geçerli Kotlin olduğu için
+        # ne derleme ne başka bir kapı görebildi. Bu adım saniyeler sürer.
+        # Ayrıntı: docs/ozel/HATA-DEFTERI.md → H-001
+        run: python3 scripts/ozel/db-surum.py
+
       - name: Yapısal Kotlin denetimi
         run: python3 scripts/ozel/kotlin-denetim.py --no-warn
 

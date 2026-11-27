@@ -83,8 +83,8 @@ android {
         // bellek sızıntısı, Termux kararı). Yeni bir versionCode, yayınlanmış
         // herhangi bir sürümün üzerine yazma riskini sıfırlıyor: 37098 hiç
         // dağıtılmadı ama "dağıtılmadı" varsayımı bir gün yanlış olabilir.
-        versionCode = 37133
-        versionName = "1.15-ozel.53"
+        versionCode = 37134
+        versionName = "1.15-ozel.54"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
