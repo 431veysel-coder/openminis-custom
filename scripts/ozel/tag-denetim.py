@@ -41,7 +41,20 @@ NE YAPAR
 KULLANIM
     python3 scripts/ozel/tag-denetim.py            # tablo
     python3 scripts/ozel/tag-denetim.py --fix-plan # düzeltme komutları
-    python3 scripts/ozel/tag-denetim.py --strict   # uyuşmazlıkta çıkış kodu 1
+    python3 scripts/ozel/tag-denetim.py --strict   # YENİ uyuşmazlıkta çıkış kodu 1
+
+[H-012] `--strict` NEDEN "tümü" değil "yeni"
+    Kök neden bulundu: etiketler `target_commitish` olmadan yayınlandığı için
+    `main`'e basılmış (`ffeb948` = 11.2). Kök neden `.55`'te düzeltildi.
+    Ama o günden önce basılmış **beş** etiket hâlâ yanlış commit'i gösteriyor;
+    onları düzeltmek yayınlanmış etiketleri yeniden yazmak demek.
+
+    Yayın adımında `--strict` koşarsa ve o beşi de sayarsa, ilk yayın
+    kırmızı olur ve pratikte kimse etiketleri yeniden yazmaz — kapı
+    kapatılır. Bu yüzden [LEGACY] içindeki bilinen beş kayıt **TARİHSEL**
+    olarak işaretlenir ve yalnız **yeni** bir sapma kırmızı yapar.
+    Borç gizlenmiyor: tabloda TARİHSEL yazıyor ve `--tum-eski` ile tam
+    denetim istenebiliyor.
 """
 
 from __future__ import annotations
@@ -54,6 +67,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 GRADLE = "src/android/app/build.gradle.kts"
+
+
+# [H-012] `target_commitish` düzeltmesinden ÖNCE yayınlanmış, yanlış commit'i
+# gösteren etiketler. Yeni bir kayıt buraya EKLENEMEZ: amaç borcu kapatmak,
+# kapıyı susturmak değil.
+LEGACY = {
+    "v1.15-ozel.11.3.1",
+    "v1.15-ozel.11.4",
+    "v1.15-ozel.13",
+    "v1.15-ozel.14",
+    "v1.15-ozel.15",
+}
 
 
 def git(*args: str) -> str:
@@ -90,11 +115,15 @@ def tag_version(tag: str) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser(description="Yayın etiketi ↔ sürüm denetimi")
     ap.add_argument("--fix-plan", action="store_true", help="düzeltme komutlarını yaz")
-    ap.add_argument("--strict", action="store_true", help="uyuşmazlıkta 1 dön")
+    ap.add_argument("--strict", action="store_true",
+                    help="YENİ uyuşmazlıkta 1 dön (bilinen tarihsel beş hariç)")
+    ap.add_argument("--tum-eski", action="store_true",
+                    help="tarihsel kayıtlar da kırmızı olsun (borç kapatma günü için)")
     args = ap.parse_args()
 
     rows = []
     bad = []
+    new_bad = []
     for tag in tags():
         commit = peel(tag)
         ver = version_at(commit)
@@ -106,9 +135,13 @@ def main() -> int:
             continue
         name, code = ver
         ok = name == expected
-        rows.append((tag, commit[:7], f"{name}/{code}", expected, subject[:46], "OK" if ok else "SAPMA"))
+        legacy = (not ok) and tag in LEGACY
+        state = "OK" if ok else ("TARİHSEL" if legacy else "SAPMA")
+        rows.append((tag, commit[:7], f"{name}/{code}", expected, subject[:46], state))
         if not ok:
             bad.append(tag)
+            if not legacy:
+                new_bad.append(tag)
 
     width = max((len(r[0]) for r in rows), default=10)
     print(f"{'ETİKET':<{width}}  {'COMMIT':7}  {'COMMIT SÜRÜMÜ':16} {'ETİKET SÜRÜMÜ':16} DURUM")
@@ -118,9 +151,12 @@ def main() -> int:
 
     print()
     if bad:
-        print(f"{len(bad)} etiket yanlış commit'i gösteriyor:")
+        print(f"{len(bad)} etiket yanlış commit'i gösteriyor"
+              + (f" ({len(bad) - len(new_bad)} tanesi tarihsel, kapıyı düşürmez)" if bad else "")
+              + ":")
         for tag in bad:
-            print(f"  · {tag}")
+            mark = "  (tarihsel)" if tag in LEGACY and tag not in new_bad else ""
+            print(f"  · {tag}{mark}")
         if args.fix_plan:
             print("\nDÜZELTME PLANI (çalıştırılmadı — yayın geri dönüşsüz, karar insanın):")
             print("  1) Doğru commit'i bul:  git log --all --oneline --grep 'ozel.15'")
@@ -135,7 +171,8 @@ def main() -> int:
             print("     sayfası doğru commit'i gösterir, indirme bağlantısı değişmez.")
             print("  4) Doğrulama: bu betiği yeniden koş.")
         if args.strict:
-            return 1
+            if new_bad or args.tum_eski:
+                return 1
     else:
         print("Bütün etiketler doğru commit'i gösteriyor.")
     return 0

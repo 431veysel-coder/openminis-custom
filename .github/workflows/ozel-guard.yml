@@ -109,6 +109,12 @@ jobs:
         # 521 anahtarı taşır; orada olmayan yeni bir eksik kırmızıdır.
         run: python3 scripts/ozel/ceviri-denetim.py --fail-on-new
 
+      - name: Çökme-eğilimli desenler (H-014 / H-015)
+        # `.55`: bağlamsız `glGetString` süreci SIGSEGV ile öldürdü (Ayarlar →
+        # Cihaz kaynakları) ve yeniden kurulan ön plan servisi `lateinit`
+        # alanı okuyup ikinci kez çöktü. İkisi de derlemeden ve testten geçti.
+        run: python3 scripts/ozel/kapi-cokme.py
+
       - name: Yayın etiketi ↔ sürüm
         # `--strict` yok: yanlış etiket bir *push* problemidir, PR'ı
         # engellememeli (katkı veren etiketleri düzeltemez). Rapor her zaman

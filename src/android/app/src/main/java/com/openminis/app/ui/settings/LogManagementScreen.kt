@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.FileProvider
+import com.openminis.app.crash.CrashDigest
 import com.openminis.app.logging.AppLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -89,6 +90,10 @@ fun LogManagementScreen(
     var showDeleteAllConfirm by remember { mutableStateOf(false) }
     var loggingEnabled by remember { mutableStateOf(AppLogger.isEnabled(context)) }
     var loggingVerbose by remember { mutableStateOf(AppLogger.isVerbose(context)) }
+    // [H-016] Çökme özeti: dosya adları tek başına "ne oldu" sorusunu
+    // cevaplamıyordu. Gruplar dosya başına 32 KB baş kısmından çıkarılıyor —
+    // tamamını okumak, 100 dosyada ekranı yavaşlatan asıl maliyetti.
+    var crashGroups by remember { mutableStateOf<List<CrashDigest.CrashGroup>>(emptyList()) }
 
     // T-config: Logs / Config Changes segmented control. Default to
     // "logs"; a `?tab=config-audit` deep-link query lands users straight
@@ -121,6 +126,19 @@ fun LogManagementScreen(
             val sum = (d.sumOf { it.sizeBytes }) + (merged.sumOf { it.sizeBytes })
             Triple(d, merged, sum)
         }
+        val groups = withContext(Dispatchers.IO) {
+            val dir = java.io.File(context.filesDir, "logs")
+            val parsed = crash.take(30).mapNotNull { meta ->
+                runCatching {
+                    val head = java.io.File(dir, meta.name).useLines { lines ->
+                        lines.take(400).joinToString("\n")
+                    }
+                    CrashDigest.parse(meta.name, head)
+                }.getOrNull()
+            }
+            CrashDigest.group(parsed)
+        }
+        crashGroups = groups
         dailyLogs.clear(); dailyLogs.addAll(daily)
         crashLogs.clear(); crashLogs.addAll(crash)
         totalSize = total
@@ -162,6 +180,7 @@ fun LogManagementScreen(
                 context = context,
                 dailyLogs = dailyLogs,
                 crashLogs = crashLogs,
+                crashGroups = crashGroups,
                 totalSize = totalSize,
                 loading = loading,
                 loggingEnabled = loggingEnabled,
@@ -211,6 +230,7 @@ private fun LogsBody(
     context: Context,
     dailyLogs: List<AppLogger.LogFileMeta>,
     crashLogs: List<AppLogger.LogFileMeta>,
+    crashGroups: List<CrashDigest.CrashGroup>,
     totalSize: Long,
     loading: Boolean,
     loggingEnabled: Boolean,
@@ -294,6 +314,26 @@ private fun LogsBody(
                         value = Formatter.formatFileSize(context, meta.sizeBytes),
                         onClick = { onLogFileClick(meta.name) },
                         showDivider = index < dailyLogs.size - 1,
+                    )
+                }
+            }
+        }
+
+        // ── Crash digest (H-016) — "ne oldu, kaç kez, nerede" ──────────
+        if (crashGroups.isNotEmpty()) {
+            SettingsSection(
+                header = stringResource(R.string.crash_digest_header),
+                footer = stringResource(R.string.crash_digest_footer, crashGroups.size),
+            ) {
+                crashGroups.forEachIndexed { index, g ->
+                    SettingsRow(
+                        title = "${g.count}× ${g.sample.headline}",
+                        subtitle = listOfNotNull(
+                            g.sample.time,
+                            g.sample.appFrame,
+                        ).joinToString(" · ").ifBlank { null },
+                        onClick = { onLogFileClick(g.fileNames.first()) },
+                        showDivider = index < crashGroups.lastIndex,
                     )
                 }
             }

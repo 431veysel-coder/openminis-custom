@@ -298,7 +298,10 @@ jobs:
           # after the artifact expires from the Actions UI.
           LOG="$GITHUB_WORKSPACE/build/logs/compile.log"
           mkdir -p "$(dirname "$LOG")"
-          ./gradlew :app:compileGithubDebugKotlin --build-cache --stacktrace 2>&1 | tee -a "$LOG"
+          # [H-013] 429/5xx artık "kod bozuk" sayılmıyor: sarmalayıcı ağ
+          # hatasında 3 kez dener, gerçek hatada hemen düşer.
+          bash ../../scripts/ci/gradle_retry.sh "$LOG" \
+            ./gradlew :app:compileGithubDebugKotlin --build-cache --stacktrace
 
       # [37094] `if: always()` is the whole point: without it the upload step is
       # skipped exactly when the compile failed, i.e. when the log is the only
@@ -421,7 +424,9 @@ jobs:
           chmod +x gradlew
           LOG="$GITHUB_WORKSPACE/build/logs/tests.log"
           mkdir -p "$(dirname "$LOG")"
-          ./gradlew :app:testGithubDebugUnitTest --tests 'com.openminis.app.ozel.*' --stacktrace 2>&1 | tee -a "$LOG"
+          # [H-013] Bu adım .54'te 429 yüzünden kırmızı çıktı; aynı sarmalayıcı.
+          bash ../../scripts/ci/gradle_retry.sh "$LOG" \
+            ./gradlew :app:testGithubDebugUnitTest --tests 'com.openminis.app.ozel.*' --stacktrace
 
       # [37094] A red test is the case where the HTML report and the raw console
       # log matter most, so both are uploaded unconditionally.
@@ -989,6 +994,16 @@ jobs:
             echo "_Derleme: \`${{ github.sha }}\`_"
             echo "__NOTES_EOF__"
           } >> "$GITHUB_OUTPUT"
+
+      - name: Tag audit — published tags must point at their own commit
+        # [H-012] `tag-denetim.py` bu depoda vardı ama Ozel Guard'da
+        # `--strict` olmadan çağrılıyordu: beş etiket yanlış commit'i
+        # gösteriyordu ve hiçbir tur kırmızı olmadı. "Rapor eden ama kırmızı
+        # olmayan kontrol, kapı değil günlüktür."
+        #
+        # Yayın anı, bunun kontrol edilebileceği tek yer: sonradan yakalamak
+        # için etiketleri silip yeniden atmak gerekir.
+        run: python3 scripts/ozel/tag-denetim.py --strict
 
       - name: Release gate — never reuse a published versionCode
         id: release_gate

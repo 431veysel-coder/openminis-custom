@@ -4,10 +4,10 @@ import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.opengl.GLES20
 import android.os.BatteryManager
 import android.os.Build
 import android.os.PowerManager
+
 import com.openminis.app.diagnostics.ResourceWatermark
 import java.io.File
 
@@ -112,9 +112,11 @@ object AndroidDeviceProbe {
      * comes from the renderer's own context on a screen that has one; that
      * hand-off is deliberately not faked here.
      */
-    private fun gpuRenderer(): String = runCatching {
-        // If a context happens to be current (called from a GL thread) this
-        // works; otherwise it returns null and we stay honest.
-        GLES20.glGetString(GLES20.GL_RENDERER).orEmpty()
-    }.getOrDefault("")
+    private fun gpuRenderer(): String {
+        // [H-014] Çıplak `GLES20.glGetString` çağrısı, bağlam yokken null
+        // döndürmüyor: sürücüde SIGSEGV ile süreci öldürüyordu (Ayarlar →
+        // Cihaz kaynakları açılışında). `runCatching` bir sinyali yakalayamaz.
+        // Tek doğru yol: kendi headless EGL bağlamımızı kurup orada okumak.
+        return GpuQuery.renderer()
+    }
 }

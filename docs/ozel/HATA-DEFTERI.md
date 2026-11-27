@@ -317,6 +317,161 @@ Hedef: **`main` her zaman son yayınlanan sürüme eşit.**
 
 ---
 
+## H-014 · Bağlamsız `glGetString` süreci öldürüyordu
+
+- **Sürüm / tarih:** `1.15-ozel.55` (37135), 2026-11-27 04:46
+- **Belirti:** Ayarlar → *Cihaz kaynakları* bölümü açılınca uygulama
+  **hiçbir mesaj vermeden** kapanıyor. Kullanıcı için görüntü: "Ayarlar'a
+  girince çöküyor."
+- **Kök neden:** `AndroidDeviceProbe.gpuRenderer()` doğrudan
+  `GLES20.glGetString(GL_RENDERER)` çağırıyordu. Geçerli bir GL bağlamı
+  yokken sürücü **null döndürmüyor**, `0xdd0` adresine erişip SIGSEGV
+  üretiyor: `#00 libGLESv1_CM.so (glGetString+44)`,
+  `#04 base.vdex (I0.c.T+862)`.
+- **Kanıt:** `logcat -b crash` 2026-11-27 04:46:19, iki ayrı PID'de aynı
+  imza; `AndroidDeviceProbe.kt` eski gövdesi.
+- **Neden hiçbir kapı görmedi:** Çağrı `runCatching { … }.getOrDefault("")`
+  içindeydi — **istisna** yakalar, **sinyal** yakalamaz. Kod incelemesinde
+  kusursuz görünüyor. Ayrıca yorum "bağlam yoksa boş döner, uydurma yok"
+  diyordu: yorum doğru niyeti yazıyor, yanlış davranışı gizliyordu.
+- **Düzeltme:** `device/GpuQuery.kt` — 1×1 pbuffer yüzeyli headless EGL
+  bağlamı kurulur, `glGetString` **yalnız** `eglMakeCurrent` başarılıysa
+  çağrılır, `finally`'de her kaynak serbest bırakılır. Bağlam kurulamazsa
+  boş dize döner (uydurma GPU adı yok).
+- **Kapı:** `scripts/ozel/kapi-cokme.py` (kural A) — `--kendini-sina` 6/6
+- **Kural:** "Bu API bağlam ister" diyen bir yorum, bağlamın **kurulduğunu**
+  kanıtlamaz. Bağlam gerektiren her çağrı, bağlamı kuran kodla aynı dosyada
+  olmalı.
+
+---
+
+## H-015 · Yeniden kurulan servis `lateinit` alanı okuyup ikinci kez çöktü
+
+- **Sürüm / tarih:** `1.15-ozel.51`…`.55`, 2026-11-27 02:10
+- **Belirti:** `Unable to create service …AgentForegroundService:
+  lateinit property backgroundSettingsRepository has not been initialized`.
+  Süreç bir kez öldükten sonra sistem yapışkan ön plan servisini yeniden
+  kuruyor ve süreç **ikinci kez** çöküyor.
+- **Kök neden:** `MinisApp.backgroundSettingsRepository` bir `lateinit var`
+  ve `init()` (onCreate sonunda) tarafından atanıyor. Servis oluşturma sırası
+  garanti değil: `ToolOverlayController.<init>` alanı `init()` bitmeden
+  okuyabiliyor.
+- **Kanıt:** `logcat -b crash` 2026-11-27 02:09–02:11, üç ayrı PID, aynı
+  `Caused by: lateinit property …`; `MinisApp.kt:163`.
+- **Neden hiçbir kapı görmedi:** `lateinit`'in "atama sırası" derleme
+  zamanında denetlenemez. Üstelik `AgentForegroundService.onCreate` bir
+  safe-mode dalı içeriyordu — çökme **tespitini** koruyan kod, çökmenin
+  kendisini üretiyordu.
+- **Düzeltme:** alan `by lazy { BackgroundSettingsRepository(this) }` oldu.
+  İlk okuma kim yaparsa yapsın değer kurulur; `init()` içindeki atama
+  kaldırıldı (ikinci bir dinleyici kaydı üretmesin).
+- **Kapı:** `scripts/ozel/kapi-cokme.py` (kural B) — yalnız `MinisApp`
+  üzerinden erişim sayılır, çıplak kelime eşleşmesi yanlış pozitif üretiyordu
+- **Kural:** Sistemin **yeniden kurabildiği** bir bileşen (servis, alıcı,
+  işçi) `Application`'ın `lateinit` alanına sıra varsayarak dokunamaz.
+
+---
+
+## H-016 · Çökme raporları vardı ama okunamıyordu
+
+- **Sürüm / tarih:** `.55`'e kadar, 2026-11-27'de ölçüldü
+- **Belirti:** Ayarlar → Günlükler → *Crash Logs* yalnız dosya adı ve boyut
+  listeliyordu. "Hangi hata, kaç kez, nerede" sorusu için her dosyayı tek tek
+  açıp 200 satır logcat içinde gözle aramak gerekiyordu.
+- **Kök neden:** Üç yazıcı (`CrashFileSender`, `crash_handler.cpp`,
+  `ExitInfoCollector`) raporu **yazıyordu**, okuyan bir çözümleyici yoktu.
+  Üretim ile tüketim arasındaki boşluk: bu depoda tekrar eden sınıf.
+- **Kanıt:** `LogManagementScreen.kt` eski `Crash Logs` bölümü; `filesDir/logs`
+  altında 3 farklı biçimde dosya.
+- **Neden hiçbir kapı görmedi:** Hiçbiri veri kaybı ya da çökme değil; kapılar
+  "çalışıyor mu" sorusuna bakıyor, "okunabiliyor mu" sorusuna bakmıyordu.
+- **Düzeltme:** `crash/CrashDigest.kt` — üç biçimi de ayrıştırır, obfuscated
+  çerçeveleri atlayıp **bizim** ilk çerçevemizi bulur, satır numarasını
+  anahtardan çıkarıp aynı hatayı gruplar; ekran "3× java.lang.IllegalState…"
+  diye en çok tekrar edeni üstte gösterir. Test: `CrashDigestTest` (6).
+- **Kapı:** `src/android/app/src/test/java/com/openminis/app/crash/CrashDigestTest.kt`
+  — gerçek çökme metinleriyle
+- **Kural:** Bir tanılama yazıcısı eklerken **okuyucusunu** da aynı turda yaz;
+  yoksa dosya biriktirmek tanılama sayılmaz.
+
+---
+
+## H-017 · "Bir daha sorma" 180 gün sonra kendiliğinden iptal oluyordu
+
+- **Sürüm / tarih:** `.55`, 2026-11-27
+- **Belirti:** Kullanıcı "tüm izinleri verdim, bir daha sorma" dedi; bir süre
+  sonra aynı sınıf iş için kart yeniden çıktı. Sayaç düzeltilmişti (`.49`),
+  süre düzeltilmemişti.
+- **Kök neden:** `ApprovalPolicy.grantFor(unlimited = true)` yalnız
+  `maxUses`'ı kaldırıyordu. `expiresAtMs` hâlâ `ttlMs()`'ten geliyordu
+  (Global: RECOVERABLE 90 gün, PERMANENT 180 gün). 90/180 gün sonra kayıt
+  `live()` dönmüyor, kapı yeniden `Ask` üretiyordu.
+- **Kanıt:** `ApprovalPolicy.kt` eski `val ttl = ttlMs(scope, v)` satırı;
+  `Grant.expired()`.
+- **Neden hiçbir kapı görmedi:** Süre dolumu **zamanla** olur; hiçbir test
+  saati 180 gün ileri almıyordu. `ApprovalModeTest` sayaç ve mod kararını
+  sınıyor, ömrü sınamıyordu.
+- **Düzeltme:** `unlimited` artık "ömürsüz" demek: `ttl = if (unlimited) null
+  else ttlMs(...)`. Soruya verilen cevap (`unlimited = false`) ömrünü korur —
+  orada kullanıcı tek bir iş için izin verdi. Ayrıca
+  `ozel/PermanentGrants.kt`: **hepsini bir kez** yazan düğme (tüm `RiskRules.ALL`
+  → Global/ALLOW/ömürsüz/sayaçsız), `deny:` sınıfı hiç yazılmaz, açıkça
+  reddedilmiş kural "hepsine izin ver" ile sessizce ALLOW'a dönmez.
+- **Kapı:** `src/android/app/src/test/java/com/openminis/app/ozel/PermanentGrantsTest.kt`
+- **Kural:** "Bir daha sorma" bir **karardır**, bir **süre** değil. Süre
+  eklemek kararı unutmaktır.
+
+---
+
+## H-018 · Termux arızaları beş yere dağılmıştı, tek cevap yoktu
+
+- **Sürüm / tarih:** `.55`, 2026-11-27
+- **Belirti:** `apt install` düşüyor, kullanıcı yalnız "apt çalışmıyor"
+  görüyor. Sebep beş ayrı katmandan biri olabiliyor (yükleyici, kök, yer,
+  apt dizinleri, yarım bootstrap) ve hiçbiri ekranda yazmıyordu.
+- **Kök neden:** Kontroller `TermuxLayer.probe`, `spaceProblem`,
+  `ensureAptDirs`, `TermuxInstaller`, `ExecutionCoordinator` arasında
+  dağılmıştı; her biri kendi arızasını biliyor, birleşik bir karar yoktu.
+- **Kanıt:** `.33`'te ölçülen `E: Archives directory …/cache/apt/archives/partial
+  is missing` — `apt-get update` geçip `install` düşüyor yani katman
+  "kurulu görünürken" bozuk.
+- **Neden hiçbir kapı görmedi:** Bu bir kod hatası değil, **eksik yüzey**.
+  Kapıların hiçbiri "kullanıcı arızayı görebiliyor mu" sorusunu sormuyordu.
+- **Düzeltme:** `sandbox/TermuxDoctor.kt` — saf, `Snapshot` → sıralı
+  `Finding` listesi (BLOCKING → WARNING → INFO), `nextStep()` tek bir onarım
+  önerir. Ekran: Araç zincirleri → *Termux sağlığı*. Test:
+  `TermuxDoctorTest` (6), gerçek arıza senaryolarıyla.
+- **Kapı:** `src/android/app/src/test/java/com/openminis/app/sandbox/TermuxDoctorTest.kt`
+- **Kural:** Bir alt sistemin arızası beş yere dağılmışsa, kullanıcı için
+  **tek** sıralı cevap üreten bir yer yazılmalı; aksi hâlde arıza "bilinmiyor"
+  sayılır.
+
+---
+
+## H-019 · Konsey matrisi doğruydu, "sonuç ne" sorusu cevapsızdı
+
+- **Sürüm / tarih:** `.55`, 2026-11-27
+- **Belirti:** Konsey koşusu bitiyor, karşılaştırma odasında 5×5 hücrelik
+  matris var. Kullanıcı "eee, sonuç?" diye bakıyor; kaç iddianın kapandığı
+  hiçbir yerde sayı olarak yazmıyor.
+- **Kök neden:** `ClaimMatrix` ve `ClaimVerdict` her iddia için kararı
+  biliyordu, ama toplamı üreten bir sınıf yoktu. Rapor metni anlatıyor,
+  matris ayrıntı veriyor, **özet** yoktu.
+- **Kanıt:** `CouncilScreens.kt` `ComparisonRoom` eski gövdesi (yalnız matris);
+  `Verdict` enum'ı kullanılıyor ama sayılmıyordu.
+- **Neden hiçbir kapı görmedi:** Eksik yüzey sınıfı (H-018 ile aynı). Veri
+  doğru, gösterim eksik; hiçbir şey "bozuk" değil.
+- **Düzeltme:** `agent/team/CouncilDigest.kt` — **karar vermez, sayar**:
+  unanimous/decided/contested/unresolved/orphan, açık kalanlar direnç
+  sırasına göre, oy almamışlar ayrı. Duruş haritası sayaçlarla çelişirse
+  harita kazanır (kim-kim sorusunun tek kaynağı). Ekran: matrisin üstünde tek
+  satır. Test: `CouncilDigestTest` (6).
+- **Kapı:** `src/android/app/src/test/java/com/openminis/app/agent/team/CouncilDigestTest.kt`
+- **Kural:** Bir tabloyu çizen ekran, tablonun **toplamını** da yazmalı;
+  aksi hâlde kullanıcı 25 hücreyi zihinde toplamak zorunda kalır.
+
+---
+
 ## Kapı → kayıt eşlemesi (özet)
 
 | Kapı | Yakaladığı kayıtlar |
@@ -328,4 +483,9 @@ Hedef: **`main` her zaman son yayınlanan sürüme eşit.**
 | `scripts/ozel/kimlik-url.py` | H-007 |
 | `.github/workflows/main-sync.yml` | H-008 |
 | `scripts/check_identity.sh` + `KIMLIK.md` | H-009 |
-| `scripts/ozel/tag-denetim.py` | H-010 |
+| `scripts/ozel/tag-denetim.py` | H-010, H-012 |
+| `scripts/ozel/kapi-cokme.py` | H-014, H-015 |
+| `CrashDigestTest` | H-016 |
+| `PermanentGrantsTest` | H-017 |
+| `TermuxDoctorTest` | H-018 |
+| `CouncilDigestTest` | H-019 |

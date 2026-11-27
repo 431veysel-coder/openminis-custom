@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.openminis.app.R
 import com.openminis.app.offload.OffloadPermissionManager
 import com.openminis.app.ozel.GrantStorage
+import com.openminis.app.ozel.PermanentGrants
 import com.openminis.app.policy.ApprovalScope
 import com.openminis.app.policy.Grant
 import com.openminis.app.policy.GrantCatalog
@@ -80,6 +81,28 @@ fun PermissionGrantsScreen(onBack: () -> Unit) {
         byScope = next
     }
 
+    // [H-017] Kalıcı izinler: "bir kez ver, bir daha sorma". Kullanıcının
+    // istediği tek şey buydu — kart değil, **verilmiş karar**. Bu yüzden bu
+    // bölüm mod seçiminin üstünde: mod bir politika, bu bir karar.
+    var permanent by remember { mutableStateOf(PermanentGrants.state(context)) }
+    var lastResult by remember { mutableStateOf<String?>(null) }
+
+    fun applyPermanent() {
+        PermanentGrants.grantAll(context)
+        permanent = PermanentGrants.state(context)
+        byScope = GrantStorage.load(context)
+        mode = com.openminis.app.ozel.ApprovalSettings.mode(context)
+        lastResult = context.getString(R.string.perm_permanent_granted_all, permanent.granted)
+    }
+
+    fun revokePermanent() {
+        val removed = PermanentGrants.revokeAll(context)
+        permanent = PermanentGrants.state(context)
+        byScope = GrantStorage.load(context)
+        mode = com.openminis.app.ozel.ApprovalSettings.mode(context)
+        lastResult = context.getString(R.string.perm_permanent_revoke_done, removed)
+    }
+
     fun toggle(ruleId: String, on: Boolean) {
         val map = byScope.toMutableMap()
         val current = map[ApprovalScope.Global.key].orEmpty()
@@ -97,7 +120,35 @@ fun PermissionGrantsScreen(onBack: () -> Unit) {
         title = stringResource(R.string.permission_grants_title),
         onBack = onBack,
     ) {
-        // [37116] Onay modu — kartın ne zaman çıkacağının tek kararı.
+        // [H-017] Kalıcı izinler — kullanıcının istediği tek karar.
+        SettingsSection(
+            header = stringResource(R.string.perm_permanent_header),
+            footer = stringResource(R.string.perm_permanent_undo_note),
+        ) {
+            SettingsRow(
+                title = stringResource(R.string.perm_permanent_grant),
+                subtitle = stringResource(
+                    R.string.perm_permanent_grant_sub,
+                    permanent.granted,
+                    permanent.totalRules,
+                ),
+                onClick = { applyPermanent() },
+            )
+            SettingsRow(
+                title = stringResource(R.string.perm_permanent_revoke),
+                subtitle = stringResource(R.string.perm_permanent_revoke_sub),
+                onClick = { revokePermanent() },
+            )
+            SettingsRow(
+                title = stringResource(R.string.perm_permanent_granted_all, permanent.granted),
+                subtitle = stringResource(R.string.perm_permanent_deny_note, permanent.denyBlocked),
+                showDivider = lastResult != null,
+            )
+            lastResult?.let { msg ->
+                SettingsRow(title = msg, showDivider = false)
+            }
+        }
+
         SettingsSection(
             header = stringResource(R.string.approval_mode_header),
             footer = stringResource(R.string.approval_mode_footer),

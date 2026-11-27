@@ -160,8 +160,22 @@ class MinisApp : Application(), ImageLoaderFactory {
         private set
     lateinit var webAppShortcutRepository: WebAppShortcutRepository
         private set
-    lateinit var backgroundSettingsRepository: BackgroundSettingsRepository
-        private set
+
+    /**
+     * [H-015] `lateinit` DEĞİL: `by lazy`.
+     *
+     * Belirti: Ayarlar açılırken değil, arka plan ajanı çalışırken
+     * `Unable to create service …AgentForegroundService:
+     * lateinit property backgroundSettingsRepository has not been initialized`.
+     * Sistem, süreç öldükten sonra yapışkan ön plan servisini yeniden kurar;
+     * bu kurulum `init()`'ten **önce** olabilir ve `ToolOverlayController`
+     * bu alanı okuyor → süreç ikinci kez çöküyor (çökme tespitini çökerten
+     * desen). `by lazy` ilk okumada kurar, sıra bağımsız hâle gelir.
+     */
+    val backgroundSettingsRepository: BackgroundSettingsRepository by lazy {
+        BackgroundSettingsRepository(this)
+    }
+
     lateinit var backgroundTaskNotifier: BackgroundTaskNotifier
         private set
     lateinit var mountedFoldersStore: MountedFoldersStore
@@ -931,7 +945,9 @@ class MinisApp : Application(), ImageLoaderFactory {
         // hook so any session whose stream finishes (success or error)
         // posts a tap-to-open notification when the app is backgrounded.
         // Mirrors iOS BackgroundKeepAliveManager.postBackgroundTaskNotification.
-        backgroundSettingsRepository = BackgroundSettingsRepository(this)
+        // [H-015] Atama yok: `backgroundSettingsRepository` artık `by lazy`,
+        // burada yeniden kurmak iki kaynak (iki SharedPreferences dinleyicisi)
+        // üretirdi.
         backgroundTaskNotifier = BackgroundTaskNotifier(
             context = this,
             chatRepository = chatRepository,

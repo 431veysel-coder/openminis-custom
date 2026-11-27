@@ -134,7 +134,19 @@ object ApprovalPolicy {
         unlimited: Boolean = false,
     ): Grant {
         val v = request.verdict
-        val ttl = ttlMs(scope, v)
+        // [H-017] `unlimited` artık **ömürsüz** demek, yalnız sayaçsız değil.
+        //
+        // Kullanıcının sözü: *"Tek seferlik izni isteyecek, izni vereceğiz,
+        // ondan sonra bir daha izin istemeyecek; sürekli her şeyi izni
+        // olacaktır."* Eski hâlde mod kararı sayaçtan kurtuluyordu ama
+        // `ttlMs` (Global'de 90/180 gün) duruyordu — yani 180 gün sonra kapı
+        // sessizce yeniden kart üretirdi. Verilmiş bir "bir daha sorma"nın
+        // tarihle kendiliğinden iptal olması, kararı unutmaktır.
+        //
+        // Bu yalnız **mod kararı** için geçerli: soruya verilen cevap
+        // (`unlimited = false`) ömrünü korur, çünkü orada kullanıcı tek bir
+        // iş için izin verdi.
+        val ttl = if (unlimited) null else ttlMs(scope, v)
         return Grant(
             ruleId = v.ruleId,
             targetPrefix = v.targetPrefix,

@@ -68,6 +68,10 @@ GATES: dict[str, tuple[list[str], bool]] = {
     # olan ikinci soruydu. ZORUNLU: açık ama arayüzde tüketicisi olmayan
     # anahtar kırmızıdır (taban daralır, genişlemez).
     "gorunurluk": ([sys.executable, "scripts/ozel/gorunurluk.py"], True),
+    # [H-014/H-015] Çökme-eğilimli iki desen: bağlamsız `glGetString` (SIGSEGV,
+    # `runCatching` yakalayamaz) ve servis yolundan okunan `lateinit` alan.
+    # İkisi de `.55`'te derleyiciden ve testten geçti, cihazda patladı.
+    "cokme": ([sys.executable, "scripts/ozel/kapi-cokme.py"], True),
 }
 
 

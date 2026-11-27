@@ -1,5 +1,6 @@
 package com.openminis.app.ui.team
 
+import com.openminis.app.agent.team.CouncilDigest
 import com.openminis.app.agent.team.CouncilTimeline
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.IconButton
@@ -511,6 +512,17 @@ private fun ComparisonRoom(
         val voted = claims.flatMap { it.stances.keys }.distinct()
         order.filter { it in voted } .ifEmpty { voted }
     }
+    // [H-019] Uzun matrisin üstünde tek satır cevap: kaç iddia kapandı, ne
+    // açık kaldı. Matris "kim ne dedi"yi, özet "eee sonuç?"u cevaplıyor.
+    val digest = remember(claims, live?.round) {
+        CouncilDigest.ofLines(
+            lines = claims,
+            participants = live?.members?.size ?: members.size,
+            roundsUsed = live?.round ?: 0,
+            roundsPlanned = live?.roundsPlanned ?: 0,
+        )
+    }
+
     // [37126] Diskten gelen tabloda "kim oy verdi" ayrımı kayıtta yok; ama
     // matrisin kendisi o üyeyi içeriyorsa sütun çizilir. Uydurma yok: oy
     // vermeyen üye matriste zaten yok.
@@ -548,6 +560,31 @@ private fun ComparisonRoom(
                     modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 6.dp),
                 )
             }
+            // [H-019] Özet satırı. "Açık kalanlar" boşsa koşu kapandı der;
+            // değilse iddia kimliklerini tek tek yazar — kullanıcı hangi
+            // tartışmanın sürdüğünü tahmin etmek zorunda kalmaz.
+            Text(
+                text = if (digest.hasOpen) {
+                    stringResource(
+                        R.string.council_digest_open,
+                        digest.settled,
+                        digest.total,
+                        digest.open.joinToString(", ") { it.id },
+                        digest.roundsLabel,
+                    )
+                } else {
+                    stringResource(
+                        R.string.council_digest_settled,
+                        digest.settled,
+                        digest.total,
+                        digest.roundsLabel,
+                    )
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = if (digest.hasOpen) MaterialTheme.colorScheme.tertiary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            )
             Text(
                 stringResource(R.string.council_compare_legend),
                 style = MaterialTheme.typography.labelSmall,

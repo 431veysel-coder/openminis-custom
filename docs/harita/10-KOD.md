@@ -1,21 +1,21 @@
 <!-- ÜRETİLDİ: scripts/ozel/harita.py — elle düzenlemeyin. -->
 
-# Kod ağacı — 910 dosya, 324044 satır
+# Kod ağacı — 915 dosya, 324926 satır
 
 | Paket | Dosya | Satır |
 |---|---|---|
 | `accessibility/` | 4 | 897 |
-| `agent/` | 59 | 15280 |
+| `agent/` | 60 | 15396 |
 | `auth/` | 17 | 4718 |
 | `backup/` | 27 | 8567 |
 | `browser/` | 13 | 6164 |
 | `budget/` | 1 | 183 |
 | `config/` | 28 | 8707 |
-| `crash/` | 5 | 1517 |
+| `crash/` | 6 | 1703 |
 | `data/` | 96 | 24709 |
 | `debug/` | 17 | 7460 |
 | `deeplink/` | 2 | 327 |
-| `device/` | 2 | 317 |
+| `device/` | 3 | 418 |
 | `diagnostics/` | 13 | 2715 |
 | `i18n/` | 2 | 148 |
 | `logging/` | 2 | 714 |
@@ -23,16 +23,16 @@
 | `network/` | 15 | 3221 |
 | `notification/` | 6 | 797 |
 | `offload/` | 13 | 2461 |
-| `ozel/` | 15 | 2631 |
+| `ozel/` | 16 | 2768 |
 | `plan/` | 1 | 106 |
-| `policy/` | 10 | 1942 |
+| `policy/` | 10 | 1954 |
 | `power/` | 1 | 193 |
 | `provider/` | 46 | 16624 |
 | `providers/` | 1 | 224 |
 | `quota/` | 6 | 4397 |
 | `remote/` | 1 | 97 |
 | `replay/` | 1 | 129 |
-| `sandbox/` | 62 | 24821 |
+| `sandbox/` | 63 | 24958 |
 | `scheduled/` | 15 | 3557 |
 | `screen/` | 6 | 1063 |
 | `service/` | 15 | 6752 |
@@ -41,7 +41,7 @@
 | `speech/` | 42 | 11096 |
 | `terminal/` | 2 | 126 |
 | `tools/` | 16 | 3352 |
-| `ui/` | 317 | 152097 |
+| `ui/` | 317 | 152290 |
 | `usage/` | 6 | 805 |
 | `util/` | 2 | 266 |
 | `webapp/` | 5 | 1316 |

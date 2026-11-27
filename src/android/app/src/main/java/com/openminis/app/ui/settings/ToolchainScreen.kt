@@ -41,8 +41,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openminis.app.R
+import com.openminis.app.sandbox.RootfsManager
+import com.openminis.app.sandbox.TermuxDoctor
+import com.openminis.app.sandbox.TermuxLayer
 import com.openminis.app.sandbox.ToolchainManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 
 /**
  * [MINIS-OZEL] Settings › Storage › Toolchains.
@@ -69,10 +75,29 @@ fun ToolchainScreen(onBack: () -> Unit) {
     // "what did I add?" survives a restart, and re-read after every change so
     // the list is never a stale snapshot.
     var addedPackages by remember { mutableStateOf(ToolchainManager.customPackages(context)) }
+    // [H-018] Termux teşhisi: beş ayrı kontrolün tek sıralı cevabı.
+    var termux by remember { mutableStateOf<TermuxDoctor.Report?>(null) }
 
     LaunchedEffect(Unit) {
         ToolchainManager.refresh(context)
         installedBytes = ToolchainManager.installedBytes(context)
+        termux = withContext(Dispatchers.IO) {
+            val rootfs = RootfsManager.getInstance(context).rootfsDir
+            val prefix = TermuxLayer.guestPrefixDir(rootfs)
+            val aptMissing = TermuxLayer.requiredAptDirs(rootfs).count { !it.isDirectory }
+            TermuxDoctor.diagnose(
+                TermuxDoctor.Snapshot(
+                    probe = TermuxLayer.probe(),
+                    rootfsPresent = rootfs.isDirectory,
+                    layerInstalled = prefix.isDirectory,
+                    missingAptDirs = aptMissing,
+                    freeBytes = runCatching { rootfs.usableSpace }.getOrDefault(0L),
+                    // `bash` konukta yoksa bootstrap yarım açılmıştır; bu
+                    // kontrol yalnız dosyaya bakar, konuğu çalıştırmaz.
+                    guestToolsOk = File(prefix, "bin/bash").exists(),
+                ),
+            )
+        }
     }
 
     val installedCount = ToolchainManager.groups.count {
@@ -112,6 +137,28 @@ fun ToolchainScreen(onBack: () -> Unit) {
                 showChevron = false,
                 showDivider = false,
             )
+        }
+
+        // [H-018] Termux sağlığı — "neden apt çalışmıyor" sorusunun cevabı.
+        termux?.let { report ->
+            SettingsSection(
+                header = stringResource(R.string.termux_doctor_header),
+                footer = stringResource(R.string.termux_doctor_footer),
+            ) {
+                report.findings.take(5).forEachIndexed { index, f ->
+                    SettingsRow(
+                        title = termuxFindingText(f),
+                        subtitle = if (f.detail.isBlank()) null else f.detail,
+                        titleColor = when (f.severity) {
+                            TermuxDoctor.Severity.BLOCKING -> MaterialTheme.colorScheme.error
+                            TermuxDoctor.Severity.WARNING -> MaterialTheme.colorScheme.tertiary
+                            TermuxDoctor.Severity.INFO -> MaterialTheme.colorScheme.onSurface
+                        },
+                        showChevron = false,
+                        showDivider = index < report.findings.take(5).lastIndex,
+                    )
+                }
+            }
         }
 
         if (busyGroup != null) {
@@ -372,4 +419,22 @@ private fun colorFor(id: String): Color = when (id) {
     "scripting" -> Color(0xFFAF52DE)
     "android" -> Color(0xFF3DDC84)
     else -> Color(0xFF8E8E93)
+}
+
+/**
+ * [H-018] Teşhis kodunu cümleye çeviren **tek** yer.
+ *
+ * Çekirdek (`TermuxDoctor`) dil bilmez; kod döner. Çeviri burada, çünkü
+ * çekirdeğe Türkçe cümle yazmak bu depoda bir kez ihlal edildi (`.28`).
+ */
+@Composable
+private fun termuxFindingText(f: TermuxDoctor.Finding): String = when (f.code) {
+    "termux_loader_missing" -> stringResource(R.string.termux_diag_loader)
+    "termux_rootfs_missing" -> stringResource(R.string.termux_diag_rootfs)
+    "termux_space_low" -> stringResource(R.string.termux_diag_space)
+    "termux_apt_dirs_missing" -> stringResource(R.string.termux_diag_apt_dirs)
+    "termux_guest_tools_missing" -> stringResource(R.string.termux_diag_tools)
+    "termux_probe_warning" -> stringResource(R.string.termux_diag_warning)
+    "termux_ok_installed" -> stringResource(R.string.termux_diag_ok_installed)
+    else -> stringResource(R.string.termux_diag_ok_not_installed)
 }
