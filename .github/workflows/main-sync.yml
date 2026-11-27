@@ -24,7 +24,11 @@ name: Main sync
 
 on:
   workflow_run:
-    workflows: ["Build APK"]
+    # İki tetik: derleme yeşilse (yayın çıktı) ve kapılar yeşilse (kod
+    # sağlıklı). Yalnız Build APK'ya bağlamak, versionCode artmayan bir
+    # doküman commit'inde main'i sonsuza kadar geride bırakıyordu: yayın
+    # kapısı "bu build zaten var" diyip kırmızı oluyor, main hiç ilerlemiyor.
+    workflows: ["Build APK", "Ozel Guard"]
     types: [completed]
   workflow_dispatch:
 
