@@ -24,7 +24,7 @@ class CrashDigestTest {
         java.lang.IllegalStateException: Vertically scrollable component was measured with an infinity maximum height constraints
             at w.a.c(SourceFile:2)
             at Q0.D.d(SourceFile:192)
-            at com.openminis.app.ui.settings.TaskHallScreenKt$TaskHallScreen$1.invoke(TaskHallScreen.kt:88)
+            at com.openminis.app.ui.settings.TaskHallScreenKt${'$'}TaskHallScreen${'$'}1.invoke(TaskHallScreen.kt:88)
             at android.view.View.measure(View.java:28674)
         Caused by: java.lang.IllegalStateException: nested scroll
             at com.openminis.app.ui.settings.TaskHallScreenKt.rows(TaskHallScreen.kt:42)
@@ -118,7 +118,7 @@ class CrashDigestTest {
     @Test
     fun `groups sort by count, then by recency`() {
         val repeated = (1..3).map {
-            CrashDigest.parse("crash-2026-11-2$it_10-00-00.log", nativeCrash)
+            CrashDigest.parse("crash-2026-11-2${it}_10-00-00.log", nativeCrash)
         }
         val once = CrashDigest.parse("crash-2026-11-27_10-00-00.log", javaCrash)
         val groups = CrashDigest.group(repeated + once)
