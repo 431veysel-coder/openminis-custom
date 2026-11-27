@@ -6,8 +6,8 @@
 |---|---|
 | Birim test dosyası | 790 |
 | Birim `@Test` | 6782 |
-| Cihaz testi dosyası | 0 |
-| Cihaz `@Test` | 0 |
+| Cihaz testi dosyası | 12 |
+| Cihaz `@Test` | 124 |
 
 | Paket | Test dosyası |
 |---|---|
