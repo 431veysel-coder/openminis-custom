@@ -92,6 +92,10 @@ class PermanentGrantsTest {
             nowMs = 1_000L,
             unlimited = false,
         )
-        assertEquals("soru cevabı ömrünü korumalı", 1_000L + 90L * 24 * 3600 * 1000, once.expiresAtMs)
+        // `ApprovalPolicy.ttlMs`: Global + RECOVERABLE = 90 gün, diğerleri
+        // (UNDOABLE/PERMANENT) = 180 gün. Bu kayıt UNDOABLE, yani 180.
+        // Sınanan şey **sürenin var olması**: `unlimited` yalnız mod kararında
+        // süreyi kaldırır, soruya verilen cevapta kaldırmaz.
+        assertEquals("soru cevabı ömrünü korumalı", 1_000L + 180L * 24 * 3600 * 1000, once.expiresAtMs)
     }
 }
