@@ -472,6 +472,31 @@ Hedef: **`main` her zaman son yayınlanan sürüme eşit.**
 
 ---
 
+## H-020 · Eksik import üç CI turu yedi, yerel kapı göremedi
+
+- **Sürüm / tarih:** `1.15-ozel.57` / `.58`, 2026-11-28
+- **Belirti:** CI "Compile only" kırmızı: `Unresolved reference 'Box'`,
+  `'Spacer'`, `'StopConfirmDialog'`. Kod yerelde 13/13 yeşil.
+- **Kök neden:** `kotlin-hizli` **kullanılmayan** importu denetliyordu,
+  **eksik** importu denetlemiyordu. Eksik import bir sözdizimi hatası değil,
+  bir **ad çözümleme** hatası; ayrıştırıcı (derleyici) olmadan da yakalanabilir
+  ama kimse yazmamıştı.
+- **Kanıt:** CI 2026-11-28 01:26 `e: …CouncilScreens.kt:415:17 Unresolved
+  reference 'Box'`; 01:38 aynı satır. İki ayrı tur, aynı sınıf.
+- **Neden hiçbir kapı görmedi:** Kapı "yazdığım kod doğru mu" sorusuna
+  bakıyordu, "yazdığım kod **derlenir mi**" sorusuna değil. Bu depoda
+  tekrar eden cümle: **kapı ≠ derleyici**.
+- **Düzeltme:** `scripts/ozel/_eksik_import.py` — sabit bir tablo (yalnız bu
+  projede kullanılan, adı başka yerde tanımlı olmayan simgeler) üzerinden
+  "kullanılıyor ama import edilmemiş ve dosyada tanımlı değil" durumunu
+  yakalar. `kotlin-hizli`'ye KESİN kural olarak bağlandı. İlk koşuda gerçek
+  bir eksiği buldu (`Box`), yani kapı değil süs olduğunu kanıtladı.
+- **Kapı:** `scripts/ozel/_eksik_import.py` (kotlin-hizli içinde)
+- **Kural:** Tablo küçük ve kesin kalmalı. Yanlış pozitif ekleyen her satır,
+  kapıyı bir gün susturur.
+
+---
+
 ## Kapı → kayıt eşlemesi (özet)
 
 | Kapı | Yakaladığı kayıtlar |
@@ -489,3 +514,4 @@ Hedef: **`main` her zaman son yayınlanan sürüme eşit.**
 | `PermanentGrantsTest` | H-017 |
 | `TermuxDoctorTest` | H-018 |
 | `CouncilDigestTest` | H-019 |
+| `scripts/ozel/_eksik_import.py` | H-020 |

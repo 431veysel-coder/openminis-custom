@@ -29,6 +29,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 import sys
 sys.path.insert(0, str(__import__('pathlib').Path(__file__).parent))
+import _eksik_import
 import kural_ic_ice_kaydirma as _nested_scroll
 SRC = ROOT / "src" / "android" / "app" / "src"
 
@@ -756,6 +757,10 @@ def main() -> int:
         _nested_scroll.check_file(path, problems, ROOT)
         # [37133] Aynı dosyada aynı özel üye adı iki kez = derleme hatası.
         check_duplicate_members(path, problems)
+        # [37138] Eksik import = derleyicinin "Unresolved reference" sınıfı.
+        # `.57`/`.58` turlarında üç CI turu yalnız bunun için yandı; yerel kapı
+        # "kullanılmayan" importu görüyordu, "eksik" olanı görmüyordu.
+        _eksik_import.check_file(path, problems, ROOT)
 
     # ŞÜPHELİ: yalnız bilgi. Veri sınıfı alan denetimi üst kaynakta (builder
     # arayüzleri, iç içe sınıflar) yanlış-pozitif üretiyor; bu yüzden kapı
