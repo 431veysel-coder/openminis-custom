@@ -555,6 +555,8 @@ fun ChatScreen(
      * `showCouncil` kararı.
      */
     onOpenCouncilRun: (String) -> Unit = {},
+    /** [F1 · .57] Sanal Ofis (tam ekran, canlı). `null` = üst barda simge yok. */
+    onOpenOffice: ((String) -> Unit)? = null,
     onOpenTerminal: () -> Unit = {},
     /** Open the in-app terminal with [command] pre-filled at the prompt
      *  (no trailing newline — the user reviews and presses Enter manually).
@@ -3411,6 +3413,7 @@ fun ChatScreen(
                         sessionId = sessionId,
                         chatRepository = chatRepository,
                         onOpenRun = onOpenCouncilRun,
+                        onOpenOffice = onOpenOffice,
                     )
                     // iOS: "..." circle button → dropdown menu
                     Box {

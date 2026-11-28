@@ -778,6 +778,9 @@ object CouncilRunner {
                                     claim = e.claim,
                                 )
                             }
+                            // [F1] Tur gerekçesi: sıradaki turun **sebebi**.
+                            is CouncilEvent.RoundAdvanced ->
+                                CouncilLiveRegistry.roundReason(runId, e.reason)
                             is CouncilEvent.Canonicalized ->
                                 CouncilLiveRegistry.phase(runId, CouncilLiveRegistry.Phase.CANONICALIZING)
                             is CouncilEvent.ConsensusReached ->

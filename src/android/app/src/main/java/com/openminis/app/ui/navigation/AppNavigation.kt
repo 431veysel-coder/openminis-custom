@@ -230,6 +230,16 @@ object Routes {
     const val TEAM_RUN = "team_run/{runId}"
     fun teamRun(runId: String) = "team_run/$runId"
 
+    /**
+     * [F1 · .57] **Sanal Ofis** — tam ekran, canlı, müdahaleli.
+     *
+     * Ayrı rota, ayrı ekran: panel "rapor"dur, ofis "şu an"dır. Aynı rotaya
+     * bir mod düğmesiyle sıkıştırmak, iki farklı okuma biçimini tek ekrana
+     * tıkardı (§6.5).
+     */
+    const val OFFICE = "office/{runId}"
+    fun office(runId: String) = "office/$runId"
+
     /** [MINIS-OZEL 11.5 · 37055] Every team's task board, one screen. */
     const val TASK_HALL = "task_hall"
 
@@ -761,6 +771,26 @@ fun AppNavigation(
             )
         }
 
+        // [F1 · .57] Sanal Ofis. Panelden (TEAM_RUN) ayrı bir push: ofisten
+        // geri dönmek koşuyu durdurmaz, panel aynı yerde durur.
+        composable(
+            route = Routes.OFFICE,
+            arguments = listOf(navArgument("runId") { type = NavType.StringType }),
+        ) { entry ->
+            val runId = entry.arguments?.getString("runId") ?: return@composable
+            com.openminis.app.ui.team.office.OfficeScreen(
+                runId = runId,
+                onBack = { navController.safePopBackStack() },
+                onOpenMember = { memberName ->
+                    val sessionId = com.openminis.app.agent.team.CouncilLiveRegistry
+                        .runs.value[runId]?.members?.get(memberName)?.sessionId
+                    if (sessionId != null) {
+                        navController.safeNavigate(Routes.agentTranscript(sessionId))
+                    }
+                },
+            )
+        }
+
         composable(
             route = Routes.TEAM_RUN,
             arguments = listOf(navArgument("runId") { type = NavType.StringType }),
@@ -769,6 +799,9 @@ fun AppNavigation(
             com.openminis.app.ui.team.CouncilScreen(
                 runId = runId,
                 onBack = { navController.safePopBackStack() },
+                // [F1] Panelin başlığından ofise geçiş: aynı koşunun iki
+                // okuma biçimi, tek dokunuşla.
+                onOpenOffice = { navController.safeNavigate(Routes.office(runId)) },
                 onOpenMember = { memberName ->
                     // The member's own child session, through the read-only
                     // transcript screen that already exists — a copy of the

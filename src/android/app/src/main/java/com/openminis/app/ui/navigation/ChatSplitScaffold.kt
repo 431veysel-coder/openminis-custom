@@ -989,6 +989,11 @@ fun ChatSplitScaffoldRoute(
                 onOpenCouncilRun = { runId ->
                     navController.safeNavigate(Routes.teamRun(runId))
                 },
+                // [F1 · .57] Ofis simgesi: aynı koşunun **canlı** okuma
+                // biçimi. Panelden ayrı push; geri dönüş koşuyu durdurmaz.
+                onOpenOffice = { runId ->
+                    navController.safeNavigate(Routes.office(runId))
+                },
                 onOpenTerminalWithCommand = { command ->
                     navController.safeNavigate(
                         Routes.terminal(initCommand = command, sessionId = sessionId),

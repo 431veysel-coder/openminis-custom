@@ -1,12 +1,14 @@
 package com.openminis.app.ui.team
 
 import com.openminis.app.agent.team.CouncilDigest
+import com.openminis.app.agent.team.RoundReason
 import com.openminis.app.agent.team.CouncilTimeline
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.outlined.Apartment
 import androidx.compose.material.icons.Icons
 import com.openminis.app.agent.team.RecordedMatrix
 import com.openminis.app.agent.team.ClaimMatrix
@@ -81,6 +83,12 @@ fun CouncilScreen(
     runId: String,
     onBack: () -> Unit,
     onOpenMember: (String) -> Unit,
+    /**
+     * [F1] Ofise geçiş. Varsayılan boş: ofis rotası olmayan bir çağrı yeri
+     * (test, önizleme) düğmeyi çizmez — olmayan bir hedefe götüren düğme,
+     * kullanıcıya kırık bir yol göstermek olur.
+     */
+    onOpenOffice: (() -> Unit)? = null,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val runs by CouncilLiveRegistry.runs.collectAsState()
@@ -100,8 +108,18 @@ fun CouncilScreen(
     SettingsScaffold(
         title = live?.teamName ?: recorded?.teamName ?: stringResource(R.string.council_title),
         onBack = onBack,
-        actions = if (running) {
-            {
+        actions = {
+            // [F1] Ofis: aynı koşunun **canlı** okuma biçimi. Yalnız canlı
+            // koşuda çizilir — bitmiş bir koşu için "ofis" boş bir oda olurdu.
+            if (running && onOpenOffice != null) {
+                IconButton(onClick = onOpenOffice) {
+                    Icon(
+                        Icons.Outlined.Apartment,
+                        contentDescription = stringResource(R.string.office_open),
+                    )
+                }
+            }
+            if (running) {
                 IconButton(onClick = { stopAsked = true }) {
                     Icon(
                         Icons.Filled.Stop,
@@ -110,8 +128,6 @@ fun CouncilScreen(
                     )
                 }
             }
-        } else {
-            null
         },
     ) {
         // [37128 · A1] Onay istenir: iptal geri alınamaz (yarım koşu kaydedilir,
@@ -277,7 +293,7 @@ private fun TabStrip(selected: Int, onSelect: (Int) -> Unit) {
  * only recourse is to kill a run that is working fine.
  */
 @Composable
-private fun FloorTab(
+internal fun FloorTab(
     live: CouncilLiveRegistry.LiveRun?,
     onOpenMember: (String) -> Unit,
 ) {
@@ -292,6 +308,13 @@ private fun FloorTab(
         return
     }
     LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 640.dp)) {
+        // [F1] Tur gerekçesi Kat'ın başında: "neden hâlâ bitmedi" sorusu
+        // üye kartlarını okumadan cevaplanmalı. Aynı satır ofis şeridinde de
+        // çiziliyor (çağıran aynı composable) — tek cümle, iki yüzey.
+        val reason = live.roundReason
+        if (live.running && reason != null) {
+            item { RoundReasonLine(reason, Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) }
+        }
         items(live.members.values.toList()) { member ->
             Card(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
@@ -756,7 +779,7 @@ private fun CommsRoom(live: CouncilLiveRegistry.LiveRun?) {
  * göstermek olurdu — o satır olmadan kullanıcı kaydın bütün olduğunu sanır.
  */
 @Composable
-private fun TimelineRoom(live: CouncilLiveRegistry.LiveRun?) {
+internal fun TimelineRoom(live: CouncilLiveRegistry.LiveRun?) {
     val tl = live?.timeline ?: CouncilTimeline.State()
     var who by remember(live?.runId) { mutableStateOf<String?>(null) }
     var kind by remember(live?.runId) { mutableStateOf<String?>(null) }
@@ -976,4 +999,38 @@ private fun NeedsRoom(live: CouncilLiveRegistry.LiveRun?) {
             }
         }
     }
+}
+
+/**
+ * [F1 · .57] **Tur gerekçesi satırı** — tek uygulama, iki yüzey.
+ *
+ * Konsey panelinin Kat odası ve ofisin üst şeridi aynı cümleyi göstermek
+ * zorunda: "tur 3'e geçiliyor: C2, C3 · eşik %60". İki yerde ayrı cümle
+ * kurmak, iki farklı gerekçe metni demektir — bu depoda aynı sınıf hata
+ * birkaç kez yaşandı.
+ *
+ * Çekirdek (`RoundReason`) dil bilmez: makine anahtarı + sayı döner. Cümle
+ * burada kurulur, yani tek yerde.
+ */
+@Composable
+internal fun RoundReasonLine(reason: RoundReason.Next, modifier: Modifier = Modifier) {
+    val text = if (reason.hasOpen) {
+        stringResource(
+            R.string.office_reason_open,
+            reason.nextRound,
+            reason.attendees,
+            reason.open.joinToString(", ") { it.id },
+            reason.majorityPercent,
+        )
+    } else {
+        stringResource(R.string.office_reason_moving, reason.nextRound, reason.cellsChanged)
+    }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.tertiary,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier,
+    )
 }

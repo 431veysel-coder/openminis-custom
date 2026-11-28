@@ -57,6 +57,11 @@ object RoomContract {
                 "CouncilEvent.Started",
                 "CouncilEvent.RoundStarted",
                 "CouncilEvent.Positioned",
+                // [F1] Tur gerekçesi **Kat**'ın sorusuna aittir: "şu an ne
+                // oluyor, neden bitmiyor". Tüketicisi `RoundReasonLine`
+                // (Kat odasının başı + ofis şeridi) — aynı composable, iki
+                // yüzey, tek cümle.
+                "CouncilEvent.RoundAdvanced",
             ),
             claimsNot = "council_not_floor",
             fromRecord = false,
@@ -107,6 +112,7 @@ object RoomContract {
         "CouncilEvent.Canonicalized",
         "CouncilEvent.ConsensusReached",
         "CouncilEvent.StableRound",
+        "CouncilEvent.RoundAdvanced",
         "CouncilEvent.Synthesized",
         "CouncilEvent.Audited",
         "CouncilEvent.Finished",

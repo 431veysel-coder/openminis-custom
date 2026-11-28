@@ -86,6 +86,18 @@ object CouncilTimeline {
                 e.atMs, "", "consensus", e.cellsChanged.toString(),
             )
             is CouncilEvent.StableRound -> Line(e.atMs, "", "stable", e.streak.toString())
+            // [F1] Tur gerekçesi kayda da düşer: kullanıcı geçmiş bir koşuya
+            // baktığında "neden 3 tur sürdü" sorusunun cevabını bulmalı.
+            // Detay: açık iddia kimlikleri + eşik; cümle UI'da kurulur.
+            is CouncilEvent.RoundAdvanced -> Line(
+                e.atMs, "", "round_advanced",
+                buildString {
+                    append(e.reason.open.joinToString(",") { it.id })
+                    if (e.reason.open.isEmpty()) append("-")
+                    append(" · ")
+                    append(e.reason.majorityPercent)
+                },
+            )
             is CouncilEvent.Synthesized -> Line(e.atMs, "", "synthesized", e.chars.toString())
             is CouncilEvent.Audited -> Line(
                 e.atMs, "", if (e.passed) "audited_ok" else "audited_fail",

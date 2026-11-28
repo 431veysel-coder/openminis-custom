@@ -37,6 +37,13 @@ def check() -> list[str]:
         return [f"RoomContract yok: {CONTRACT.relative_to(ROOT)}"]
 
     src = CONTRACT.read_text(errors="ignore")
+    # [F1] Yorumlari ONCE sil. `.57`'de `feeds = listOf(...)` icine yazilan bir
+    # aciklama parantez iceriyordu ("Kat odasinin basi + ofis seridi") ve
+    # non-greedy `.*?` ilk `)`'de kesildi: olay kayitli oldugu halde kapi
+    # "hicbir odaya bagli degil" dedi. Yanlis kirmizi, "kapiyi kapat"
+    # refleksini besler — bu depoda defalarca yazildi.
+    src = re.sub(r"/\*.*?\*/", "", src, flags=re.S)
+    src = re.sub(r"//[^\n]*", "", src)
 
     # EVENT_TYPES listesi
     m = re.search(r"EVENT_TYPES[^=]*=\s*listOf\((.*?)\)", src, re.S)

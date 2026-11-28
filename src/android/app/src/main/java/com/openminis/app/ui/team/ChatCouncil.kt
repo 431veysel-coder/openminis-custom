@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.Apartment
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -71,6 +72,12 @@ fun ChatCouncilButton(
     chatRepository: ChatRepository,
     /** Live run screen for a run id. */
     onOpenRun: (String) -> Unit,
+    /**
+     * [F1 · .57] Sanal Ofis. Panelden **ayrı** hedef: `onOpenRun` raporu
+     * açar, bu canlı ofisi. İki ayrı simge, iki ayrı soru (§6.5).
+     * Varsayılan boş: ofis rotası olmayan çağrı yeri simgeyi çizmez.
+     */
+    onOpenOffice: ((String) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val runs by CouncilLiveRegistry.runs.collectAsState()
@@ -104,6 +111,19 @@ fun ChatCouncilButton(
         it.running && resolvedTeamId != null && it.teamId == resolvedTeamId
     }
     val presence = SessionCouncil.presence(resolvedTeamId, liveRun?.teamId)
+
+    // [F1] Ofis simgesi **yalnız canlı koşu varken** çizilir: koşu yokken ofis
+    // boş bir odadır ve kullanıcıyı oraya sokmak yanlış beklenti üretir.
+    // Konum: konsey simgesinin SOLUNDA — "durum" önce, "rapor" sonra.
+    if (liveRun != null && onOpenOffice != null) {
+        IconButton(onClick = { onOpenOffice.invoke(liveRun.runId) }) {
+            Icon(
+                imageVector = Icons.Outlined.Apartment,
+                contentDescription = stringResource(R.string.office_open),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
 
     IconButton(
         onClick = {

@@ -77,6 +77,14 @@ object CouncilLiveRegistry {
         val claims: List<ClaimLine> = emptyList(),
         val dissent: List<String> = emptyList(),
         /**
+         * [F1 · .57] Sıradaki tura geçme gerekçesi.
+         *
+         * `null` = ya ilk tur (henüz bir sebep yok) ya da koşu bitti. Ekranda
+         * bu ayrım **yazılır**: "tur 1/3" ile "tur 3'e geçiliyor" farklı
+         * cümlelerdir ve karıştırmak, olmayan bir sebep uydurmak olur.
+         */
+        val roundReason: RoundReason.Next? = null,
+        /**
          * [37051] The task board this run is writing to, keyed by task id.
          *
          * Held as a map rather than a list so a task that changes state updates in
@@ -367,6 +375,19 @@ object CouncilLiveRegistry {
                 },
                 tokensUsed = tokens,
             ))
+        }
+    }
+
+    /**
+     * [F1] Sıradaki turun gerekçesi. Yalnız **gerçekten** bir sonraki tur
+     * varsa çağrılır. Koşu bittiğinde alan **silinmez**: geçmiş bir koşuya
+     * bakan kullanıcı "neden o tur vardı" cevabını görebilmeli. Arayüz
+     * yalnız `running` iken bunu "sıradaki tur" diye çizer.
+     */
+    fun roundReason(runId: String, reason: RoundReason.Next) {
+        _runs.update { current ->
+            val run = current[runId] ?: return@update current
+            current + (runId to run.copy(roundReason = reason))
         }
     }
 

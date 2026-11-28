@@ -343,6 +343,18 @@ sealed class CouncilEvent {
         val tasks: List<TaskRequest> = emptyList(),
         val round: Int = 0,
     ) : CouncilEvent()
+    /**
+     * [F1 · .57] **Sıradaki tura neden geçiliyor.**
+     *
+     * Döngü durmadığına göre bir tur daha var; bu olay o turun gerekçesini
+     * taşır. Taşımadığında ekranda yalnız `tur 2/3` kalıyordu ve kullanıcı
+     * "neden bitmiyor" sorusunu cevaplayamıyordu.
+     *
+     * Karar **vermez** ([RoundReason] böyle yazıldı): karar `CouncilLoop`'ta,
+     * burada yalnız hangi iddianın açık kaldığı ve eşiğin ne olduğu yazılır.
+     */
+    data class RoundAdvanced(val reason: RoundReason.Next) : CouncilEvent()
+
     data class Canonicalized(val claims: Int, val dropped: Int) : CouncilEvent()
     data class ConsensusReached(val verdicts: List<ClaimVerdict>, val cellsChanged: Int) : CouncilEvent()
     data class StableRound(val streak: Int) : CouncilEvent()

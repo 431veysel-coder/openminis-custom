@@ -240,6 +240,13 @@ class CouncilLoop(
                 stop = CouncilStop.SETTLED_STABLE
                 break
             }
+            // [F1 · .57] Durmadık → bir tur daha var. **Sebebi** yazılmadan
+            // geçilen tur, kullanıcı için açıklamasız bekleyiştir: ekranda
+            // yalnız "tur 2/3" kalır ve "neden bitmiyor" cevapsız kalır.
+            // Gerekçe karar vermez; karar yukarıdaki üç `break`te verildi.
+            RoundReason.next(consensus, budget, round + 1, answered)?.let { why ->
+                emit(CouncilEvent.RoundAdvanced(why))
+            }
             // Tokens were spent up to here; the next round's check at the top of
             // the loop is what actually stops it, so a round is never left
             // half-written on the board.
