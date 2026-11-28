@@ -2527,6 +2527,9 @@
     <string name="termux_diag_warning">Not</string>
     <string name="termux_diag_ok_installed">Termux katmanı hazır</string>
     <string name="termux_diag_ok_not_installed">Cihaz hazır; katman henüz kurulmamış</string>
+    <string name="council_tl_live">Canlı · en yeni</string>
+    <string name="council_tl_as_of">%1$s itibarıyla</string>
+    <string name="council_tl_back_to_live">Canlıya dön</string>
     <string name="office_title">Ofis</string>
     <string name="office_tab_overview">Bakış</string>
     <string name="office_tab_floor">Kat</string>

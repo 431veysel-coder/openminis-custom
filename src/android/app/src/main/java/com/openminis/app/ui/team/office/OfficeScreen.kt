@@ -339,18 +339,28 @@ private fun OverviewTab(live: CouncilLiveRegistry.LiveRun, elapsedSec: Long) {
     }
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         itemsIndexed(members) { index, m ->
-            val waitingTurn = live.running && live.phase == CouncilLiveRegistry.Phase.POSITIONS &&
-                index >= waveSize && m.claim.isBlank() && m.tool == null
-            val (dot, label) = when {
-                m.absent -> MaterialTheme.colorScheme.error to
+            // [F2] Durum **tek kaynak**: `OfficeGrid.stateOf`. Kutu ile bu satır
+            // aynı üyeye iki farklı etiket verirse kullanıcı hangisine
+            // inanacağını bilemez.
+            val state = OfficeGrid.stateOf(
+                member = m,
+                waveIndex = index,
+                waveSize = live.waveSize,
+                roundActive = live.running && live.phase == CouncilLiveRegistry.Phase.POSITIONS,
+            )
+            val (dot, label) = when (state) {
+                OfficeGrid.State.ABSENT -> MaterialTheme.colorScheme.error to
                     stringResource(R.string.office_state_absent) +
                     if (m.absentWhy.isNotBlank()) " · ${m.absentWhy}" else ""
-                m.tool != null -> MaterialTheme.colorScheme.tertiary to
-                    stringResource(R.string.office_state_tool, m.tool!!)
-                waitingTurn -> MaterialTheme.colorScheme.outline to
+                OfficeGrid.State.TOOL -> MaterialTheme.colorScheme.tertiary to
+                    stringResource(R.string.office_state_tool, m.tool.orEmpty())
+                OfficeGrid.State.QUEUED -> MaterialTheme.colorScheme.outline to
                     stringResource(R.string.office_state_queued, (index / waveSize) + 1)
-                m.claim.isNotBlank() -> Color(0xFF34C759) to stringResource(R.string.office_state_answered)
-                else -> MaterialTheme.colorScheme.outline to stringResource(R.string.office_state_idle)
+                OfficeGrid.State.ANSWERED -> Color(0xFF34C759) to
+                    stringResource(R.string.office_state_answered)
+                OfficeGrid.State.IDLE -> MaterialTheme.colorScheme.outline to
+                    stringResource(R.string.office_state_idle)
+            }
             }
             Row(
                 modifier = Modifier

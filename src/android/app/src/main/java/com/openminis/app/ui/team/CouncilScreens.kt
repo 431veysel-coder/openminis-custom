@@ -1,5 +1,20 @@
 package com.openminis.app.ui.team
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import com.openminis.app.ui.team.office.OfficeGrid
 import com.openminis.app.agent.team.CouncilDigest
 import com.openminis.app.agent.team.RoundReason
 import com.openminis.app.agent.team.CouncilTimeline
@@ -307,62 +322,141 @@ internal fun FloorTab(
         }
         return
     }
-    LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 640.dp)) {
-        // [F1] Tur gerekçesi Kat'ın başında: "neden hâlâ bitmedi" sorusu
-        // üye kartlarını okumadan cevaplanmalı. Aynı satır ofis şeridinde de
-        // çiziliyor (çağıran aynı composable) — tek cümle, iki yüzey.
-        val reason = live.roundReason
-        if (live.running && reason != null) {
-            item { RoundReasonLine(reason, Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) }
+    // [F2 · .58] Liste değil **ızgara**: üye = kutu. Dikey kart listesi 5 üyede
+    // bir sütun demekti; ofis hissi için yerleşim şart. Sütun sayısı ve durum
+    // etiketi `OfficeGrid`'den (saf, testli) — burada yeniden hesaplanmaz.
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth().heightIn(max = 640.dp)) {
+        val availableDp = maxWidth.value.toInt()
+        val members = live.members.values.toList()
+        val cols = OfficeGrid.columns(availableDp, members.size).coerceAtLeast(1)
+        // Soru okları: `council → member` eşlemesi bir kez, O(soru).
+        val asksByMember = remember(live.questions) {
+            live.questions.groupBy { it.from.lowercase() }
         }
-        items(live.members.values.toList()) { member ->
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (member.absent) MaterialTheme.colorScheme.surfaceVariant
-                    else MaterialTheme.colorScheme.surface,
-                ),
-                onClick = { if (member.sessionId != null) onOpenMember(member.name) },
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(member.name, style = MaterialTheme.typography.titleSmall)
-                        Text(
-                            member.tool ?: if (member.absent) "yok" else "",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    if (member.role.isNotBlank()) {
-                        Text(
-                            member.role,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    if (member.claim.isNotBlank()) {
-                        Text(
-                            member.claim,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(top = 6.dp),
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    if (member.absent) {
-                        Text(
-                            stringResource(R.string.council_member_absent),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(top = 4.dp),
-                        )
-                    }
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(cols),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(OfficeGrid.GAP_DP.dp),
+            verticalArrangement = Arrangement.spacedBy(OfficeGrid.GAP_DP.dp),
+        ) {
+            val reason = live.roundReason
+            if (live.running && reason != null) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    RoundReasonLine(reason, Modifier.padding(bottom = 2.dp))
                 }
+            }
+            itemsIndexed(members) { index, member ->
+                val state = OfficeGrid.stateOf(
+                    member = member,
+                    waveIndex = index,
+                    waveSize = live.waveSize,
+                    roundActive = live.running &&
+                        live.phase == CouncilLiveRegistry.Phase.POSITIONS,
+                )
+                MemberBox(
+                    member = member,
+                    state = state,
+                    waveLabel = if (state == OfficeGrid.State.QUEUED) (index / live.waveSize) + 1 else 0,
+                    asks = asksByMember[member.name.lowercase()].orEmpty(),
+                    onClick = { if (member.sessionId != null) onOpenMember(member.name) },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * [F2] Tek üye kutusu.
+ *
+ * Kutu başına **en fazla 4 satır** (§6.4 kural 2): rol rozeti · ad · durum ·
+ * son cümle. Soru satırı durumun altına katlanır; ayrı satır açmak kuralı
+ * bozardı.
+ *
+ * "Gelmedi" **kesik çerçeve + soluk** ile ayrılır, "sırada" ise normal çerçeve:
+ * ikisi aynı görünürse kullanıcı çalışan bir koşuyu bozuk sanır.
+ */
+@Composable
+private fun MemberBox(
+    member: CouncilLiveRegistry.MemberLive,
+    state: OfficeGrid.State,
+    waveLabel: Int,
+    asks: List<CouncilLiveRegistry.QuestionLine>,
+    onClick: () -> Unit,
+) {
+    val (dot, label) = when (state) {
+        OfficeGrid.State.ABSENT -> MaterialTheme.colorScheme.error to
+            stringResource(R.string.office_state_absent) +
+            if (member.absentWhy.isNotBlank()) " · ${member.absentWhy}" else ""
+        OfficeGrid.State.TOOL -> MaterialTheme.colorScheme.tertiary to
+            stringResource(R.string.office_state_tool, member.tool.orEmpty())
+        OfficeGrid.State.QUEUED -> MaterialTheme.colorScheme.outline to
+            stringResource(R.string.office_state_queued, waveLabel)
+        OfficeGrid.State.ANSWERED -> Color(0xFF34C759) to stringResource(R.string.office_state_answered)
+        OfficeGrid.State.IDLE -> MaterialTheme.colorScheme.outline to
+            stringResource(R.string.office_state_idle)
+    }
+    val absent = state == OfficeGrid.State.ABSENT
+    Surface(
+        onClick = onClick,
+        enabled = member.sessionId != null,
+        shape = MaterialTheme.shapes.medium,
+        color = if (absent) MaterialTheme.colorScheme.surfaceVariant
+        else MaterialTheme.colorScheme.surface,
+        border = if (absent) {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        } else {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        },
+        modifier = Modifier.fillMaxWidth().alpha(if (absent) 0.6f else 1f),
+    ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(modifier = Modifier.size(8.dp).background(dot, CircleShape))
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    member.name,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (member.role.isNotBlank()) {
+                Text(
+                    member.role,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = dot,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            // Kime sordu: kutular arasında ok çizmek yerine kutuya yazılıyor.
+            // Çizim (canvas) test edilemez ve dar kutuya sığmaz; metin dürüst
+            // ve okunur. Sıra bilgisi kaybolmaz: kim kime sordu görünür.
+            asks.firstOrNull()?.let { q ->
+                Text(
+                    "\u2192 " + q.to + if (q.answer.isBlank()) "" else " \u2713",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (member.claim.isNotBlank()) {
+                Text(
+                    member.claim,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 4.dp),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }
@@ -787,9 +881,21 @@ internal fun TimelineRoom(live: CouncilLiveRegistry.LiveRun?) {
     val members = remember(tl) { CouncilTimeline.perMember(tl).keys.sorted() }
     val kinds = remember(tl) { CouncilTimeline.kinds(tl) }
 
-    val shown = remember(tl, who, kind) {
+    // [F2 · .58] **Zaman kaydırıcı**: koşuyu sarılabilir hâle getirir.
+    //
+    // `null` = canlı (en yeni satır). Bir değer = o ana kadarki durum. Kaydırıcı
+    // bir *filtre*dir, kayıt değiştirilmez: `tl.lines` dokunulmadan kalır, yalnız
+    // görünen küme daralır. Böylece canlıya dönmek tek dokunuş ve hiçbir veri
+    // kaybolmuyor.
+    var scrubMs by remember(live?.runId) { mutableStateOf<Long?>(null) }
+    val firstMs = tl.lines.firstOrNull()?.atMs ?: 0L
+    val lastMs = tl.lines.lastOrNull()?.atMs ?: 0L
+
+    val shown = remember(tl, who, kind, scrubMs) {
         tl.lines.filter { l ->
-            (who == null || l.who == who) && (kind == null || l.kind == kind)
+            (who == null || l.who == who) &&
+                (kind == null || l.kind == kind) &&
+                (scrubMs == null || l.atMs <= scrubMs!!)
         }
     }
 
@@ -815,6 +921,48 @@ internal fun TimelineRoom(live: CouncilLiveRegistry.LiveRun?) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             )
+        }
+
+        // [F2] Zaman şeridi. Yalnız **en az iki damga** varsa çizilir: tek
+        // satırlık kayıtta kaydırılacak bir şey yok, boş bir çubuk kullanıcıya
+        // "bozuk" görünür.
+        if (lastMs > firstMs) {
+            val pos = if (scrubMs == null) 1f else {
+                ((scrubMs!! - firstMs).toFloat() / (lastMs - firstMs).toFloat()).coerceIn(0f, 1f)
+            }
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = if (scrubMs == null) {
+                            stringResource(R.string.council_tl_live)
+                        } else {
+                            stringResource(R.string.council_tl_as_of, clock(scrubMs!!))
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (scrubMs == null) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (scrubMs != null) {
+                        TextButton(onClick = { scrubMs = null }) {
+                            Text(
+                                stringResource(R.string.council_tl_back_to_live),
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                    }
+                }
+                androidx.compose.material3.Slider(
+                    value = pos,
+                    onValueChange = { f ->
+                        val target = firstMs + ((lastMs - firstMs) * f).toLong()
+                        // Sona çekmek = canlıya dönmek: kullanıcı "en yeni"yi
+                        // istiyor, "son satırın damgasında donmuş" hâli değil.
+                        scrubMs = if (f >= 0.999f) null else target
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
 
         // Üye filtresi: yalnız konuşan üyeler (koşu düzeyi olaylar "who" boş).

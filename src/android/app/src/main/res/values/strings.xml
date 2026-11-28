@@ -3297,6 +3297,9 @@
     <string name="termux_diag_warning">Note</string>
     <string name="termux_diag_ok_installed">Termux layer ready</string>
     <string name="termux_diag_ok_not_installed">Device is ready; the layer is not installed yet</string>
+    <string name="council_tl_live">Live · newest first</string>
+    <string name="council_tl_as_of">As of %1$s</string>
+    <string name="council_tl_back_to_live">Back to live</string>
     <string name="office_title">Office</string>
     <string name="office_tab_overview">Overview</string>
     <string name="office_tab_floor">Floor</string>

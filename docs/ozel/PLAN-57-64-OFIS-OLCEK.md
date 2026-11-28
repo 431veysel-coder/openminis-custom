@@ -111,11 +111,13 @@ olarak göstermek. Bu, "sanal ofis"in gerçek karşılığı.
 1. **Zaman şeridi** (Kayıt odasının üstünde): çekince o anki durum görünür —
    kim konuşuyordu, hangi iddia yeni düştü, hangi araç çalışıyordu. Veri
    `CouncilTimeline` + `atMs`'ten türetilir; **yeni kayıt yok**.
-2. **Kat ızgarası**: üye = kutu. Durum rengi: konuşuyor / düşünüyor / araçta /
-   bekliyor / gelmedi. Son cümle tek satır kırpık, rol rozeti üstte.
-3. **Soru okları**: `İlişkiler` odasındaki "kim kime sordu" metni ızgaraya ok
-   olarak çizilir. **İki yerde iki cevap olmaz**: metin satırı kalır ama ızgara
-   asıl yüzey olur.
+2. **Kat ızgarası**: üye = kutu. Durum: araçta / sırada / cevap verdi /
+   bekliyor / gelmedi. **"Düşünüyor" yok** — hangi üyenin o an modelden yanıt
+   beklediği veride yok (İ4). Son cümle 2 satır kırpık, rol rozeti üstte.
+3. **Soru okları**: `İlişkiler` odasındaki "kim kime sordu" bilgisi kutuya
+   yazılır (`→ Bora ✓`). **Uygulamada karar:** tuval üzerine ok çizmek
+   dar kutuda okunmuyor ve test edilemiyor (ölçülemez konum); metin dürüst.
+   Sıra bilgisi kaybolmuyor: kim kime sordu görünür, cevap geldiyse ✓.
 4. **Gelmedi ≠ bekliyor**: `waveSize` yüzünden sırada olan üye "sırada" yazar,
    `absent` olan soluk/kesik çerçeveyle **"gelmedi"** ve tek kelime nedeni.
 
