@@ -281,6 +281,30 @@ private fun OfficeHeader(
     }
 }
 
+/**
+ * [§6.3] Durdurma onayı. Konsey panelindeki diyaloğun **aynısı** (aynı
+ * dizeler): iki ekranda iki farklı onay metni, aynı iş için iki farklı sonuç
+ * vaat etmek demektir.
+ */
+@Composable
+private fun StopConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.council_stop_title)) },
+        text = { Text(stringResource(R.string.council_stop_body)) },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = onConfirm) {
+                Text(stringResource(R.string.council_stop), color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+    )
+}
+
 private fun formatElapsed(sec: Long): String {
     val m = sec / 60
     val s = sec % 60
