@@ -41,7 +41,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.openminis.app.R
 import com.openminis.app.agent.team.CouncilLiveRegistry
-import com.openminis.app.agent.team.RoundReason
 import com.openminis.app.ui.team.FloorTab
 import com.openminis.app.ui.team.TimelineRoom
 import kotlinx.coroutines.delay
@@ -360,7 +359,6 @@ private fun OverviewTab(live: CouncilLiveRegistry.LiveRun, elapsedSec: Long) {
                     stringResource(R.string.office_state_answered)
                 OfficeGrid.State.IDLE -> MaterialTheme.colorScheme.outline to
                     stringResource(R.string.office_state_idle)
-            }
             }
             Row(
                 modifier = Modifier
