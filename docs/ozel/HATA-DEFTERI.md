@@ -292,10 +292,12 @@
 - **Neden hiçbir kapı görmedi:** Bu bir kapı sorunu değil, kapının *yanlış
   renk* vermesi. Kırmızı gördüğünde insan "kod bozuk" diye bakmaya başlıyor;
   birkaç kez yaşanınca kırmızı ciddiye alınmıyor.
-- **Düzeltme:** Gradle'a `--refresh-dependencies` yerine retry: depo
-  tanımına `mavenCentral()` yanında bir mirror, ya da iş adımına
-  `continue-on-error` **değil** 3 denemeli `retry` sarmalayıcı. Yeniden
-  koşum (re-run failed jobs) ilk çözüm.
+- **Düzeltme (`.58`'de tamamlandı):** iki savunma hattı —
+  (1) `settings.gradle.kts` → Google'ın Maven Central **aynası** önce denenir;
+  (2) `scripts/ci/gradle_retry.sh` → 429/5xx'te 3 deneme, kod hatasında hemen
+  düş. Sarmalayıcı **üç** Gradle adımına bağlandı (`compile`, `fork tests`,
+  `Assemble APK`). `.58` turunda APK derlemesi `reorderable-android:2.4.0`
+  için 429 aldı: sarmalayıcı o adımda yoktu, artık var.
 - **Kapı:** `scripts/ozel/ci-hata-ayir.py` — 429/5xx'i ayırt eder;
   çıkış 2 = "yeniden dene", 1 = "gerçekten bozuk"
 - **Kural:** "Kırmızı" iki anlama gelebiliyorsa (kod bozuk / ağ),

@@ -822,7 +822,11 @@ jobs:
           else
             TASK=":app:assembleGithubRelease"
           fi
-          ./gradlew $TASK --build-cache --parallel --stacktrace 2>&1 | tee -a "$LOG"
+          # [H-013] Bu adım da ağ hatasına açık: `.58` turunda
+          # `reorderable-android:2.4.0` Maven 429 aldı ve **APK derlemesi**
+          # düştü — kod sağlamdı. Sarmalayıcı 429/5xx'te 3 kez dener.
+          bash ../../scripts/ci/gradle_retry.sh "$LOG" \
+            ./gradlew $TASK --build-cache --parallel --stacktrace
 
       - name: Verify APK contents
         working-directory: src/android
